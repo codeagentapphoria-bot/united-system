@@ -1,0 +1,837 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/client"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  name          String
+  role          String         @default("admin")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  refreshTokens RefreshToken[]
+  sessions      Session[]
+  userRoles     UserRole[]
+
+  @@map("users")
+}
+
+model Subscriber {
+  id           String     @id(map: "subscribers_new_pkey") @default(dbgenerated("(gen_random_uuid())::text"))
+  type         PersonType
+  citizenId    String?    @unique(map: "subscribers_new_citizenId_key")
+  nonCitizenId String?    @unique(map: "subscribers_new_nonCitizenId_key")
+  password     String?
+  googleId     String?    @unique(map: "subscribers_new_googleId_key")
+  googleEmail  String?
+  createdAt    DateTime   @default(now()) @db.Timestamp(6)
+  updatedAt    DateTime   @default(now()) @updatedAt @db.Timestamp(6)
+
+  // Relations
+  citizen                     Citizen?                     @relation("CitizenSubscriber", fields: [citizenId], references: [id])
+  nonCitizen                  NonCitizen?                  @relation("NonCitizenSubscriber", fields: [nonCitizenId], references: [id])
+  refreshTokens               RefreshToken[]
+  sessions                    Session[]
+  Transaction                 Transaction[]
+  citizenRegistrationRequests CitizenRegistrationRequest[]
+
+  @@map("subscribers")
+}
+
+// Registration Workflow - tracks the review process for citizen self-registration
+// Links to Citizen record which stores all personal info and ID documents
+model CitizenRegistrationRequest {
+  id String @id @default(uuid())
+
+  // ─────────────────────────────────────────────────────────────
+  // WORKFLOW FIELDS
+  // ─────────────────────────────────────────────────────────────
+  status     RegistrationStatus @default(PENDING)
+  adminNotes String?
+  reviewedBy String?
+  reviewedAt DateTime?
+
+  // ─────────────────────────────────────────────────────────────
+  // CITIZEN LINK - Required for new registrations
+  // ─────────────────────────────────────────────────────────────
+  citizenId String @unique
+
+  // ─────────────────────────────────────────────────────────────
+  // SELFIE (kept for admin verification during review)
+  // ─────────────────────────────────────────────────────────────
+  selfieUrl String?
+
+  // ─────────────────────────────────────────────────────────────
+  // SUBMITTER LINK (who submitted this request)
+  // ─────────────────────────────────────────────────────────────
+  subscriberId String?
+  subscriber   Subscriber? @relation(fields: [subscriberId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ─────────────────────────────────────────────────────────────
+  // RELATIONS
+  // ─────────────────────────────────────────────────────────────
+  citizen Citizen? @relation(fields: [citizenId], references: [id])
+
+  @@index([status])
+  @@index([citizenId])
+  @@index([subscriberId])
+  @@map("citizen_registration_requests")
+}
+
+model NonCitizen {
+  id              String           @id @default(uuid())
+  firstName       String
+  middleName      String?
+  lastName        String
+  extensionName   String?
+  email           String?
+  phoneNumber     String           @unique
+  residentId      String?          @unique
+  residencyStatus String?
+  profilePicture  String?
+  birthDate       DateTime?
+  civilStatus     String?
+  sex             String?
+  residentAddress String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  status          SubscriberStatus @default(PENDING)
+  residencyType   ResidencyType?
+
+  // Relations
+  placeOfBirth PlaceOfBirth?
+  motherInfo   MotherInfo?
+  subscriber   Subscriber?   @relation("NonCitizenSubscriber")
+
+  @@index([createdAt])
+  @@index([status])
+  @@map("non_citizens")
+}
+
+model Citizen {
+  id                          String                      @id @default(uuid())
+  firstName                   String
+  middleName                  String?
+  lastName                    String
+  extensionName               String?
+  email                       String?
+  phoneNumber                 String?
+  citizenPicture              String?
+  birthDate                   DateTime
+  civilStatus                 String
+  sex                         String
+  username                    String?                     @unique
+  pin                         String?
+  residentId                  String?                     @unique
+  residencyStatus             CitizenStatus               @default(PENDING)
+  residencyApplicationRemarks String?
+  isResident                  Boolean                     @default(false)
+  isVoter                     Boolean                     @default(false)
+  proofOfIdentification       String?
+  address                     String?
+  isEmployed                  Boolean                     @default(false)
+  citizenship                 String?
+  acrNo                       String?
+  profession                  String?
+  height                      String?
+  weight                      String?
+  createdAt                   DateTime                    @default(now())
+  updatedAt                   DateTime                    @updatedAt
+  addressBarangay             String?
+  addressMunicipality         String?
+  addressPostalCode           String?
+  addressProvince             String?
+  addressRegion               String?
+  addressStreetAddress        String?
+  emergencyContactNumber      String?
+  emergencyContactPerson      String?
+  idType                      String?
+  idDocumentNumber            String?
+  spouseName                  String?
+  placeOfBirth                PlaceOfBirth[]
+  pwdBeneficiary              PWDBeneficiary?
+  seniorCitizenBeneficiary    SeniorCitizenBeneficiary?
+  soloParentBeneficiary       SoloParentBeneficiary?
+  studentBeneficiary          StudentBeneficiary?
+  subscriber                  Subscriber?                 @relation("CitizenSubscriber")
+  citizenRegistrationRequest  CitizenRegistrationRequest?
+
+  @@index([createdAt])
+  @@index([residencyStatus])
+  @@map("citizens")
+}
+
+model PlaceOfBirth {
+  id           String      @id @default(uuid())
+  region       String
+  province     String
+  municipality String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  citizenId    String?
+  nonCitizenId String?     @unique
+  citizen      Citizen?    @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  nonCitizen   NonCitizen? @relation(fields: [nonCitizenId], references: [id], onDelete: Cascade)
+
+  @@index([citizenId])
+  @@index([nonCitizenId])
+  @@map("place_of_birth")
+}
+
+model MotherInfo {
+  id           String     @id @default(uuid())
+  firstName    String?
+  middleName   String?
+  lastName     String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  nonCitizenId String     @unique
+  nonCitizen   NonCitizen @relation(fields: [nonCitizenId], references: [id], onDelete: Cascade)
+
+  @@map("mother_info")
+}
+
+model Service {
+  id                      String        @id @default(uuid())
+  code                    String        @unique
+  name                    String
+  description             String?
+  category                String?
+  icon                    String?
+  order                   Int           @default(0)
+  isActive                Boolean       @default(true)
+  requiresPayment         Boolean       @default(true)
+  defaultAmount           Decimal?
+  paymentStatuses         Json?
+  formFields              Json?
+  displayInSidebar        Boolean       @default(true)
+  displayInSubscriberTabs Boolean       @default(true)
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  appointmentDuration     Int?
+  requiresAppointment     Boolean       @default(false)
+  transactions            Transaction[]
+  taxProfiles             TaxProfile[]
+
+  @@index([isActive])
+  @@index([category])
+  @@map("services")
+}
+
+model AppointmentNote {
+  id            String              @id @default(uuid())
+  transactionId String
+  type          AppointmentNoteType
+  note          String
+  createdBy     String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  transaction   Transaction         @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([type])
+  @@map("appointment_notes")
+}
+
+model Transaction {
+  id                            String              @id @default(uuid())
+  subscriberId                  String
+  transactionId                 String              @unique
+  referenceNumber               String              @unique
+  paymentStatus                 String              @default("PENDING")
+  paymentAmount                 Decimal             @default(0)
+  transmitalNo                  String?
+  referenceNumberGeneratedAt    DateTime?
+  isResidentOfBorongan          Boolean             @default(false)
+  permitType                    String?
+  status                        String?
+  isPosted                      Boolean             @default(false)
+  validIdToPresent              String?
+  remarks                       String?
+  createdAt                     DateTime            @default(now())
+  updatedAt                     DateTime            @updatedAt
+  serviceId                     String
+  serviceData                   Json?
+  applicationDate               DateTime? // Date application was actually submitted
+  preferredAppointmentDate      DateTime?
+  scheduledAppointmentDate      DateTime?
+  appointmentStatus             AppointmentStatus?  @default(PENDING)
+  appointmentNotes              AppointmentNote[]
+  transactionNotes              TransactionNote[]
+  taxComputations               TaxComputation[]
+  exemptions                    Exemption[]
+  payments                      Payment[]
+  // Update request fields
+  updateRequestStatus           UpdateRequestStatus @default(NONE)
+  updateRequestDescription      String?
+  updateRequestedBy             UpdateRequestedBy?
+  pendingServiceData            Json?
+  adminUpdateRequestDescription String?
+  subscriber                    Subscriber          @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  service                       Service             @relation(fields: [serviceId], references: [id])
+
+  @@index([subscriberId])
+  @@index([serviceId])
+  @@index([paymentStatus])
+  @@index([status])
+  @@index([updateRequestStatus])
+  @@index([createdAt])
+  @@index([applicationDate])
+  @@map("transactions")
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  resource        String
+  action          PermissionAction
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model GovernmentProgram {
+  id                  String                    @id @default(uuid())
+  name                String
+  description         String?
+  type                GovernmentProgramType
+  isActive            Boolean                   @default(true)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  beneficiaryPrograms BeneficiaryProgramPivot[]
+
+  @@index([type])
+  @@index([isActive])
+  @@map("government_programs")
+}
+
+model SocialAmeliorationSetting {
+  id                        String                          @id @default(uuid())
+  type                      SocialAmeliorationSettingType
+  name                      String
+  description               String?
+  isActive                  Boolean                         @default(true)
+  createdAt                 DateTime                        @default(now())
+  updatedAt                 DateTime                        @updatedAt
+  pwdDisabilityTypes        PWDBeneficiary[]
+  seniorCitizenPensionTypes SeniorCitizenPensionTypePivot[]
+  soloParentCategories      SoloParentBeneficiary[]
+  studentGradeLevels        StudentBeneficiary[]
+
+  @@index([type])
+  @@index([isActive])
+  @@map("social_amelioration_settings")
+}
+
+model SeniorCitizenBeneficiary {
+  id              String                          @id @default(uuid())
+  citizenId       String                          @unique
+  status          BeneficiaryStatus               @default(ACTIVE)
+  remarks         String?
+  createdAt       DateTime                        @default(now())
+  updatedAt       DateTime                        @updatedAt
+  seniorCitizenId String                          @unique
+  citizen         Citizen                         @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  pensionTypes    SeniorCitizenPensionTypePivot[]
+
+  @@map("senior_citizen_beneficiaries")
+}
+
+model SeniorCitizenPensionTypePivot {
+  id            String                    @id @default(uuid())
+  beneficiaryId String
+  settingId     String
+  beneficiary   SeniorCitizenBeneficiary  @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  setting       SocialAmeliorationSetting @relation(fields: [settingId], references: [id], onDelete: Cascade)
+
+  @@unique([beneficiaryId, settingId])
+  @@map("senior_citizen_pension_type_pivots")
+}
+
+model PWDBeneficiary {
+  id                String                    @id @default(uuid())
+  citizenId         String                    @unique
+  disabilityLevel   String
+  monetaryAllowance Boolean                   @default(false)
+  assistedDevice    Boolean                   @default(false)
+  donorDevice       String?
+  status            BeneficiaryStatus         @default(ACTIVE)
+  remarks           String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  pwdId             String                    @unique
+  disabilityTypeId  String
+  citizen           Citizen                   @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  disabilityType    SocialAmeliorationSetting @relation(fields: [disabilityTypeId], references: [id])
+
+  @@map("pwd_beneficiaries")
+}
+
+model StudentBeneficiary {
+  id           String                    @id @default(uuid())
+  citizenId    String                    @unique
+  status       BeneficiaryStatus         @default(ACTIVE)
+  remarks      String?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  studentId    String                    @unique
+  gradeLevelId String
+  citizen      Citizen                   @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  gradeLevel   SocialAmeliorationSetting @relation(fields: [gradeLevelId], references: [id])
+
+  @@map("student_beneficiaries")
+}
+
+model SoloParentBeneficiary {
+  id           String                    @id @default(uuid())
+  citizenId    String                    @unique
+  status       BeneficiaryStatus         @default(ACTIVE)
+  remarks      String?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  soloParentId String                    @unique
+  categoryId   String
+  category     SocialAmeliorationSetting @relation(fields: [categoryId], references: [id])
+  citizen      Citizen                   @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+
+  @@map("solo_parent_beneficiaries")
+}
+
+model BeneficiaryProgramPivot {
+  id              String            @id @default(uuid())
+  beneficiaryType BeneficiaryType
+  beneficiaryId   String
+  programId       String
+  createdAt       DateTime          @default(now())
+  program         GovernmentProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([beneficiaryType, beneficiaryId, programId])
+  @@index([beneficiaryType, beneficiaryId])
+  @@index([programId])
+  @@map("beneficiary_program_pivots")
+}
+
+model RefreshToken {
+  id            String      @id @default(uuid())
+  userId        String?
+  subscriberId  String?
+  token         String
+  deviceInfo    String?
+  ipAddress     String?
+  userAgent     String?
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  revokedReason String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  subscriber    Subscriber? @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  user          User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions      Session[]
+
+  @@index([userId])
+  @@index([subscriberId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Session {
+  id             String       @id @default(uuid())
+  userId         String?
+  subscriberId   String?
+  refreshTokenId String
+  ipAddress      String?
+  userAgent      String?
+  deviceInfo     String?
+  lastActivityAt DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  expiresAt      DateTime
+  refreshToken   RefreshToken @relation(fields: [refreshTokenId], references: [id], onDelete: Cascade)
+  subscriber     Subscriber?  @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  user           User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([subscriberId])
+  @@index([refreshTokenId])
+  @@index([expiresAt])
+  @@index([lastActivityAt])
+  @@map("sessions")
+}
+
+enum AppointmentStatus {
+  PENDING
+  ACCEPTED
+  REQUESTED_UPDATE
+  DECLINED
+  CANCELLED
+}
+
+enum AppointmentNoteType {
+  GENERAL
+  DATE_CHANGE_REASON
+  FOLLOW_UP
+  INTERNAL
+}
+
+enum TransactionNoteSenderType {
+  ADMIN
+  SUBSCRIBER
+}
+
+enum UpdateRequestStatus {
+  NONE
+  PENDING_PORTAL
+  PENDING_ADMIN
+  APPROVED
+  REJECTED
+}
+
+enum UpdateRequestedBy {
+  PORTAL
+  ADMIN
+}
+
+model TransactionNote {
+  id            String                    @id @default(uuid())
+  transactionId String
+  message       String
+  senderType    TransactionNoteSenderType
+  senderId      String
+  isInternal    Boolean                   @default(false)
+  isRead        Boolean                   @default(false)
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  transaction   Transaction               @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([isRead])
+  @@index([senderType])
+  @@map("transaction_notes")
+}
+
+enum PersonType {
+  CITIZEN
+  SUBSCRIBER
+}
+
+enum SubscriberStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  BLOCKED
+}
+
+enum RegistrationStatus {
+  PENDING
+  UNDER_REVIEW
+  REQUIRES_RESUBMISSION
+  APPROVED
+  REJECTED
+}
+
+enum ResidencyType {
+  RESIDENT
+  NON_RESIDENT
+}
+
+enum PermissionAction {
+  READ
+  ALL
+}
+
+enum CitizenStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  REJECTED
+}
+
+enum BeneficiaryStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+enum GovernmentProgramType {
+  SENIOR_CITIZEN
+  PWD
+  STUDENT
+  SOLO_PARENT
+  ALL
+}
+
+enum SocialAmeliorationSettingType {
+  PENSION_TYPE
+  DISABILITY_TYPE
+  GRADE_LEVEL
+  SOLO_PARENT_CATEGORY
+}
+
+enum BeneficiaryType {
+  SENIOR_CITIZEN
+  PWD
+  STUDENT
+  SOLO_PARENT
+}
+
+enum TaxVersionStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ExemptionType {
+  SENIOR_CITIZEN
+  PWD
+  SOLO_PARENT
+  OTHER
+}
+
+enum ExemptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PaymentMethod {
+  CASH
+  CHECK
+  ONLINE
+  BANK_TRANSFER
+  GCASH
+  PAYMAYA
+  OTHER
+}
+
+model Address {
+  id            String   @id @default(uuid())
+  region        String
+  province      String
+  municipality  String
+  barangay      String
+  postalCode    String
+  streetAddress String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([region])
+  @@index([province])
+  @@index([municipality])
+  @@index([isActive])
+  @@map("addresses")
+}
+
+model OtpVerification {
+  id          String   @id @default(uuid())
+  phoneNumber String
+  code        String
+  expiresAt   DateTime
+  isUsed      Boolean  @default(false)
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(3)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([phoneNumber])
+  @@index([expiresAt])
+  @@index([isUsed])
+  @@map("otp_verifications")
+}
+
+model Faq {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([order])
+  @@map("faqs")
+}
+
+model EService {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  category    String?
+  icon        String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  requiresPayment Boolean @default(false)
+  defaultAmount    Decimal?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([category])
+  @@map("eservices")
+}
+
+model TaxProfile {
+  id        String              @id @default(uuid())
+  serviceId String
+  name      String
+  variant   String? // Residential, Commercial, etc.
+  isActive  Boolean             @default(true)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  service   Service             @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  versions  TaxProfileVersion[]
+
+  @@index([serviceId])
+  @@index([isActive])
+  @@map("tax_profiles")
+}
+
+model TaxProfileVersion {
+  id            String           @id @default(uuid())
+  taxProfileId  String
+  version       String // Semantic versioning: "1.0.0", "2.0.0"
+  effectiveFrom DateTime // When this version becomes active
+  effectiveTo   DateTime? // When this version is superseded (null = current)
+  status        TaxVersionStatus @default(DRAFT)
+  changeReason  String // Required: Why was this version created?
+  configuration Json // Full tax rule configuration
+  createdBy     String // User ID who created this version
+  createdAt     DateTime         @default(now())
+  taxProfile    TaxProfile       @relation(fields: [taxProfileId], references: [id], onDelete: Cascade)
+  computations  TaxComputation[]
+
+  @@unique([taxProfileId, version])
+  @@index([taxProfileId])
+  @@index([effectiveFrom, effectiveTo])
+  @@index([status])
+  @@map("tax_profile_versions")
+}
+
+model TaxComputation {
+  id                    String            @id @default(uuid())
+  transactionId         String
+  taxProfileVersionId   String
+  isActive              Boolean           @default(true) // Only one active per transaction
+  inputs                Json // Field values used
+  derivedValues         Json // Intermediate calculations
+  breakdown             Json // Step-by-step breakdown
+  totalTax              Decimal
+  adjustedTax           Decimal? // Final tax after adjustments
+  isReassessment        Boolean           @default(false)
+  reassessmentReason    String?
+  previousComputationId String? // FK to previous computation (for reassessments)
+  differenceAmount      Decimal? // newTax - oldTax (for reassessments)
+  exemptionsApplied     Json? // Array of applied exemption IDs
+  discountsApplied      Json? // Array of applied discount rule IDs
+  penaltiesApplied      Json? // Array of applied penalty rule IDs
+  computedAt            DateTime          @default(now())
+  computedBy            String? // Admin who triggered computation (if manual)
+  transaction           Transaction       @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  taxProfileVersion     TaxProfileVersion @relation(fields: [taxProfileVersionId], references: [id])
+  previousComputation   TaxComputation?   @relation("TaxComputationReassessment", fields: [previousComputationId], references: [id])
+  reassessments         TaxComputation[]  @relation("TaxComputationReassessment")
+  exemptions            Exemption[]
+  payments              Payment[]
+
+  @@index([transactionId, isActive])
+  @@index([taxProfileVersionId])
+  @@index([previousComputationId])
+  @@map("tax_computations")
+}
+
+model Exemption {
+  id                  String          @id @default(uuid())
+  transactionId       String
+  taxComputationId    String? // Nullable for pending exemptions
+  exemptionType       ExemptionType
+  status              ExemptionStatus @default(PENDING)
+  requestedBy         String // Subscriber ID
+  approvedBy          String? // User ID (nullable)
+  requestReason       String
+  rejectionReason     String?
+  supportingDocuments Json? // Array of file paths
+  exemptionAmount     Decimal? // Calculated on approval
+  approvedAt          DateTime?
+  rejectedAt          DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  transaction         Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  taxComputation      TaxComputation? @relation(fields: [taxComputationId], references: [id], onDelete: SetNull)
+
+  @@index([transactionId])
+  @@index([status])
+  @@index([taxComputationId])
+  @@map("exemptions")
+}
+
+model Payment {
+  id               String         @id @default(uuid())
+  transactionId    String
+  taxComputationId String
+  amount           Decimal
+  paymentMethod    PaymentMethod
+  paymentDate      DateTime       @default(now())
+  receivedBy       String // User ID
+  referenceNumber  String? // For check/online payments
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  transaction      Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  taxComputation   TaxComputation @relation(fields: [taxComputationId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([taxComputationId])
+  @@index([paymentDate])
+  @@map("payments")
+}

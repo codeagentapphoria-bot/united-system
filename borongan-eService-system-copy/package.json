@@ -1,0 +1,56 @@
+{
+  "name": "multysis-v2",
+  "version": "2.0.0",
+  "description": "Multysis application - monorepo",
+  "private": true,
+  "workspaces": [
+    "multysis-frontend",
+    "multysis-backend"
+  ],
+  "scripts": {
+    "setup": "bash scripts/setup/install-all.sh",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd multysis-frontend && npm run dev",
+    "dev:backend": "cd multysis-backend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:frontend": "cd multysis-frontend && npm run build",
+    "build:backend": "cd multysis-backend && npm run build",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:frontend": "cd multysis-frontend && npm test",
+    "test:backend": "cd multysis-backend && npm test",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:frontend": "cd multysis-frontend && npm run lint",
+    "lint:backend": "cd multysis-backend && npm run lint",
+    "clean": "bash scripts/setup/clean.sh",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "deploy:dev": "bash scripts/deploy/deploy-dev.sh",
+    "deploy:prod": "bash scripts/deploy/deploy-prod.sh",
+    "db:migrate": "cd multysis-backend && npm run db:migrate",
+    "db:seed": "cd multysis-backend && npm run db:seed",
+    "db:reset": "cd multysis-backend && npm run db:reset",
+    "validate:standards": "node scripts/validate-standards.js",
+    "validate:frontend": "cd multysis-frontend && npm run validate:standards"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/multysis-v2.git"
+  },
+  "keywords": [
+    "multysis",
+    "monorepo",
+    "react",
+    "nodejs"
+  ],
+  "author": "Apphorialabs",
+  "license": "MIT"
+}
+

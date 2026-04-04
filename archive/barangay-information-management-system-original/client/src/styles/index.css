@@ -1,0 +1,606 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+:root {
+    --background: 220 20% 97%;
+    --foreground: 220 15% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 15%;
+
+    --primary: 220 90% 56%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 220 90% 46%;
+
+    --secondary: 210 20% 92%;
+    --secondary-foreground: 220 15% 25%;
+
+    --muted: 210 20% 95%;
+    --muted-foreground: 220 10% 50%;
+
+    --accent: 35 85% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 220 90% 56%;
+
+    --success: 140 70% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 45 90% 55%;
+    --warning-foreground: 0 0% 100%;
+
+    --gradient-primary: hsl(220 90% 56%);
+    --gradient-secondary: linear-gradient(135deg, hsl(35 85% 55%), hsl(35 85% 65%));
+    --gradient-hero: linear-gradient(135deg, hsl(200 100% 35%) 0%, hsl(35 85% 55%) 100%);
+    
+    --shadow-sm: 0 2px 4px hsl(220 15% 15% / 0.05);
+    --shadow-md: 0 4px 12px hsl(220 15% 15% / 0.1);
+    --shadow-lg: 0 8px 25px hsl(220 15% 15% / 0.15);
+    --shadow-xl: 0 12px 40px hsl(220 15% 15% / 0.2);
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  /* React Select Custom Styles */
+  .react-select-container .react-select__control {
+    border-radius: 6px;
+    border: 1px solid hsl(var(--border));
+    background-color: hsl(var(--background));
+    min-height: 40px;
+    transition: all 0.2s ease;
+  }
+
+  .react-select-container .react-select__control:hover {
+    border-color: hsl(var(--primary));
+  }
+
+  .react-select-container .react-select__control--is-focused {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 1px hsl(var(--primary));
+  }
+
+  .react-select-container .react-select__menu {
+    border-radius: 6px;
+    border: 1px solid hsl(var(--border));
+    background-color: hsl(var(--background));
+    box-shadow: var(--shadow-md);
+    z-index: 50;
+  }
+
+  .react-select-container .react-select__option {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .react-select-container .react-select__option:hover {
+    background-color: hsl(var(--muted));
+  }
+
+  .react-select-container .react-select__option--is-focused {
+    background-color: hsl(var(--muted));
+  }
+
+  .react-select-container .react-select__option--is-selected {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  .react-select-container .react-select__single-value {
+    color: hsl(var(--foreground));
+  }
+
+  .react-select-container .react-select__placeholder {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .react-select-container .react-select__input-container {
+    color: hsl(var(--foreground));
+  }
+
+  .react-select-container .react-select__indicator-separator {
+    background-color: hsl(var(--border));
+  }
+
+  .react-select-container .react-select__indicator {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .react-select-container .react-select__indicator:hover {
+    color: hsl(var(--foreground));
+  }
+
+/* Chart Responsive Styles */
+.recharts-wrapper {
+  font-family: inherit;
+}
+
+.recharts-cartesian-axis-tick {
+  font-size: 12px;
+}
+
+.recharts-cartesian-axis-tick text {
+  fill: hsl(var(--muted-foreground));
+  font-size: 12px;
+}
+
+.recharts-cartesian-axis-tick text:hover {
+  fill: hsl(var(--foreground));
+}
+
+/* Improve label visibility on small screens */
+@media (max-width: 768px) {
+  .recharts-cartesian-axis-tick text {
+    font-size: 10px;
+  }
+  
+  .recharts-tooltip-wrapper {
+    font-size: 12px;
+  }
+
+  .recharts-pie-label-text {
+    font-size: 9px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .recharts-cartesian-axis-tick text {
+    font-size: 8px;
+  }
+  
+  .recharts-pie-label-text {
+    font-size: 8px;
+  }
+  
+  .recharts-tooltip-wrapper {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+}
+
+/* Ensure chart containers maintain aspect ratio */
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 250px;
+}
+
+/* Improve pie chart label positioning */
+.recharts-pie-label-text {
+  font-size: 11px;
+  font-weight: 600;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+}
+
+/* Better tooltip styling */
+.recharts-tooltip-wrapper {
+  background-color: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  box-shadow: var(--shadow-md);
+  padding: 8px 12px;
+  max-width: 300px;
+}
+
+.recharts-tooltip-item {
+  color: hsl(var(--foreground));
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Improve legend readability */
+.recharts-legend-item-text {
+  font-size: 12px;
+  color: hsl(var(--foreground));
+}
+
+/* Better grid lines */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: hsl(var(--border));
+  stroke-opacity: 0.3;
+}
+
+/* Enhanced bar chart styling */
+.recharts-bar-rectangle {
+  transition: opacity 0.2s ease;
+}
+
+.recharts-bar-rectangle:hover {
+  opacity: 0.8;
+}
+
+/* Enhanced area chart styling */
+.recharts-area-area {
+  transition: opacity 0.2s ease;
+}
+
+.recharts-area-area:hover {
+  opacity: 0.8;
+}
+
+/* Enhanced chart labels */
+.recharts-bar-label,
+.recharts-area-label {
+  font-weight: 600;
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+}
+
+/* Better legend styling */
+.recharts-legend-wrapper {
+  padding: 8px 0;
+}
+
+.recharts-legend-item {
+  margin-right: 16px;
+  margin-bottom: 4px;
+}
+
+.recharts-legend-item-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+}
+
+/* Enhanced axis styling */
+.recharts-cartesian-axis-tick text {
+  font-weight: 500;
+  transition: fill 0.2s ease;
+}
+
+.recharts-cartesian-axis-tick text:hover {
+  fill: hsl(var(--foreground));
+  font-weight: 600;
+}
+
+  /* PVC ID Card Print Styles */
+  @media print {
+    @page {
+      size: 54mm 85.6mm;
+      margin: 0;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    
+    .no-print {
+      display: none !important;
+    }
+    
+    .id-card-container {
+      width: 54mm !important;
+      height: 85.6mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      transform: none !important;
+      page-break-after: always;
+    }
+    
+    .id-card-front,
+    .id-card-back {
+      width: 54mm !important;
+      height: 85.6mm !important;
+      margin: 0 !important;
+      padding: 2mm !important;
+      page-break-after: always;
+    }
+    
+    .id-card-back {
+      page-break-before: always;
+    }
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom Animations */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 1s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.8s ease-out forwards;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  .animate-slide-down {
+    animation: slideDown 0.8s ease-out;
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradientShift 6s ease-in-out infinite;
+  }
+
+  .animate-gradient-smooth {
+    background-size: 200% 200%;
+    animation: gradientShiftSmooth 8s ease-in-out infinite;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .hover-lift {
+    transition: all 0.3s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .shadow-soft {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Sidebar specific utilities */
+  .sidebar-transition {
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .sidebar-hover {
+    transition: all 0.2s ease-in-out;
+  }
+
+  .sidebar-hover:hover {
+    transform: translateX(2px);
+  }
+
+  .sidebar-item {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sidebar-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    pointer-events: none;
+  }
+
+  .sidebar-item:hover::before {
+    opacity: 0.05;
+  }
+}
+
+/* Keyframe Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes gradientShiftSmooth {
+  0% {
+    background-position: 0% 50%;
+  }
+  25% {
+    background-position: 50% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  75% {
+    background-position: 50% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--foreground));
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles */
+.focus-visible:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Custom button variants */
+.btn-hero {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  color: white;
+  border: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Digital Barangay specific gradient */
+.text-gradient {
+  background: linear-gradient(135deg, #7dd3fc, #ffffff, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative;
+  z-index: 1;
+  will-change: auto;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  /* Ensure clean rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+

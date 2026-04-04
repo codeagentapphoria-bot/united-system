@@ -1,0 +1,600 @@
+-- =====================================================
+-- BIMS (Barangay Information Management System)
+-- Database Schema Documentation
+-- PostgreSQL with PostGIS Extension
+-- =====================================================
+
+-- Enable PostGIS extension for geospatial capabilities
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+-- =====================================================
+-- AUTHENTICATION & USER MANAGEMENT
+-- =====================================================
+
+----------------------------------------
+-- users - User Accounts and Authentication
+----------------------------------------
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    target_type VARCHAR(15) NOT NULL CHECK(target_type IN ('municipality', 'barangay')),
+    target_id VARCHAR(20) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'staff')),
+    picture_path TEXT,
+    last_login TIMESTAMP NULL,
+    failed_login_attempts INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    reset_token TEXT,
+    reset_token_expiry TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for performance
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_target ON users(target_type, target_id);
+CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX idx_users_active ON users(is_active);
+
+-- =====================================================
+-- GEOGRAPHIC HIERARCHY
+-- =====================================================
+
+----------------------------------------
+-- municipalities - Municipality Information
+----------------------------------------
+CREATE TABLE municipalities (
+    id SERIAL PRIMARY KEY,
+    municipality_name VARCHAR(50) NOT NULL UNIQUE,
+    municipality_code VARCHAR(8) NOT NULL,
+    gis_code VARCHAR(20),
+    region VARCHAR(20) NOT NULL,
+    province VARCHAR(50) NOT NULL,
+    description TEXT NOT NULL,
+    municipality_logo_path TEXT,
+    id_background_front_path TEXT,
+    id_background_back_path TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes
+CREATE INDEX idx_municipalities_gis_code ON municipalities(gis_code);
+CREATE INDEX idx_municipalities_code ON municipalities(municipality_code);
+CREATE INDEX idx_municipalities_region ON municipalities(region);
+CREATE INDEX idx_municipalities_province ON municipalities(province);
+
+----------------------------------------
+-- barangays - Barangay Information
+----------------------------------------
+CREATE TABLE barangays (
+    id SERIAL PRIMARY KEY,
+    municipality_id INTEGER NOT NULL,
+    barangay_name VARCHAR(50) NOT NULL UNIQUE,
+    barangay_code VARCHAR(20) NOT NULL,
+    barangay_logo_path TEXT,
+    certificate_background_path TEXT,
+    organizational_chart_path TEXT,
+    contact_number VARCHAR(50),
+    email VARCHAR(50),
+    gis_code VARCHAR(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (municipality_id) REFERENCES municipalities(id) ON DELETE CASCADE
+    -- Note: gis_code foreign key will be added after gis_barangay table is populated
+);
+
+-- Indexes
+CREATE INDEX idx_barangays_municipality ON barangays(municipality_id);
+CREATE INDEX idx_barangays_code ON barangays(barangay_code);
+CREATE INDEX idx_barangays_gis_code ON barangays(gis_code);
+
+----------------------------------------
+-- puroks - Purok/Sitio Information
+----------------------------------------
+CREATE TABLE puroks (
+    id SERIAL PRIMARY KEY,
+    barangay_id INTEGER NOT NULL,
+    purok_name VARCHAR(50) NOT NULL,
+    purok_leader VARCHAR(50), 
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (barangay_id) REFERENCES barangays(id) ON DELETE CASCADE
+);
+
+-- Indexes
+CREATE INDEX idx_puroks_barangay ON puroks(barangay_id);
+CREATE INDEX idx_puroks_name ON puroks(purok_name);
+
+-- =====================================================
+-- RESIDENT MANAGEMENT
+-- =====================================================
+
+----------------------------------------
+-- residents - Core Resident Information
+----------------------------------------
+CREATE TABLE residents (
+    id VARCHAR(20) PRIMARY KEY,
+    barangay_id INTEGER NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    middle_name VARCHAR(50),
+    suffix VARCHAR(10),
+    sex VARCHAR(10) NOT NULL CHECK (sex IN('male', 'female')),
+    civil_status VARCHAR(25) NOT NULL CHECK (civil_status IN ('single', 'married', 'widowed', 'separated', 'divorced', 'live_in')),
+    birthdate DATE NOT NULL,
+    birthplace TEXT NULL,
+    contact_number VARCHAR(50) NULL,
+    email VARCHAR(100) NULL,
+    occupation TEXT NULL,
+    monthly_income DECIMAL(10,2) NULL,
+    employment_status VARCHAR(20) CHECK (employment_status IN ('employed', 'unemployed', 'self-employed', 'student', 'retired', 'not_applicable')),
+    education_attainment VARCHAR(30) NULL,
+    resident_status VARCHAR(20) DEFAULT 'active' CHECK (resident_status IN ('active', 'deceased', 'moved_out', 'temporarily_away')),
+    picture_path TEXT NULL,
+    indigenous_person BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (barangay_id) REFERENCES barangays(id) ON DELETE CASCADE
+);
+
+-- Indexes for performance
+CREATE INDEX idx_residents_barangay ON residents(barangay_id);
+CREATE INDEX idx_residents_last_name ON residents(last_name);
+CREATE INDEX idx_residents_first_name ON residents(first_name);
+CREATE INDEX idx_residents_status ON residents(resident_status);
+CREATE INDEX idx_residents_birthdate ON residents(birthdate);
+CREATE INDEX idx_residents_search ON residents(barangay_id, last_name, first_name);
+
+----------------------------------------
+-- classification_types - Dynamic Classification Management
+----------------------------------------
+CREATE TABLE classification_types(
+    id SERIAL PRIMARY KEY,
+    municipality_id INTEGER NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    color VARCHAR(7) DEFAULT '#4CAF50',
+    details JSONB DEFAULT '[]'::JSONB,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (municipality_id) REFERENCES municipalities(id) ON DELETE CASCADE,
+    UNIQUE(municipality_id, name)
+);
+
+-- Indexes
+CREATE INDEX idx_classification_types_municipality ON classification_types(municipality_id);
+CREATE INDEX idx_classification_types_name ON classification_types(name);
+CREATE INDEX idx_classification_types_active ON classification_types(is_active);
+CREATE INDEX idx_classification_types_details ON classification_types USING GIN (details);
+
+----------------------------------------
+-- resident_classifications - Resident Categories
+----------------------------------------
+CREATE TABLE resident_classifications(
+    id SERIAL PRIMARY KEY,
+    resident_id VARCHAR(20),
+    classification_type VARCHAR(50) NOT NULL,
+    classification_details JSONB DEFAULT '[]'::JSONB,
+    FOREIGN KEY (resident_id) REFERENCES residents(id) ON DELETE CASCADE
+);
+
+-- Indexes
+CREATE INDEX idx_resident_classifications_resident ON resident_classifications(resident_id);
+CREATE INDEX idx_resident_classifications_type ON resident_classifications(classification_type);
+CREATE INDEX idx_resident_classifications_details ON resident_classifications USING GIN (classification_details);
+
+----------------------------------------
+-- resident_counters - Resident ID Generation
+----------------------------------------
+CREATE TABLE resident_counters (
+    year INT PRIMARY KEY,
+    counter INT NOT NULL DEFAULT 0,
+    prefix CHAR(4) NOT NULL
+);
+
+-- =====================================================
+-- OFFICIAL MANAGEMENT
+-- =====================================================
+
+----------------------------------------
+-- officials - Barangay Officials
+----------------------------------------
+CREATE TABLE officials (
+    id SERIAL PRIMARY KEY,
+    barangay_id INTEGER NOT NULL,
+    resident_id VARCHAR(20) NOT NULL,
+    position VARCHAR(100) NOT NULL,
+    committee VARCHAR(50),
+    term_start DATE NOT NULL,
+    term_end DATE,
+    responsibilities TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (resident_id) REFERENCES residents(id) ON DELETE CASCADE,
+    FOREIGN KEY (barangay_id) REFERENCES barangays(id) ON DELETE CASCADE
+);
+
+-- Indexes
+CREATE INDEX idx_officials_barangay ON officials(barangay_id);
+CREATE INDEX idx_officials_resident ON officials(resident_id);
+CREATE INDEX idx_officials_position ON officials(position);
+CREATE INDEX idx_officials_term ON officials(term_start, term_end);
+
+-- =====================================================
+-- HOUSEHOLD MANAGEMENT
+-- =====================================================
+
+----------------------------------------
+-- households - Household Information
+----------------------------------------
+CREATE TABLE households (
+    id SERIAL PRIMARY KEY,
+    house_number VARCHAR(10),
+    street VARCHAR(50),
+    purok_id INTEGER NOT NULL,
+    barangay_id INTEGER NOT NULL,
+    house_head VARCHAR(20) NOT NULL,
+    housing_type VARCHAR(30),
+    structure_type VARCHAR(30),
+    electricity BOOLEAN DEFAULT FALSE,
+    water_source VARCHAR(30),
+    toilet_facility VARCHAR(30),
+    geom GEOMETRY(GEOMETRY, 4326),
+    area NUMERIC(10,2),
+    household_image_path TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (purok_id) REFERENCES puroks(id) ON DELETE CASCADE,
+    FOREIGN KEY (barangay_id) REFERENCES barangays(id) ON DELETE CASCADE,
+    FOREIGN KEY (house_head) REFERENCES residents(id) ON DELETE CASCADE
+);
+
+-- Indexes
+CREATE INDEX idx_households_barangay ON households(barangay_id);
+CREATE INDEX idx_households_purok ON households(purok_id);
+CREATE INDEX idx_households_head ON households(house_head);
+CREATE INDEX idx_households_geom ON households USING GIST (geom);
+
+----------------------------------------
+-- families - Family Units within Households
+----------------------------------------
+CREATE TABLE families (
+    id SERIAL PRIMARY KEY,
+    household_id INTEGER NOT NULL,
+    family_group VARCHAR(20) NOT NULL,
+    family_head VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (family_head) REFERENCES residents(id) ON DELETE CASCADE,
+    FOREIGN KEY (household_id) REFERENCES households(id) ON DELETE CASCADE
+);
+
+-- Indexes
+CREATE INDEX idx_families_household ON families(household_id);
+CREATE INDEX idx_families_head ON families(family_head);
+
+----------------------------------------
+-- family_members - Family Composition
+----------------------------------------
+CREATE TABLE family_members (
+    id SERIAL PRIMARY KEY,
+    family_id INTEGER NOT NULL,
+    family_member VARCHAR(20) NOT NULL,
+    relationship_to_head VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (family_member) REFERENCES residents(id) ON DELETE CASCADE,
+    FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE CASCADE
+);
+
+-- Indexes
+CREATE INDEX idx_family_members_family ON family_members(family_id);
+CREATE INDEX idx_family_members_member ON family_members(family_member);
+
+-- =====================================================
+-- ADMINISTRATIVE MANAGEMENT
+-- =====================================================
+
+----------------------------------------
+-- archives - Document Archives
+----------------------------------------
+CREATE TABLE archives (
+    id SERIAL PRIMARY KEY,
+    barangay_id INTEGER NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    document_type VARCHAR(50),
+    description TEXT NOT NULL,
+    author VARCHAR(50),
+    signatory VARCHAR(50),
+    relate_resident VARCHAR(20),
+    file_path TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (barangay_id) REFERENCES barangays(id) ON DELETE CASCADE
+);
+
+-- Indexes
+CREATE INDEX idx_archives_barangay ON archives(barangay_id);
+CREATE INDEX idx_archives_type ON archives(document_type);
+CREATE INDEX idx_archives_created ON archives(created_at);
+
+----------------------------------------
+-- inventories - Inventory Management
+----------------------------------------
+CREATE TABLE inventories (
+    id SERIAL PRIMARY KEY,
+    barangay_id INTEGER NOT NULL,
+    item_name VARCHAR(255) NOT NULL,
+    item_type VARCHAR(50) NOT NULL,
+    description TEXT NOT NULL,
+    sponsors VARCHAR(50),
+    quantity INTEGER NOT NULL DEFAULT 0,
+    unit VARCHAR(20),
+    file_path TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (barangay_id) REFERENCES barangays(id) ON DELETE CASCADE
+);
+
+-- Indexes
+CREATE INDEX idx_inventories_barangay ON inventories(barangay_id);
+CREATE INDEX idx_inventories_type ON inventories(item_type);
+CREATE INDEX idx_inventories_name ON inventories(item_name);
+
+-- =====================================================
+-- PET MANAGEMENT
+-- =====================================================
+
+----------------------------------------
+-- pets - Pet Registration
+----------------------------------------
+CREATE TABLE pets (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() UNIQUE NOT NULL,
+    owner_id VARCHAR(20) NOT NULL,
+    pet_name VARCHAR(50) NOT NULL,
+    species VARCHAR(50) NOT NULL,
+    breed VARCHAR(50) NOT NULL,
+    sex VARCHAR(10) NOT NULL CHECK (sex IN ('male', 'female')),
+    birthdate DATE NOT NULL,
+    color VARCHAR(20) NOT NULL,
+    picture_path TEXT,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (owner_id) REFERENCES residents(id) ON DELETE CASCADE
+);
+
+-- Indexes
+CREATE INDEX idx_pets_owner ON pets(owner_id);
+CREATE INDEX idx_pets_species ON pets(species);
+CREATE INDEX idx_pets_breed ON pets(breed);
+CREATE UNIQUE INDEX idx_pets_uuid ON pets(uuid);
+
+----------------------------------------
+-- vaccines - Vaccination Records
+----------------------------------------
+CREATE TABLE vaccines(
+    id SERIAL PRIMARY KEY,
+    target_type VARCHAR(10) NOT NULL CHECK (target_type IN ('pet', 'resident')),
+    target_id VARCHAR(20) NOT NULL,
+    vaccine_name VARCHAR(100) NOT NULL,
+    vaccine_type VARCHAR(100) NULL, -- Updated from VARCHAR(50) to accommodate longer vaccine type names
+    vaccine_description TEXT NULL,
+    vaccination_date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes
+CREATE INDEX idx_vaccines_target ON vaccines(target_type, target_id);
+CREATE INDEX idx_vaccines_date ON vaccines(vaccination_date);
+CREATE INDEX idx_vaccines_name ON vaccines(vaccine_name);
+
+-- =====================================================
+-- SERVICE REQUESTS
+-- =====================================================
+
+----------------------------------------
+-- requests - Service Requests and Certificates
+----------------------------------------
+CREATE TABLE requests (
+    id SERIAL PRIMARY KEY,
+    uuid UUID DEFAULT gen_random_uuid() UNIQUE NOT NULL,
+    resident_id VARCHAR(20) NULL,
+    full_name VARCHAR(200) NULL,
+    contact_number VARCHAR(50) NULL,
+    email VARCHAR(50) NULL,
+    address TEXT NULL,
+    barangay_id INTEGER NOT NULL,
+    type VARCHAR(50) NOT NULL CHECK (type IN ('certificate', 'appointment')),
+    status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'completed')),
+    certificate_type VARCHAR(100),
+    urgency VARCHAR(50) DEFAULT 'normal' CHECK (urgency IN ('normal', 'urgent', 'express')),
+    purpose TEXT NOT NULL,
+    requirements JSONB,
+    appointment_with VARCHAR(255),
+    appointment_date DATE,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (resident_id) REFERENCES residents(id) ON DELETE SET NULL
+);
+
+-- Indexes
+CREATE INDEX idx_requests_barangay ON requests(barangay_id);
+CREATE INDEX idx_requests_resident ON requests(resident_id);
+CREATE INDEX idx_requests_status ON requests(status);
+CREATE INDEX idx_requests_type ON requests(type);
+CREATE INDEX idx_requests_created ON requests(created_at);
+CREATE INDEX idx_requests_requirements ON requests USING GIN (requirements);
+CREATE UNIQUE INDEX idx_requests_uuid ON requests(uuid);
+
+-- =====================================================
+-- GEOSPATIAL DATA (GIS)
+-- =====================================================
+
+----------------------------------------
+-- gis_barangay - Barangay Geographic Data
+----------------------------------------
+CREATE TABLE IF NOT EXISTS gis_barangay (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50),
+    gis_barangay_code VARCHAR(20),
+    gis_municipality_code VARCHAR(20),
+    geom GEOMETRY(GEOMETRY, 4326),
+    shape_sqkm NUMERIC(23, 15)
+);
+
+-- Spatial index
+CREATE INDEX idx_gis_barangay_geom ON gis_barangay USING GIST (geom);
+CREATE INDEX idx_gis_barangay_code ON gis_barangay(gis_barangay_code);
+
+----------------------------------------
+-- gis_municipality - Municipality Geographic Data
+----------------------------------------
+CREATE TABLE IF NOT EXISTS gis_municipality (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50),
+    gis_municipality_code VARCHAR(20),
+    geom GEOMETRY(GEOMETRY, 4326),
+    shape_sqkm NUMERIC(23, 15)
+);
+
+-- Spatial index
+CREATE INDEX idx_gis_municipality_geom ON gis_municipality USING GIST (geom);
+CREATE INDEX idx_gis_municipality_code ON gis_municipality(gis_municipality_code);
+
+-- =====================================================
+-- TRIGGERS AND FUNCTIONS
+-- =====================================================
+
+-- Function to automatically update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Apply updated_at triggers to all relevant tables
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_municipalities_updated_at BEFORE UPDATE ON municipalities
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_barangays_updated_at BEFORE UPDATE ON barangays
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_puroks_updated_at BEFORE UPDATE ON puroks
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_residents_updated_at BEFORE UPDATE ON residents
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_officials_updated_at BEFORE UPDATE ON officials
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_households_updated_at BEFORE UPDATE ON households
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_families_updated_at BEFORE UPDATE ON families
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_family_members_updated_at BEFORE UPDATE ON family_members
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_archives_updated_at BEFORE UPDATE ON archives
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_inventories_updated_at BEFORE UPDATE ON inventories
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_pets_updated_at BEFORE UPDATE ON pets
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_vaccines_updated_at BEFORE UPDATE ON vaccines
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_requests_updated_at BEFORE UPDATE ON requests
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_classification_types_updated_at BEFORE UPDATE ON classification_types
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- DATA VALIDATION AND CONSTRAINTS
+-- =====================================================
+
+-- Dynamic Classification System:
+-- The system now supports dynamic classification types stored in classification_types table
+-- Each classification type can have custom form fields defined in the details JSONB column
+-- 
+-- Classification details structure examples (stored in classification_types.details):
+--     student: education level | grade level | remarks
+--     college student: college level | course | remarks
+--     farmer: status 'land owner or rental' | type of farmer | remarks
+--     pwd: type of disability | remarks
+--     4ps: remarks
+--     tricycle driver: status 'rental or owner' | plate number | remarks
+--     fisherfolk: status 'boat owners or passenger or rental' | type of fisherfolks | remarks
+--     senior citizen: remarks
+--     voter: type of voter 'regular or sk' | remarks
+--     business owner: type of business | business permit | remarks
+--     pregnant: remarks
+--     indigenous person: remarks
+--     solo parent: remarks
+--     ofw: remarks
+--     unemployed: remarks
+--     government employee: remarks
+--     private employee: remarks
+--     self employed: remarks
+--     retired: remarks
+--     housewife: remarks
+
+-- Housing type options:
+--     housing_type: owned | rented | shared | caretaker
+
+-- Structure type options:
+--     structure type: concrete | wood | bamboo | mixed | other
+
+-- Document type options:
+--     document_type: minutes | certificates | reports | ordinances | letters | resolutions | forms | policies | lupons | deaths | others
+
+-- Item type options:
+--     item_type: office supplies | equipments | furnitures | maintenance | medicals | sports | events | others
+
+-- =====================================================
+-- PERFORMANCE OPTIMIZATION NOTES
+-- =====================================================
+
+-- 1. All foreign key columns are indexed for better join performance
+-- 2. Spatial indexes are created on geometry columns for GIS queries
+-- 3. Composite indexes are created for common search patterns
+-- 4. JSONB columns use GIN indexes for efficient JSON operations
+-- 5. Automatic timestamp triggers ensure data consistency
+-- 6. Check constraints ensure data integrity at the database level
+
+-- =====================================================
+-- SECURITY CONSIDERATIONS
+-- =====================================================
+
+-- 1. Passwords should be hashed using bcrypt before storage
+-- 2. JWT tokens should be used for authentication
+-- 3. Input validation should be implemented at application level
+-- 4. SQL injection prevention through parameterized queries
+-- 5. Role-based access control implemented through user roles
+-- 6. Audit logging should be implemented for sensitive operations
+-- 7. Request tracking uses UUID for public endpoints to prevent enumeration attacks
+--    - Internal operations use SERIAL id for performance
+--    - Public tracking endpoints use uuid for security
+-- 8. Pet lookup uses UUID for public search to prevent enumeration attacks
+--    - Internal operations use SERIAL id for performance
+--    - Public search endpoints use uuid only, pet name search removed for security

@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light Mode Colors */
+    --background: 0 0% 100%;
+    --foreground: 210 11% 32%;  /* Based on #4d5258 */
+    
+    --card: 0 0% 100%;
+    --card-foreground: 210 11% 32%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 11% 32%;
+    
+    /* Primary - Brand Blue-Gray (#4c6085) */
+    --primary: 216 28% 41%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary - Indigo */
+    --secondary: 243.4 75.4% 62.4%;
+    --secondary-foreground: 0 0% 98%;
+    
+    /* Muted - Gray */
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 214 32% 75%;  /* Lighter placeholder text */
+    
+    /* Accent - Cyan */
+    --accent: 186.6 93.5% 54.5%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    
+    /* Destructive - Red */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    
+    /* Success - Green */
+    --success: 142.1 76.2% 36.3%;
+    --success-foreground: 0 0% 98%;
+    
+    /* Warning - Amber */
+    --warning: 37.7 92.1% 50.2%;
+    --warning-foreground: 26 83.3% 14.1%;
+    
+    /* Border & Input */
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 217.2 91.2% 59.8%;
+    
+    /* Chart Colors */
+    --chart-1: 217.2 91.2% 59.8%;
+    --chart-2: 186.6 93.5% 54.5%;
+    --chart-3: 142.1 76.2% 36.3%;
+    --chart-4: 37.7 92.1% 50.2%;
+    --chart-5: 243.4 75.4% 62.4%;
+    
+    /* Border Radius */
+    --radius: 0.5rem;
+  }
+  
+  .dark {
+    /* Dark Mode Colors */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    
+    /* Primary - Blue (Lighter in dark mode) */
+    --primary: 217.2 91.2% 69.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    
+    /* Secondary - Indigo (Lighter in dark mode) */
+    --secondary: 243.4 75.4% 72.4%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    
+    /* Muted - Gray */
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    
+    /* Accent - Cyan (Lighter in dark mode) */
+    --accent: 186.6 93.5% 64.5%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    
+    /* Destructive - Red (Adjusted for dark) */
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 210 40% 98%;
+    
+    /* Success - Green (Adjusted for dark) */
+    --success: 142.1 70.6% 45.3%;
+    --success-foreground: 210 40% 98%;
+    
+    /* Warning - Amber (Adjusted for dark) */
+    --warning: 37.7 92.1% 60.2%;
+    --warning-foreground: 222.2 47.4% 11.2%;
+    
+    /* Border & Input */
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 217.2 91.2% 69.8%;
+    
+    /* Chart Colors (Lighter for dark mode) */
+    --chart-1: 217.2 91.2% 69.8%;
+    --chart-2: 186.6 93.5% 64.5%;
+    --chart-3: 142.1 70.6% 45.3%;
+    --chart-4: 37.7 92.1% 60.2%;
+    --chart-5: 243.4 75.4% 72.4%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Poppins', sans-serif;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: #000 !important;
+    opacity: 0.2 !important;
+  }
+  input::-webkit-input-placeholder,
+  textarea::-webkit-input-placeholder {
+    color: #000 !important;
+    opacity: 0.2 !important;
+  }
+  input::-moz-placeholder,
+  textarea::-moz-placeholder {
+    color: #000 !important;
+    opacity: 0.2 !important;
+  }
+}

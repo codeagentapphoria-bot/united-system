@@ -1,0 +1,52 @@
+{
+  "dependencies": {
+    "concurrently": "^9.2.0",
+    "nodemon": "^3.1.10"
+  },
+  "devDependencies": {
+    "glob": "^10.3.10",
+    "jscodeshift": "^0.15.1"
+  },
+  "name": "bims",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "npm install --prefix client && npm install --prefix server",
+    "frontend": "npm run dev --prefix client",
+    "backend": "npm run dev --prefix server",
+    "dev": "concurrently \"cd client && npm run dev\" \"cd server && npm run dev\"",
+    "dev:stop": "pkill -f 'npm run dev' && pkill -f 'node server.js'",
+    "dev:status": "echo 'Development servers status:' && ps aux | grep -E '(npm run dev|node server.js)' | grep -v grep || echo 'No development servers running'",
+    "dev:logs": "echo 'Development servers are running in foreground. Check terminal output.'",
+    "dev:alt": "concurrently \"cd client && npm run dev\" \"cd server && npm run dev\"",
+    "dev:simple": "concurrently \"cd client && npm run dev\" \"cd server && npm run dev\"",
+    "start": "npm run build --prefix client && npm start --prefix server",
+    "build": "npm run build --prefix client",
+    "deploy": "./scripts/deploy.sh",
+    "setup:server": "./scripts/setup.sh",
+    "deploy:manual": "npm run build && cd server && NODE_ENV=production npm run db:migrate && pm2 start ecosystem.config.js --env production",
+    "pm2:start": "cd server && pm2 start ecosystem.config.js --env production",
+    "pm2:stop": "cd server && pm2 stop bims-backend",
+    "pm2:restart": "cd server && pm2 restart bims-backend",
+    "pm2:logs": "cd server && pm2 logs bims-backend",
+    "pm2:status": "cd server && pm2 status",
+    "db:migrate": "cd server && npm run db:migrate",
+    "db:seed": "cd server && npm run db:seed",
+    "db:convert-geojson": "cd server && npm run db:convert-geojson",
+    "db:import-gis": "cd server && npm run db:import-gis",
+    "db:optimize": "cd server && npm run db:optimize",
+    "redis:test": "npm run redis:test --prefix server",
+    "remove-console-logs": "node scripts/remove-console-logs.js",
+    "wrap-console-logs": "node scripts/wrap-console-logs.js",
+    "setup": "npm run install-all && npm run db:migrate && echo 'Setup completed! Run npm run dev to start development servers.'",
+    "backup-env": "./scripts/backup-env.sh",
+    "fix-mixed-content": "./scripts/fix-mixed-content.sh",
+    "setup:safe": "npm run backup-env && npm run setup",
+    "deploy:safe": "npm run backup-env && npm run deploy",
+    "db:initialize": "bash ./scripts/init-main-db.sh"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

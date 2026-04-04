@@ -1,0 +1,385 @@
+# Multysis v2 Coding Standards - Cursor AI Rules
+
+## 🎯 MANDATORY STANDARDS - ALWAYS FOLLOW
+
+### Core Tech Stack (ESTABLISHED)
+- **React 19** with TypeScript - Latest React version
+- **React Router v6** - Client-side routing
+- **Tailwind CSS** - Utility-first CSS framework
+- **Vite** - Fast build tool (Note: rolldown-vite has React 19 compatibility issues)
+
+### React Hook Form + Zod (MANDATORY)
+- **ALWAYS** use React Hook Form for all form handling
+- **ALWAYS** use Zod for validation schemas
+- **ALWAYS** use `@hookform/resolvers/zod` for integration
+- **NEVER** use uncontrolled forms or manual validation
+
+### React Select (MANDATORY)
+- **ALWAYS** use React Select for dropdown/select components
+- **NEVER** use native HTML select elements
+- **ALWAYS** provide proper styling and theming
+
+### ShadCN UI (MANDATORY)
+- **ALWAYS** use ShadCN UI components for consistent design
+- **NEVER** create custom components that duplicate ShadCN functionality
+- **ALWAYS** use the established component variants and props
+- **ALWAYS** follow ShadCN theming and styling patterns
+
+### Authentication Patterns (ESTABLISHED)
+- **Portal Login**: Phone number authentication (09XXXXXXXXX format)
+- **Admin Login**: Email authentication (Note: Currently converts email to phoneNumber for API compatibility)
+- **This difference is intentional and should be maintained**
+
+### Phone Number Validation (ESTABLISHED)
+- **Philippine format**: `09XXXXXXXXX` or `+639XXXXXXXXX`
+- **Real-time validation** with user-friendly error messages
+- **Consistent across all forms** requiring phone numbers
+
+### Password Requirements (ESTABLISHED)
+- **Minimum 8 characters**
+- **At least one uppercase letter**
+- **At least one lowercase letter**
+- **At least one number**
+- **Password confirmation matching** for signup forms
+
+## 🏗️ Component Standards
+
+### Component Definition Pattern (MANDATORY)
+```typescript
+// ✅ ALWAYS use this pattern
+interface ComponentProps {
+  title: string;
+  onSubmit: (data: FormData) => void;
+  isLoading?: boolean;
+}
+
+export const ComponentName: React.FC<ComponentProps> = ({
+  title,
+  onSubmit,
+  isLoading = false,
+}) => {
+  // Component implementation
+};
+```
+
+### Import Organization (MANDATORY)
+```typescript
+// ✅ ALWAYS follow this exact order
+// 1. React imports
+import React from 'react';
+
+// 2. Third-party libraries
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import Select from 'react-select';
+import { useNavigate } from 'react-router-dom';
+
+// 3. UI Components (shadcn/ui)
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+// 4. Custom Components
+import { CustomComponent } from '@/components/custom/CustomComponent';
+
+// 5. Hooks
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+
+// 6. Types and Schemas
+import type { User } from '@/types/user';
+import { userSchema, type UserInput } from '@/validations/user.schema';
+
+// 7. Utils
+import { cn } from '@/lib/utils';
+```
+
+### TypeScript Standards (MANDATORY)
+```typescript
+// ✅ ALWAYS use interface for object shapes
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+}
+
+// ✅ ALWAYS use type for unions and computed types
+export type UserRole = 'admin' | 'user' | 'moderator';
+export type UserInput = z.infer<typeof userSchema>;
+
+// ✅ ALWAYS use Props suffix for component props
+interface ComponentProps {
+  data: User[];
+  onSelect: (user: User) => void;
+}
+```
+
+## 📝 Form Standards (MANDATORY)
+
+### React Hook Form Pattern (ALWAYS USE)
+```typescript
+const formSchema = z.object({
+  name: z.string().min(1, 'Name is required').min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  role: z.string().min(1, 'Role is required'),
+});
+
+export const FormComponent: React.FC<FormComponentProps> = ({ onSubmit, isLoading = false }) => {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      role: '',
+    },
+  });
+
+  const handleFormSubmit = (data: FormData) => {
+    onSubmit(data);
+    reset();
+  };
+
+  return (
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      {/* Form fields */}
+    </form>
+  );
+};
+```
+
+### React Select Pattern (ALWAYS USE)
+```typescript
+interface SelectOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+<Select
+  value={options.find(option => option.value === watch('role'))}
+  onChange={(selectedOption) => setValue('role', selectedOption?.value || '')}
+  options={options}
+  placeholder="Select a role"
+  className="mt-1"
+  classNamePrefix="react-select"
+  isSearchable={true}
+  formatOptionLabel={(option) => (
+    <div className="flex flex-col">
+      <span className="font-medium">{option.label}</span>
+      {option.description && (
+        <span className="text-xs text-gray-500 mt-1">{option.description}</span>
+      )}
+    </div>
+  )}
+  styles={{
+    control: (base) => ({
+      ...base,
+      minHeight: '40px',
+      borderColor: errors.role ? '#ef4444' : '#d1d5db',
+      '&:hover': {
+        borderColor: errors.role ? '#ef4444' : '#9ca3af',
+      },
+    }),
+    option: (base, state) => ({
+      ...base,
+      padding: '12px',
+      backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
+      color: state.isSelected ? 'white' : '#374151',
+    }),
+    menu: (base) => ({
+      ...base,
+      zIndex: 9999,
+    }),
+  }}
+/>
+```
+
+## 🎨 ShadCN UI Standards (MANDATORY)
+
+### Component Usage (ALWAYS USE)
+```typescript
+// ✅ ALWAYS use ShadCN UI components with variants
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+// Button variants
+<Button variant="default">Primary Action</Button>
+<Button variant="outline">Secondary Action</Button>
+<Button variant="ghost">Subtle Action</Button>
+<Button variant="destructive">Delete Action</Button>
+<Button size="sm">Small Button</Button>
+<Button size="lg">Large Button</Button>
+```
+
+### Form Components (ALWAYS USE)
+```typescript
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+<Form {...form}>
+  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <FormField
+      control={form.control}
+      name="name"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Name</FormLabel>
+          <FormControl>
+            <Input placeholder="Enter name" {...field} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+    <Button type="submit">Submit</Button>
+  </form>
+</Form>
+```
+
+## 🎨 Styling Standards (MANDATORY)
+
+### ClassName Organization (ALWAYS USE)
+```typescript
+// ✅ ALWAYS use cn() utility for conditional classes
+import { cn } from '@/lib/utils';
+
+<div className={cn(
+  'flex items-center justify-between px-4 py-2',
+  'bg-white border border-gray-200 rounded-md',
+  'hover:bg-gray-50 transition-colors',
+  isActive && 'bg-primary-50 border-primary-200',
+  className
+)}>
+
+// ✅ ALWAYS use consistent error styling
+{errors.fieldName && (
+  <p className="text-red-500 text-sm mt-1">{errors.fieldName.message}</p>
+)}
+```
+
+## 🚨 Error Handling Standards (MANDATORY)
+
+### Form Validation Errors (ALWAYS USE)
+```typescript
+// ✅ ALWAYS use this pattern for field errors
+<div className="space-y-2">
+  <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+    Name *
+  </Label>
+  <Input
+    {...register('name')}
+    id="name"
+    placeholder="Enter name"
+    className="mt-1"
+  />
+  {errors.name && (
+    <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
+  )}
+</div>
+```
+
+### Toast Notifications (ALWAYS USE)
+```typescript
+const { toast } = useToast();
+
+// Success
+toast({
+  title: 'Success',
+  description: 'Operation completed successfully!',
+});
+
+// Error
+toast({
+  variant: 'destructive',
+  title: 'Error',
+  description: error.message || 'Something went wrong',
+});
+```
+
+## 📁 File Structure Standards (MANDATORY)
+
+### File Naming Conventions (ALWAYS FOLLOW)
+- **Components**: PascalCase (e.g., `AddRoleModal.tsx`, `AdminLogin.tsx`)
+- **Hooks**: camelCase starting with "use" (e.g., `useAuth.ts`, `useRoles.ts`)
+- **Types**: PascalCase (e.g., `User.ts`, `auth.ts`)
+- **Schemas**: camelCase with ".schema.ts" suffix (e.g., `auth.schema.ts`, `user.schema.ts`)
+- **Pages**: PascalCase with section prefix (e.g., `AdminDashboard.tsx`, `PortalLogin.tsx`)
+- **Services**: camelCase with ".service.ts" suffix (e.g., `auth.service.ts`)
+- **Utils**: camelCase (e.g., `cn.ts`)
+
+## 🎯 UI/UX Standards (ESTABLISHED)
+
+### Responsive Design (ALWAYS FOLLOW)
+- **Mobile-first approach** - Design for mobile, then enhance for desktop
+- **Responsive sidebar** - Mobile drawer, desktop sidebar
+- **Touch-friendly interfaces** - Appropriate button sizes and spacing
+- **Adaptive layouts** - Components that work across all screen sizes
+
+### User Experience (ALWAYS FOLLOW)
+- **Loading states on buttons** - Show loading indicators during async operations
+- **Form validation feedback** - Real-time validation with clear error messages
+- **Error messages** - User-friendly, actionable error messages
+- **Smooth transitions** - CSS transitions for better UX
+- **Professional design** - Clean, modern, and consistent design language
+
+## 🚫 NEVER DO THESE
+
+- ❌ NEVER use uncontrolled forms
+- ❌ NEVER use native HTML select elements
+- ❌ NEVER create custom components that duplicate ShadCN functionality
+- ❌ NEVER use manual validation instead of Zod
+- ❌ NEVER use different authentication patterns than established
+- ❌ NEVER use different phone number formats than Philippine standard
+- ❌ NEVER skip error handling
+- ❌ NEVER use inconsistent naming conventions
+- ❌ NEVER use different import organization
+- ❌ NEVER use different component definition patterns
+
+## ✅ ALWAYS DO THESE
+
+- ✅ ALWAYS use React Hook Form + Zod for forms
+- ✅ ALWAYS use React Select for dropdowns
+- ✅ ALWAYS use ShadCN UI components
+- ✅ ALWAYS follow established authentication patterns
+- ✅ ALWAYS use Philippine phone number format
+- ✅ ALWAYS use established password requirements
+- ✅ ALWAYS use proper error handling
+- ✅ ALWAYS follow naming conventions
+- ✅ ALWAYS organize imports correctly
+- ✅ ALWAYS use React.FC<Props> pattern
+- ✅ ALWAYS use interface for objects, type for unions
+- ✅ ALWAYS use cn() utility for conditional classes
+- ✅ ALWAYS use mobile-first responsive design
+- ✅ ALWAYS provide loading states and user feedback
+
+## 📋 Quick Reference
+
+When generating any code for this project:
+
+1. **Check if it's a form** → Use React Hook Form + Zod + ShadCN Form components
+2. **Check if it's a dropdown** → Use React Select with proper styling
+3. **Check if it's a UI component** → Use ShadCN UI with proper variants
+4. **Check if it's a phone input** → Use Philippine format validation
+5. **Check if it's authentication** → Follow established portal/admin patterns
+6. **Check if it's styling** → Use Tailwind with cn() utility
+7. **Check if it's TypeScript** → Use interface for objects, type for unions
+8. **Check if it's a component** → Use React.FC<Props> pattern
+9. **Check if it's imports** → Follow the established order
+10. **Check if it's error handling** → Use consistent patterns
+
+---
+
+*This file ensures all AI-generated code follows Multysis v2 standards automatically.*

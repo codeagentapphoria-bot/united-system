@@ -1,0 +1,32 @@
+export const mockBarangays = [
+  {
+    id: "BRGY-001",
+    name: "San Isidro",
+    municipality: "Santa Maria",
+    households: 120,
+    families: 135,
+    withElectricity: 110,
+    ownedHouses: 90,
+    status: "active",
+  },
+  {
+    id: "BRGY-002",
+    name: "Del Pilar",
+    municipality: "Santa Maria",
+    households: 80,
+    families: 90,
+    withElectricity: 70,
+    ownedHouses: 60,
+    status: "active",
+  },
+  {
+    id: "BRGY-003",
+    name: "San Roque",
+    municipality: "Santa Maria",
+    households: 100,
+    families: 110,
+    withElectricity: 95,
+    ownedHouses: 85,
+    status: "inactive",
+  },
+];

@@ -1,0 +1,2 @@
+This directory will contain app images and icons.
+For now, this is a placeholder file.

@@ -1,0 +1,853 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// =============================================================================
+// GEOGRAPHY (shared with BIMS — read-only from E-Services perspective)
+// Used for portal address dropdowns and resident address display.
+// =============================================================================
+
+model Municipality {
+  id               Int        @id @default(autoincrement())
+  municipalityName String     @map("municipality_name")
+  municipalityCode String     @map("municipality_code")
+  gisCode          String?    @map("gis_code")
+  region           String
+  province         String
+  description      String?
+  setupStatus      String     @map("setup_status") @default("pending")
+  municipalityLogoPath     String? @map("municipality_logo_path")
+  idBackgroundFrontPath    String? @map("id_background_front_path")
+  idBackgroundBackPath     String? @map("id_background_back_path")
+  createdAt        DateTime   @map("created_at") @default(now())
+  updatedAt        DateTime   @map("updated_at") @updatedAt
+  barangays             Barangay[]
+  certificateTemplates  CertificateTemplate[]
+
+  @@map("municipalities")
+}
+
+model Barangay {
+  id             Int          @id @default(autoincrement())
+  municipalityId Int          @map("municipality_id")
+  barangayName   String       @map("barangay_name")
+  barangayCode   String       @map("barangay_code")
+  gisCode        String?      @map("gis_code")
+  barangayLogoPath          String? @map("barangay_logo_path")
+  certificateBackgroundPath String? @map("certificate_background_path")
+  contactNumber  String?      @map("contact_number")
+  email          String?
+  createdAt      DateTime     @map("created_at") @default(now())
+  updatedAt      DateTime     @map("updated_at") @updatedAt
+  municipality   Municipality @relation(fields: [municipalityId], references: [id])
+  residents      Resident[]
+
+  @@unique([municipalityId, barangayName], map: "barangays_name_per_muni_key")
+  @@index([municipalityId])
+  @@index([gisCode])
+  @@map("barangays")
+}
+
+// =============================================================================
+// UNIFIED RESIDENTS TABLE
+// Single source of truth for all persons: portal registrants + BIMS records.
+// Auth credentials are in ResidentCredential (1:1).
+// =============================================================================
+
+model Resident {
+  id          String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+
+  // Generated display ID (set on approval by BIMS admin)
+  // Format: {PREFIX}-{YEAR}-{7-digit}  e.g. BIMS-2025-0000001
+  residentId  String?  @map("resident_id") @unique
+
+  // Address
+  barangayId     Int?    @map("barangay_id")
+  streetAddress  String? @map("street_address")
+
+  // Name
+  lastName      String  @map("last_name")
+  firstName     String  @map("first_name")
+  middleName    String? @map("middle_name")
+  extensionName String? @map("extension_name")
+
+  // Demographics
+  sex          String?
+  civilStatus  String? @map("civil_status")
+  birthdate    DateTime @db.Date
+  birthRegion      String? @map("birth_region")
+  birthProvince    String? @map("birth_province")
+  birthMunicipality String? @map("birth_municipality")
+  citizenship  String?
+
+  // Contact
+  contactNumber String? @map("contact_number")
+  email         String?
+
+  // Socio-economic
+  occupation          String?
+  profession          String?
+  employmentStatus    String? @map("employment_status")
+  educationAttainment String? @map("education_attainment")
+  monthlyIncome       Decimal? @map("monthly_income")
+  height              String?
+  weight              String?
+
+  // Flags
+  isVoter          Boolean @map("is_voter")       @default(false)
+  isEmployed       Boolean @map("is_employed")    @default(false)
+  indigenousPerson Boolean @map("indigenous_person") @default(false)
+
+  // Government / Foreign ID
+  idType             String? @map("id_type")
+  idDocumentNumber   String? @map("id_document_number")
+  acrNo              String? @map("acr_no")
+
+  // Emergency contact
+  emergencyContactPerson String? @map("emergency_contact_person")
+  emergencyContactNumber String? @map("emergency_contact_number")
+
+  // Family info
+  spouseName String? @map("spouse_name")
+
+  // Files (relative paths)
+  picturePath           String? @map("picture_path")
+  proofOfIdentification String? @map("proof_of_identification")
+
+  // Status & approval workflow
+  // pending | active | inactive | rejected | deceased | moved_out
+  status              String  @default("pending")
+  applicationRemarks  String? @map("application_remarks")
+
+  // Portal login username (unique; password stored in ResidentCredential)
+  username String? @unique
+
+  createdAt DateTime @map("created_at") @default(now())
+  updatedAt DateTime @map("updated_at") @updatedAt
+
+  // Relations
+  barangay             Barangay?             @relation(fields: [barangayId], references: [id], onDelete: SetNull)
+  credentials          ResidentCredential?
+  registrationRequest  RegistrationRequest?
+  transactions         Transaction[]
+  refreshTokens        RefreshToken[]
+  sessions             Session[]
+  seniorCitizenBeneficiary SeniorCitizenBeneficiary?
+  pwdBeneficiary           PWDBeneficiary?
+  studentBeneficiary       StudentBeneficiary?
+  soloParentBeneficiary    SoloParentBeneficiary?
+
+  @@index([barangayId])
+  @@index([residentId])
+  @@index([status])
+  @@index([lastName, firstName])
+  @@index([username])
+  @@map("residents")
+}
+
+// =============================================================================
+// RESIDENT CREDENTIALS — portal auth (1:1 with Resident)
+// Separate from person data for clean security separation.
+// =============================================================================
+
+model ResidentCredential {
+  id          String   @id @default(uuid())
+  residentFk  String   @map("resident_fk") @unique
+  password    String?                                  // bcrypt hashed; null for Google-only accounts
+  googleId    String?  @map("google_id") @unique
+  googleEmail String?  @map("google_email")
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at") @updatedAt
+
+  resident Resident @relation(fields: [residentFk], references: [id], onDelete: Cascade)
+
+  @@map("resident_credentials")
+}
+
+// =============================================================================
+// REGISTRATION REQUESTS — approval workflow for portal self-registrations.
+// Reviewed by BIMS municipality or barangay admin.
+// reviewedBy is bims_users.id (integer) — not a Prisma relation, just stored as Int.
+// =============================================================================
+
+model RegistrationRequest {
+  id          String   @id @default(uuid())
+  residentFk  String   @map("resident_fk") @unique
+  // pending | under_review | approved | rejected | requires_resubmission
+  status      String   @default("pending")
+  selfieUrl   String?  @map("selfie_url")
+  adminNotes  String?  @map("admin_notes")
+  reviewedBy  Int?     @map("reviewed_by")   // bims_users.id (no Prisma FK — cross-system)
+  reviewedAt  DateTime? @map("reviewed_at")
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at") @updatedAt
+
+  resident Resident @relation(fields: [residentFk], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([residentFk])
+  @@map("registration_requests")
+}
+
+// =============================================================================
+// E-SERVICES ADMIN AUTH
+// =============================================================================
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  name          String
+  role          String         @default("admin")
+  createdAt     DateTime @map("created_at") @default(now())
+  updatedAt     DateTime @map("updated_at") @updatedAt
+  refreshTokens RefreshToken[]
+  sessions      Session[]
+  userRoles     UserRole[]
+
+  @@map("eservice_users")
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  createdAt       DateTime @map("created_at") @default(now())
+  updatedAt       DateTime @map("updated_at") @updatedAt
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  resource        String
+  action          PermissionAction
+  createdAt       DateTime @map("created_at") @default(now())
+  updatedAt       DateTime @map("updated_at") @updatedAt
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String     @map("role_id")
+  permissionId String     @map("permission_id")
+  createdAt    DateTime   @map("created_at") @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  createdAt DateTime @map("created_at") @default(now())
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+// =============================================================================
+// SESSION / TOKEN
+// subscriberId renamed to residentId throughout
+// =============================================================================
+
+model RefreshToken {
+  id            String    @id @default(uuid())
+  userId        String?   @map("user_id")        // for admin portal tokens
+  residentId    String?   @map("resident_id")    // for portal resident tokens
+  token         String
+  deviceInfo    String?   @map("device_info")
+  ipAddress     String?   @map("ip_address")
+  userAgent     String?   @map("user_agent")
+  expiresAt     DateTime  @map("expires_at")
+  revokedAt     DateTime? @map("revoked_at")
+  revokedReason String?   @map("revoked_reason")
+  createdAt     DateTime  @map("created_at") @default(now())
+  updatedAt     DateTime  @map("updated_at") @updatedAt
+  user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resident      Resident? @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  sessions      Session[]
+
+  @@index([userId])
+  @@index([residentId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Session {
+  id             String       @id @default(uuid())
+  userId         String?      @map("user_id")
+  residentId     String?      @map("resident_id")
+  refreshTokenId String       @map("refresh_token_id")
+  ipAddress      String?      @map("ip_address")
+  userAgent      String?      @map("user_agent")
+  deviceInfo     String?      @map("device_info")
+  lastActivityAt DateTime     @map("last_activity_at") @default(now())
+  createdAt      DateTime     @map("created_at") @default(now())
+  expiresAt      DateTime     @map("expires_at")
+  refreshToken   RefreshToken @relation(fields: [refreshTokenId], references: [id], onDelete: Cascade)
+  resident       Resident?    @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user           User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([residentId])
+  @@index([refreshTokenId])
+  @@index([expiresAt])
+  @@index([lastActivityAt])
+  @@map("sessions")
+}
+
+// =============================================================================
+// SERVICES CATALOG
+// =============================================================================
+
+model Service {
+  id                      String        @id @default(uuid())
+  code                    String        @unique
+  name                    String
+  description             String?
+  category                String?
+  icon                    String?
+  order                   Int           @default(0)
+  isActive                Boolean       @map("is_active") @default(true)
+  requiresPayment         Boolean       @map("requires_payment") @default(true)
+  defaultAmount           Decimal?      @map("default_amount")
+  paymentStatuses         Json?         @map("payment_statuses")
+  formFields              Json?         @map("form_fields")
+  displayInSidebar        Boolean       @map("display_in_sidebar") @default(true)
+  displayInSubscriberTabs Boolean       @map("display_in_subscriber_tabs") @default(true)
+  appointmentDuration     Int?          @map("appointment_duration")
+  requiresAppointment     Boolean       @map("requires_appointment") @default(false)
+  createdAt               DateTime      @map("created_at") @default(now())
+  updatedAt               DateTime      @map("updated_at") @updatedAt
+  transactions            Transaction[]
+  taxProfiles             TaxProfile[]
+
+  @@index([isActive])
+  @@index([category])
+  @@map("services")
+}
+
+// EService model removed (AC1) — eservices table dropped; use Service instead
+
+// =============================================================================
+// TRANSACTIONS
+// AC2: residentId is now optional to support guest/non-resident applicants
+// =============================================================================
+
+model Transaction {
+  id                            String             @id @default(uuid())
+  residentId                    String?            @map("resident_id")   // nullable for guests
+  applicantName                 String?            @map("applicant_name")
+  applicantContact              String?            @map("applicant_contact")
+  applicantEmail                String?            @map("applicant_email")
+  applicantAddress              String?            @map("applicant_address")
+  transactionId                 String             @map("transaction_id") @unique
+  referenceNumber               String             @map("reference_number") @unique
+  paymentStatus                 String             @map("payment_status") @default("PENDING")
+  paymentAmount                 Decimal            @map("payment_amount") @default(0)
+  transmitalNo                  String?            @map("transmital_no")
+  referenceNumberGeneratedAt    DateTime?          @map("reference_number_generated_at")
+  isLocalResident               Boolean            @map("is_local_resident") @default(false)
+  permitType                    String?            @map("permit_type")
+  status                        String?
+  isPosted                      Boolean            @map("is_posted") @default(false)
+  validIdToPresent              String?            @map("valid_id_to_present")
+  remarks                       String?
+  serviceId                     String             @map("service_id")
+  serviceData                   Json?              @map("service_data")
+  applicationDate               DateTime?          @map("application_date")
+  preferredAppointmentDate      DateTime?          @map("preferred_appointment_date")
+  scheduledAppointmentDate      DateTime?          @map("scheduled_appointment_date")
+  appointmentStatus             AppointmentStatus? @map("appointment_status") @default(PENDING)
+  updateRequestStatus           UpdateRequestStatus @map("update_request_status") @default(NONE)
+  updateRequestDescription      String?            @map("update_request_description")
+  updateRequestedBy             UpdateRequestedBy? @map("update_requested_by")
+  pendingServiceData            Json?              @map("pending_service_data")
+  adminUpdateRequestDescription String?            @map("admin_update_request_description")
+  createdAt                     DateTime           @map("created_at") @default(now())
+  updatedAt                     DateTime           @map("updated_at") @updatedAt
+
+  resident         Resident?         @relation(fields: [residentId], references: [id], onDelete: Restrict)
+  service          Service           @relation(fields: [serviceId], references: [id])
+  appointmentNotes AppointmentNote[]
+  transactionNotes TransactionNote[]
+  taxComputations  TaxComputation[]
+  exemptions       Exemption[]
+  payments         Payment[]
+
+  @@index([residentId])
+  @@index([serviceId])
+  @@index([paymentStatus])
+  @@index([status])
+  @@index([updateRequestStatus])
+  @@index([createdAt])
+  @@index([applicationDate])
+  @@map("transactions")
+}
+
+model AppointmentNote {
+  id            String              @id @default(uuid())
+  transactionId String              @map("transaction_id")
+  type          AppointmentNoteType
+  note          String
+  createdBy     String?             @map("created_by")
+  createdAt     DateTime            @map("created_at") @default(now())
+  updatedAt     DateTime            @map("updated_at") @updatedAt
+  transaction   Transaction         @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([type])
+  @@map("appointment_notes")
+}
+
+model TransactionNote {
+  id            String                    @id @default(uuid())
+  transactionId String                    @map("transaction_id")
+  message       String
+  senderType    TransactionNoteSenderType @map("sender_type")
+  senderId      String                    @map("sender_id")
+  isInternal    Boolean                   @map("is_internal") @default(false)
+  isRead        Boolean                   @map("is_read") @default(false)
+  createdAt     DateTime                  @map("created_at") @default(now())
+  updatedAt     DateTime                  @map("updated_at") @updatedAt
+  transaction   Transaction               @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([isRead])
+  @@index([senderType])
+  @@map("transaction_notes")
+}
+
+// =============================================================================
+// TAX & PAYMENTS
+// =============================================================================
+
+model TaxProfile {
+  id        String              @id @default(uuid())
+  serviceId String              @map("service_id")
+  name      String
+  variant   String?
+  isActive  Boolean             @map("is_active") @default(true)
+  createdAt DateTime            @map("created_at") @default(now())
+  updatedAt DateTime            @map("updated_at") @updatedAt
+  service   Service             @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  versions  TaxProfileVersion[]
+
+  @@index([serviceId])
+  @@index([isActive])
+  @@map("tax_profiles")
+}
+
+model TaxProfileVersion {
+  id            String           @id @default(uuid())
+  taxProfileId  String           @map("tax_profile_id")
+  version       String
+  effectiveFrom DateTime         @map("effective_from")
+  effectiveTo   DateTime?        @map("effective_to")
+  status        TaxVersionStatus @default(DRAFT)
+  changeReason  String           @map("change_reason")
+  configuration Json
+  createdBy     String           @map("created_by")
+  createdAt     DateTime         @map("created_at") @default(now())
+  taxProfile    TaxProfile       @relation(fields: [taxProfileId], references: [id], onDelete: Cascade)
+  computations  TaxComputation[]
+
+  @@unique([taxProfileId, version])
+  @@index([taxProfileId])
+  @@index([effectiveFrom, effectiveTo])
+  @@index([status])
+  @@map("tax_profile_versions")
+}
+
+model TaxComputation {
+  id                    String            @id @default(uuid())
+  transactionId         String            @map("transaction_id")
+  taxProfileVersionId   String            @map("tax_profile_version_id")
+  isActive              Boolean           @map("is_active") @default(true)
+  inputs                Json
+  derivedValues         Json              @map("derived_values")
+  breakdown             Json
+  totalTax              Decimal           @map("total_tax")
+  adjustedTax           Decimal?          @map("adjusted_tax")
+  isReassessment        Boolean           @map("is_reassessment") @default(false)
+  reassessmentReason    String?           @map("reassessment_reason")
+  previousComputationId String?           @map("previous_computation_id")
+  differenceAmount      Decimal?          @map("difference_amount")
+  exemptionsApplied     Json?             @map("exemptions_applied")
+  discountsApplied      Json?             @map("discounts_applied")
+  penaltiesApplied      Json?             @map("penalties_applied")
+  computedAt            DateTime          @map("computed_at") @default(now())
+  computedBy            String?           @map("computed_by")
+  transaction           Transaction       @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  taxProfileVersion     TaxProfileVersion @relation(fields: [taxProfileVersionId], references: [id])
+  previousComputation   TaxComputation?   @relation("TaxComputationReassessment", fields: [previousComputationId], references: [id])
+  reassessments         TaxComputation[]  @relation("TaxComputationReassessment")
+  exemptions            Exemption[]
+  payments              Payment[]
+
+  @@index([transactionId, isActive])
+  @@index([taxProfileVersionId])
+  @@index([previousComputationId])
+  @@map("tax_computations")
+}
+
+model Exemption {
+  id                  String          @id @default(uuid())
+  transactionId       String          @map("transaction_id")
+  taxComputationId    String?         @map("tax_computation_id")
+  exemptionType       ExemptionType   @map("exemption_type")
+  status              ExemptionStatus @default(PENDING)
+  requestedBy         String          @map("requested_by")  // residents.id
+  approvedBy          String?         @map("approved_by")   // eservice_users.id
+  requestReason       String          @map("request_reason")
+  rejectionReason     String?         @map("rejection_reason")
+  supportingDocuments Json?           @map("supporting_documents")
+  exemptionAmount     Decimal?        @map("exemption_amount")
+  approvedAt          DateTime?       @map("approved_at")
+  rejectedAt          DateTime?       @map("rejected_at")
+  createdAt           DateTime        @map("created_at") @default(now())
+  updatedAt           DateTime        @map("updated_at") @updatedAt
+  transaction         Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  taxComputation      TaxComputation? @relation(fields: [taxComputationId], references: [id], onDelete: SetNull)
+
+  @@index([transactionId])
+  @@index([status])
+  @@index([taxComputationId])
+  @@map("exemptions")
+}
+
+model Payment {
+  id               String         @id @default(uuid())
+  transactionId    String         @map("transaction_id")
+  taxComputationId String         @map("tax_computation_id")
+  amount           Decimal
+  paymentMethod    PaymentMethod  @map("payment_method")
+  paymentDate      DateTime       @map("payment_date") @default(now())
+  receivedBy       String         @map("received_by")  // eservice_users.id
+  referenceNumber  String?        @map("reference_number")
+  notes            String?
+  createdAt        DateTime       @map("created_at") @default(now())
+  updatedAt        DateTime       @map("updated_at") @updatedAt
+  transaction      Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  taxComputation   TaxComputation @relation(fields: [taxComputationId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([taxComputationId])
+  @@index([paymentDate])
+  @@map("payments")
+}
+
+// =============================================================================
+// SOCIAL AMELIORATION / BENEFICIARIES
+// citizen_id renamed to resident_id throughout
+// =============================================================================
+
+model SocialAmeliorationSetting {
+  id                        String                          @id @default(uuid())
+  type                      SocialAmeliorationSettingType
+  name                      String
+  description               String?
+  isActive                  Boolean                         @map("is_active") @default(true)
+  createdAt                 DateTime                        @map("created_at") @default(now())
+  updatedAt                 DateTime                        @map("updated_at") @updatedAt
+  pwdDisabilityTypes        PWDBeneficiary[]
+  seniorCitizenPensionTypes SeniorCitizenPensionTypePivot[]
+  soloParentCategories      SoloParentBeneficiary[]
+  studentGradeLevels        StudentBeneficiary[]
+
+  @@index([type])
+  @@index([isActive])
+  @@map("social_amelioration_settings")
+}
+
+model SeniorCitizenBeneficiary {
+  id              String                          @id @default(uuid())
+  residentId      String                          @map("resident_id") @unique
+  seniorCitizenId String                          @map("senior_citizen_id") @unique
+  status          BeneficiaryStatus               @default(ACTIVE)
+  remarks         String?
+  createdAt       DateTime                        @map("created_at") @default(now())
+  updatedAt       DateTime                        @map("updated_at") @updatedAt
+  resident        Resident                        @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  pensionTypes    SeniorCitizenPensionTypePivot[]
+
+  @@map("senior_citizen_beneficiaries")
+}
+
+model SeniorCitizenPensionTypePivot {
+  id            String                    @id @default(uuid())
+  beneficiaryId String                    @map("beneficiary_id")
+  settingId     String                    @map("setting_id")
+  beneficiary   SeniorCitizenBeneficiary  @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  setting       SocialAmeliorationSetting @relation(fields: [settingId], references: [id], onDelete: Cascade)
+
+  @@unique([beneficiaryId, settingId])
+  @@map("senior_citizen_pension_type_pivots")
+}
+
+model PWDBeneficiary {
+  id                String                    @id @default(uuid())
+  residentId        String                    @map("resident_id") @unique
+  pwdId             String                    @map("pwd_id") @unique
+  disabilityLevel   String                    @map("disability_level")
+  disabilityTypeId  String                    @map("disability_type_id")
+  monetaryAllowance Boolean                   @map("monetary_allowance") @default(false)
+  assistedDevice    Boolean                   @map("assisted_device") @default(false)
+  donorDevice       String?                   @map("donor_device")
+  status            BeneficiaryStatus         @default(ACTIVE)
+  remarks           String?
+  createdAt         DateTime                  @map("created_at") @default(now())
+  updatedAt         DateTime                  @map("updated_at") @updatedAt
+  resident          Resident                  @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  disabilityType    SocialAmeliorationSetting @relation(fields: [disabilityTypeId], references: [id])
+
+  @@map("pwd_beneficiaries")
+}
+
+model StudentBeneficiary {
+  id           String                    @id @default(uuid())
+  residentId   String                    @map("resident_id") @unique
+  studentId    String                    @map("student_id") @unique
+  gradeLevelId String                    @map("grade_level_id")
+  status       BeneficiaryStatus         @default(ACTIVE)
+  remarks      String?
+  createdAt    DateTime                  @map("created_at") @default(now())
+  updatedAt    DateTime                  @map("updated_at") @updatedAt
+  resident     Resident                  @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  gradeLevel   SocialAmeliorationSetting @relation(fields: [gradeLevelId], references: [id])
+
+  @@map("student_beneficiaries")
+}
+
+model SoloParentBeneficiary {
+  id           String                    @id @default(uuid())
+  residentId   String                    @map("resident_id") @unique
+  soloParentId String                    @map("solo_parent_id") @unique
+  categoryId   String                    @map("category_id")
+  status       BeneficiaryStatus         @default(ACTIVE)
+  remarks      String?
+  createdAt    DateTime                  @map("created_at") @default(now())
+  updatedAt    DateTime                  @map("updated_at") @updatedAt
+  resident     Resident                  @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  category     SocialAmeliorationSetting @relation(fields: [categoryId], references: [id])
+
+  @@map("solo_parent_beneficiaries")
+}
+
+model GovernmentProgram {
+  id                  String                    @id @default(uuid())
+  name                String
+  description         String?
+  type                GovernmentProgramType
+  isActive            Boolean                   @map("is_active") @default(true)
+  createdAt           DateTime                  @map("created_at") @default(now())
+  updatedAt           DateTime                  @map("updated_at") @updatedAt
+  beneficiaryPrograms BeneficiaryProgramPivot[]
+
+  @@index([type])
+  @@index([isActive])
+  @@map("government_programs")
+}
+
+model BeneficiaryProgramPivot {
+  id              String            @id @default(uuid())
+  beneficiaryType BeneficiaryType   @map("beneficiary_type")
+  beneficiaryId   String            @map("beneficiary_id")
+  programId       String            @map("program_id")
+  createdAt       DateTime          @map("created_at") @default(now())
+  program         GovernmentProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([beneficiaryType, beneficiaryId, programId])
+  @@index([beneficiaryType, beneficiaryId])
+  @@index([programId])
+  @@map("beneficiary_program_pivots")
+}
+
+// =============================================================================
+// UTILITY / CONTENT
+// =============================================================================
+
+model Faq {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  order     Int      @default(0)
+  isActive  Boolean  @map("is_active") @default(true)
+  createdAt DateTime @map("created_at") @default(now())
+  updatedAt DateTime @map("updated_at") @updatedAt
+
+  @@index([isActive])
+  @@index([order])
+  @@map("faqs")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum PermissionAction {
+  READ
+  ALL
+
+  @@map("permission_action")
+}
+
+enum AppointmentStatus {
+  PENDING
+  ACCEPTED
+  REQUESTED_UPDATE
+  DECLINED
+  CANCELLED
+
+  @@map("appointment_status")
+}
+
+enum AppointmentNoteType {
+  GENERAL
+  DATE_CHANGE_REASON
+  FOLLOW_UP
+  INTERNAL
+
+  @@map("appointment_note_type")
+}
+
+// RESIDENT replaces SUBSCRIBER
+enum TransactionNoteSenderType {
+  ADMIN
+  RESIDENT
+
+  @@map("transaction_note_sender_type")
+}
+
+enum UpdateRequestStatus {
+  NONE
+  PENDING_PORTAL
+  PENDING_ADMIN
+  APPROVED
+  REJECTED
+
+  @@map("update_request_status")
+}
+
+enum UpdateRequestedBy {
+  PORTAL
+  ADMIN
+
+  @@map("update_requested_by")
+}
+
+enum BeneficiaryStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+
+  @@map("beneficiary_status")
+}
+
+enum BeneficiaryType {
+  SENIOR_CITIZEN
+  PWD
+  STUDENT
+  SOLO_PARENT
+
+  @@map("beneficiary_type")
+}
+
+enum GovernmentProgramType {
+  SENIOR_CITIZEN
+  PWD
+  STUDENT
+  SOLO_PARENT
+  ALL
+
+  @@map("government_program_type")
+}
+
+enum SocialAmeliorationSettingType {
+  PENSION_TYPE
+  DISABILITY_TYPE
+  GRADE_LEVEL
+  SOLO_PARENT_CATEGORY
+
+  @@map("social_amelioration_setting_type")
+}
+
+enum TaxVersionStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+
+  @@map("tax_version_status")
+}
+
+enum ExemptionType {
+  SENIOR_CITIZEN
+  PWD
+  SOLO_PARENT
+  OTHER
+
+  @@map("exemption_type")
+}
+
+enum ExemptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("exemption_status")
+}
+
+enum PaymentMethod {
+  CASH
+  CHECK
+  ONLINE
+  BANK_TRANSFER
+  GCASH
+  PAYMAYA
+  OTHER
+
+  @@map("payment_method")
+}
+
+// =============================================================================
+// CERTIFICATE TEMPLATES (AC4)
+// HTML templates with {{ placeholder }} tokens, scoped per municipality + type.
+// =============================================================================
+
+model CertificateTemplate {
+  id              String   @id @default(uuid())
+  municipalityId  Int      @map("municipality_id")
+  certificateType String   @map("certificate_type")  // e.g. 'barangay_clearance', 'indigency'
+  name            String
+  description     String?
+  htmlContent     String   @map("html_content")       // HTML with {{ placeholder }} tokens
+  isActive        Boolean  @map("is_active") @default(true)
+  createdBy       String?  @map("created_by")         // bims_users.id
+  createdAt       DateTime @map("created_at") @default(now())
+  updatedAt       DateTime @map("updated_at") @updatedAt
+
+  municipality Municipality @relation(fields: [municipalityId], references: [id], onDelete: Cascade)
+
+  @@unique([municipalityId, certificateType])
+  @@index([municipalityId])
+  @@index([certificateType])
+  @@map("certificate_templates")
+}
