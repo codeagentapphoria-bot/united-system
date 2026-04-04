@@ -51,7 +51,7 @@ import {
 import { Maximize2, Minimize2, Printer, Download, ScanLine, UserPlus, Eye } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 
-const BIMS_API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const BIMS_API = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // ── Certificate type display labels ──────────────────────────────────────────
 const CERT_TYPE_LABELS = {

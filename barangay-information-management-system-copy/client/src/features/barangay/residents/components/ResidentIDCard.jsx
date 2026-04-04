@@ -21,7 +21,7 @@ import api from "@/utils/api";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import logger from "@/utils/logger";
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || "";
 const ESERVICE_SERVER_URL = import.meta.env.VITE_ESERVICE_SERVER_URL || "http://localhost:3000";
 
 // PVC Card dimensions (CR80 standard)

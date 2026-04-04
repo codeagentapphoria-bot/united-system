@@ -119,7 +119,7 @@ const ResidentViewDialog = ({
     if (!path) return null;
     const normalized = path.replace(/\\/g, "/");
     if (normalized.startsWith("http://") || normalized.startsWith("https://")) return normalized;
-    const base = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
+    const base = import.meta.env.VITE_SERVER_URL || "";
     return `${base}/${normalized}`;
   };
 

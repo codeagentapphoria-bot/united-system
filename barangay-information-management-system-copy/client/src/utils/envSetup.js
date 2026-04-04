@@ -99,7 +99,7 @@ VITE_EXTERNAL_API_KEY=your_api_key_here
 VITE_DEBUG_API=false
 
 # Other BIMS Configuration
-VITE_API_BASE_URL=http://localhost:5000/api
+VITE_API_BASE_URL=/api
 `;
 };
 

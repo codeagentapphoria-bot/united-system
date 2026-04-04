@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }) => {
   const refreshToken = async () => {
     try {
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/auth/refresh`,
+        `${import.meta.env.VITE_API_BASE_URL || "/api"}/auth/refresh`,
         {},
         { withCredentials: true }
       );
@@ -137,7 +137,7 @@ export const AuthProvider = ({ children }) => {
     try {
       // Silently exchange the HttpOnly cookie for a fresh access token
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/auth/refresh`,
+        `${import.meta.env.VITE_API_BASE_URL || "/api"}/auth/refresh`,
         {},
         { withCredentials: true }
       );
@@ -211,7 +211,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/auth/logout`,
+        `${import.meta.env.VITE_API_BASE_URL || "/api"}/auth/logout`,
         {},
         { withCredentials: true }
       );

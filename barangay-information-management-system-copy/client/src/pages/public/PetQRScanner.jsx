@@ -540,7 +540,7 @@ const PetQRScanner = () => {
     
     try {
       // Call API to search for pets using UUID (secure)
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/public/search`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/public/search`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -641,7 +641,7 @@ const PetQRScanner = () => {
         return petData.picture_path; // Already a full URL
       }
       // It's a relative path, prepend server URL
-      const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
+      const serverUrl = import.meta.env.VITE_SERVER_URL || "";
       // Remove leading slash if present to avoid double slashes
       const cleanPath = petData.picture_path.startsWith('/') ? petData.picture_path.slice(1) : petData.picture_path;
       return `${serverUrl}/${cleanPath}`;
@@ -783,7 +783,7 @@ const PetQRScanner = () => {
                               <div className="flex items-center gap-3">
                                 {pet.picture_path ? (
                                   <img
-                                    src={`${import.meta.env.VITE_SERVER_URL || "http://localhost:5000"}/${pet.picture_path}`}
+                                    src={`${import.meta.env.VITE_SERVER_URL || ""}/${pet.picture_path}`}
                                     alt={pet.pet_name}
                                     className="w-12 h-12 rounded-full object-cover"
                                     onError={(e) => {

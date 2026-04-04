@@ -119,7 +119,7 @@ const ArchivesViewDialog = ({
                  <CardContent className="p-4">
                    <div className="relative group cursor-pointer" onClick={() => setIsImageViewerOpen(true)}>
                      <img
-                       src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/${archive.file_path}`}
+                       src={`${import.meta.env.VITE_API_BASE_URL || '/api'}/${archive.file_path}`}
                        alt={archive.title}
                        className="w-full h-48 object-cover rounded-lg transition-transform group-hover:scale-105"
                        onError={(e) => {
@@ -219,7 +219,7 @@ const ArchivesViewDialog = ({
     {/* Image Viewer */}
     {archive.file_path && (
       <ImageViewer
-                 src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/${archive.file_path}`}
+                 src={`${import.meta.env.VITE_API_BASE_URL || '/api'}/${archive.file_path}`}
          alt={archive.title}
         open={isImageViewerOpen}
         onOpenChange={setIsImageViewerOpen}

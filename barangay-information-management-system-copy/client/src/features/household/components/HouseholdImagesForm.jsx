@@ -62,7 +62,7 @@ const HouseholdImagesForm = ({
             ? image
             : image.filename || image.path || image,
         preview: `${
-          import.meta.env.VITE_SERVER_URL || "localhost:5000"
+          import.meta.env.VITE_SERVER_URL || ""
         }/uploads/households/${
           typeof image === "string"
             ? image

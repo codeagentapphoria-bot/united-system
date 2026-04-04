@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Eye, Edit, Trash2, Calendar, Phone, Mail } from "lucide-react";
 import { format } from "date-fns";
-const SERVER_URL   = import.meta.env.VITE_SERVER_URL        || "http://localhost:5000";
+const SERVER_URL   = import.meta.env.VITE_SERVER_URL        || "";
 const ESERVICE_URL = import.meta.env.VITE_ESERVICE_SERVER_URL || "http://localhost:3000";
 const toAbsUrl = (p) => {
   if (!p) return null;

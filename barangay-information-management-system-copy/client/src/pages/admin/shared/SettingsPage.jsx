@@ -69,7 +69,7 @@ import ClassificationTypeManager from "@/components/ui/ClassificationTypeManager
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import BulkIDPage from "@/pages/admin/municipality/BulkIDPage";
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || "";
 
 const SettingsPage = () => {
   const { user } = useAuth();

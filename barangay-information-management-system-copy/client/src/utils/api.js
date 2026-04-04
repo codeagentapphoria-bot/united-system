@@ -3,7 +3,7 @@ import { getToken, setToken, removeToken } from "@/constants/token";
 import logger from "@/utils/logger";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
 });
 
 // Flag to prevent multiple refresh attempts

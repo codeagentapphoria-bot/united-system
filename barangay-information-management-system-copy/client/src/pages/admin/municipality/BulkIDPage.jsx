@@ -17,7 +17,7 @@ import { getToken } from "@/constants/token";
 import useAuth from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
-const BIMS_API = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const BIMS_API = import.meta.env.VITE_API_BASE_URL || "/api";
 
 export default function BulkIDPage() {
   const { user } = useAuth();

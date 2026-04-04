@@ -123,7 +123,7 @@ const InventoryViewDialog = ({
                  <CardContent className="p-4">
                    <div className="relative group cursor-pointer" onClick={() => setIsImageViewerOpen(true)}>
                      <img
-                       src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/${inventory.file_path}`}
+                       src={`${import.meta.env.VITE_API_BASE_URL || '/api'}/${inventory.file_path}`}
                        alt={inventory.item_name}
                        className="w-full h-48 object-cover rounded-lg transition-transform group-hover:scale-105"
                        onError={(e) => {
@@ -244,7 +244,7 @@ const InventoryViewDialog = ({
      {/* Image Viewer */}
      {inventory.file_path && (
        <ImageViewer
-         src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/${inventory.file_path}`}
+         src={`${import.meta.env.VITE_API_BASE_URL || '/api'}/${inventory.file_path}`}
          alt={inventory.item_name}
          open={isImageViewerOpen}
          onOpenChange={setIsImageViewerOpen}

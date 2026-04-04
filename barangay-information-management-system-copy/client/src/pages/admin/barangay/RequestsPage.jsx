@@ -119,7 +119,7 @@ const sanitizeHtml = (input) => {
 };
 
 // Server URL for background images
-  const SERVER_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+  const SERVER_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 // Add custom styles for QR scanner with unique ID to avoid conflicts
 const qrScannerStyles = `

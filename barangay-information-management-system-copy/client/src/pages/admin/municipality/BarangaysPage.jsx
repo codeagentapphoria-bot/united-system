@@ -376,7 +376,7 @@ const BarangaysPage = () => {
       const response = await api.get(`/public/${barangayId}/barangay`);
       const barangay = response.data.data;
       if (barangay.organizational_chart_path) {
-        const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
+        const SERVER_URL = import.meta.env.VITE_SERVER_URL || "";
         setOrgChartPaths(prev => ({
           ...prev,
           [barangayId]: `${SERVER_URL}/${barangay.organizational_chart_path}`

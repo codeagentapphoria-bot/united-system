@@ -25,7 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 
-const SERVER_URL   = import.meta.env.VITE_SERVER_URL        || "http://localhost:5000";
+const SERVER_URL   = import.meta.env.VITE_SERVER_URL        || "";
 const ESERVICE_URL = import.meta.env.VITE_ESERVICE_SERVER_URL || "http://localhost:3000";
 
 /** Resolve a stored picture_path to an absolute URL. */

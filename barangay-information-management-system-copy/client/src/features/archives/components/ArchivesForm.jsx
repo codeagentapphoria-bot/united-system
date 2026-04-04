@@ -170,7 +170,7 @@ const ArchivesForm = ({
         relateResident: archive.relate_resident || '',
       });
       if (archive.file_path) {
-        setFilePreview(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/${archive.file_path}`);
+        setFilePreview(`${import.meta.env.VITE_API_BASE_URL || '/api'}/${archive.file_path}`);
       }
     } else {
       resetForm();
