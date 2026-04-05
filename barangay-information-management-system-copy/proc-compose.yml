@@ -2,11 +2,6 @@ merge:
   client: 5173
   server: 3001
   port: 8080
-  api_prefixes:
-    - /api
-    - /health
-    - /uploads
-    - /welcome
 
 processes:
   client:
