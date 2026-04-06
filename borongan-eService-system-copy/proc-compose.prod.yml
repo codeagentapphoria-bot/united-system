@@ -1,5 +1,5 @@
 merge:
-  client: 4173
+  client: 4174
   server: 3000
   api_prefixes:
     - /api
@@ -14,7 +14,7 @@ processes:
     ready_when:
       tcp: localhost:6379
   frontend:
-    cmd: npm run preview -- --port 4173 --host
+    cmd: npm run preview -- --port 4174 --host
     dir: ./multysis-frontend
   backend:
     cmd: npm run start
