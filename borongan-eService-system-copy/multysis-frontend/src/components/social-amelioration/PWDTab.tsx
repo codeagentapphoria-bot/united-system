@@ -35,7 +35,7 @@ import type { PWDInput } from '@/validations/beneficiary.schema';
 import { calculateAge, cn, formatDateWithoutTimezone, formatIdType } from '@/lib/utils';
 
 // Icons
-import { FiDownload, FiEdit, FiEye, FiHeart, FiPlus, FiSearch, FiTrash2, FiUser } from 'react-icons/fi';
+import { FiCheck, FiDownload, FiEdit, FiEye, FiHeart, FiPlus, FiSearch, FiTrash2, FiUser } from 'react-icons/fi';
 
 // PWD Card Component - Using shared BeneficiaryCard
 const PWDCard: React.FC<{
@@ -946,6 +946,7 @@ export const PWDTab: React.FC = () => {
     handleAddBeneficiary,
     handleEditBeneficiary,
     handleDeleteBeneficiary,
+    handleActivateBeneficiary,
     handleDownloadList,
     isLoading,
   } = useBeneficiaryManagement('pwd');
@@ -1060,6 +1061,16 @@ export const PWDTab: React.FC = () => {
                     <div className="mr-1"><FiEdit size={14} /></div>
                     Edit
                   </Button>
+                  {selectedBeneficiary.status === 'PENDING' && (
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => handleActivateBeneficiary(selectedBeneficiary.id)}
+                    >
+                      <div className="mr-1"><FiCheck size={14} /></div>
+                      Activate
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="destructive"

@@ -1,23 +1,28 @@
 merge:
-  client: 5174
+  client: 4173
   server: 3000
-  port: 8081
   api_prefixes:
     - /api
     - /health
     - /socket.io
 
 processes:
+  redis:
+    cmd: redis-server --port 6379 --daemonize no
+    restart: on-failure
+    max_restarts: 5
+    ready_when:
+      tcp: localhost:6379
   frontend:
-    cmd: npm run dev
+    cmd: npm run preview -- --port 4173 --host
     dir: ./multysis-frontend
-    env:
-      PORT: "5174"
   backend:
-    cmd: npm run dev
+    cmd: npm run start
     dir: ./multysis-backend
     env:
       PORT: "3000"
     restart: on-failure
     max_restarts: 10
     shutdown_timeout: 10
+    depends_on:
+      - redis

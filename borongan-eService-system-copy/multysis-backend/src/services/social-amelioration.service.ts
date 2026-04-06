@@ -78,14 +78,14 @@ const generateSequentialId = async (type: 'SENIOR' | 'PWD' | 'STUDENT' | 'SOLO_P
   return `${prefix}-${year}-${String(count + 1).padStart(3, '0')}`;
 };
 
-// Helper function to fetch programs for a beneficiary
-// Includes both explicitly assigned programs and ALL type programs
+// Helper function to fetch explicitly assigned programs for a beneficiary.
+// Only returns programs the admin has manually enrolled this beneficiary in.
+// ALL-type programs are NOT auto-injected here — admins assign them explicitly.
 const getBeneficiaryPrograms = async (
   beneficiaryType: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT',
   beneficiaryId: string
 ) => {
-  // Fetch explicitly assigned programs from pivot table
-  const assignedPrograms = await (prisma as any).beneficiaryProgramPivot.findMany({
+  return (prisma as any).beneficiaryProgramPivot.findMany({
     where: {
       beneficiaryType: beneficiaryType,
       beneficiaryId: beneficiaryId,
@@ -94,29 +94,6 @@ const getBeneficiaryPrograms = async (
       programId: true,
     },
   });
-
-  // Fetch ALL type programs that are active (available to all beneficiaries)
-  const allTypePrograms = await prisma.governmentProgram.findMany({
-    where: {
-      type: 'ALL',
-      isActive: true,
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  // Combine and deduplicate program IDs
-  const assignedIds = new Set(assignedPrograms.map((p: any) => p.programId));
-  const allTypeIds = allTypePrograms.map((p) => p.id);
-
-  // Return combined list with programId field for consistency
-  return [
-    ...assignedPrograms,
-    ...allTypeIds
-      .filter((id) => !assignedIds.has(id)) // Avoid duplicates
-      .map((id) => ({ programId: id })),
-  ];
 };
 
 const seniorInclude = {
@@ -301,8 +278,11 @@ const buildSeniorWhere = (
 ): Prisma.SeniorCitizenBeneficiaryWhereInput => {
   const where: Prisma.SeniorCitizenBeneficiaryWhereInput = {};
 
+  // If a specific status is requested, use it; otherwise exclude INACTIVE records
   if (filters?.status) {
     where.status = filters.status;
+  } else {
+    where.status = { not: 'INACTIVE' };
   }
 
   if (filters?.search) {
@@ -326,8 +306,11 @@ const buildSeniorWhere = (
 const buildPWDWhere = (filters?: BeneficiaryFilters): Prisma.PWDBeneficiaryWhereInput => {
   const where: Prisma.PWDBeneficiaryWhereInput = {};
 
+  // If a specific status is requested, use it; otherwise exclude INACTIVE records
   if (filters?.status) {
     where.status = filters.status;
+  } else {
+    where.status = { not: 'INACTIVE' };
   }
 
   if (filters?.search) {
@@ -351,8 +334,11 @@ const buildPWDWhere = (filters?: BeneficiaryFilters): Prisma.PWDBeneficiaryWhere
 const buildStudentWhere = (filters?: BeneficiaryFilters): Prisma.StudentBeneficiaryWhereInput => {
   const where: Prisma.StudentBeneficiaryWhereInput = {};
 
+  // If a specific status is requested, use it; otherwise exclude INACTIVE records
   if (filters?.status) {
     where.status = filters.status;
+  } else {
+    where.status = { not: 'INACTIVE' };
   }
 
   if (filters?.search) {
@@ -378,8 +364,11 @@ const buildSoloParentWhere = (
 ): Prisma.SoloParentBeneficiaryWhereInput => {
   const where: Prisma.SoloParentBeneficiaryWhereInput = {};
 
+  // If a specific status is requested, use it; otherwise exclude INACTIVE records
   if (filters?.status) {
     where.status = filters.status;
+  } else {
+    where.status = { not: 'INACTIVE' };
   }
 
   if (filters?.search) {
@@ -973,11 +962,12 @@ export const socialAmeliorationService = {
   },
 
   async getOverviewStats() {
+    const activeFilter = { where: { status: { not: 'INACTIVE' as const } } };
     const [seniorCount, pwdCount, studentCount, soloParentCount] = await Promise.all([
-      prisma.seniorCitizenBeneficiary.count(),
-      prisma.pWDBeneficiary.count(),
-      prisma.studentBeneficiary.count(),
-      prisma.soloParentBeneficiary.count(),
+      prisma.seniorCitizenBeneficiary.count(activeFilter),
+      prisma.pWDBeneficiary.count(activeFilter),
+      prisma.studentBeneficiary.count(activeFilter),
+      prisma.soloParentBeneficiary.count(activeFilter),
     ]);
 
     return {
@@ -1011,19 +1001,19 @@ export const socialAmeliorationService = {
 
     const [seniors, pwds, students, soloParents] = await Promise.all([
       prisma.seniorCitizenBeneficiary.findMany({
-        where: { createdAt: { gte: start } },
+        where: { createdAt: { gte: start }, status: { not: 'INACTIVE' } },
         select: { createdAt: true },
       }),
       prisma.pWDBeneficiary.findMany({
-        where: { createdAt: { gte: start } },
+        where: { createdAt: { gte: start }, status: { not: 'INACTIVE' } },
         select: { createdAt: true },
       }),
       prisma.studentBeneficiary.findMany({
-        where: { createdAt: { gte: start } },
+        where: { createdAt: { gte: start }, status: { not: 'INACTIVE' } },
         select: { createdAt: true },
       }),
       prisma.soloParentBeneficiary.findMany({
-        where: { createdAt: { gte: start } },
+        where: { createdAt: { gte: start }, status: { not: 'INACTIVE' } },
         select: { createdAt: true },
       }),
     ]);

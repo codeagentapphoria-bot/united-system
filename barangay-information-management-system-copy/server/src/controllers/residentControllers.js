@@ -315,6 +315,18 @@ export const updateClassificationType = async (req, res, next) => {
   }
 };
 
+export const getSocialAmeliorationSettings = async (req, res, next) => {
+  try {
+    const { type } = req.query;
+    if (!type) return next(new ApiError(400, 'type query parameter is required'));
+    const settings = await Resident.getSocialAmeliorationSettings({ type });
+    res.json({ data: settings });
+  } catch (error) {
+    logger.error('Error fetching social amelioration settings:', error);
+    next(error);
+  }
+};
+
 export const deleteClassificationType = async (req, res, next) => {
   try {
     const { id } = req.params;

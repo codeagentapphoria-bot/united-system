@@ -34,6 +34,7 @@ import {
   createClassificationType,
   updateClassificationType,
   deleteClassificationType,
+  getSocialAmeliorationSettings,
 } from "../controllers/residentControllers.js";
 
 const router = express.Router();
@@ -56,6 +57,9 @@ router.get("/list/classification", smartCache(), ...allUsers, classificationList
 router.post("/classification", ...allUsers, insertClassification, smartInvalidateCache());
 router.put("/classification/:classificationId", ...allUsers, updateClassification, smartInvalidateCache());
 router.delete("/classification/:classificationId", ...allUsers, deleteClassification, smartInvalidateCache());
+
+// Shared Social Amelioration Settings (used by BIMS classification form dropdowns)
+router.get("/social-amelioration-settings", smartCache(), ...allUsers, getSocialAmeliorationSettings);
 
 // Classification Types
 router.get("/classification-types", smartCache(), ...allUsers, getClassificationTypes);

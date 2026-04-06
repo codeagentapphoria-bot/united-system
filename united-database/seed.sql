@@ -121,6 +121,7 @@ ON CONFLICT (id) DO NOTHING;
 -- =============================================================================
 
 INSERT INTO public.government_programs (id, name, description, type, is_active, created_at, updated_at) VALUES
+    -- National / general programs
     ('gp-sc-osca',       '4Ps / OSCA Benefits',         'Pantawid Pamilyang Pilipino Program for senior citizens', 'SENIOR_CITIZEN', true, now(), now()),
     ('gp-sc-philhealth', 'PhilHealth Senior',            'PhilHealth coverage for senior citizens',                 'SENIOR_CITIZEN', true, now(), now()),
     ('gp-pwd-main',      'PWD Benefits Program',         'National PWD financial assistance and benefits',          'PWD',            true, now(), now()),
@@ -128,7 +129,32 @@ INSERT INTO public.government_programs (id, name, description, type, is_active, 
     ('gp-st-ched',       'CHED Scholarships',            'Commission on Higher Education scholarship grants',       'STUDENT',        true, now(), now()),
     ('gp-st-deped',      'DepEd Educational Assistance', 'Department of Education student assistance program',      'STUDENT',        true, now(), now()),
     ('gp-sp-ra8972',     'RA 8972 Solo Parent Benefits', 'Benefits under the Solo Parents'' Welfare Act',           'SOLO_PARENT',    true, now(), now()),
-    ('gp-all-4ps',       '4Ps (All Beneficiary Types)',  'Pantawid Pamilyang Pilipino Program (general)',           'ALL',            true, now(), now())
+    ('gp-all-4ps',       '4Ps (All Beneficiary Types)',  'Pantawid Pamilyang Pilipino Program (general)',           'ALL',            true, now(), now()),
+    -- City-specific programs (from Borongan eService original)
+    -- ALL
+    ('gp-all-libre-sakay',    'Libre Sakay',    'Free bus services for the city residents',  'ALL', true, now(), now()),
+    ('gp-all-libre-medisina', 'Libre Medisina', 'City Pharmacy Free Medicine Program',       'ALL', true, now(), now()),
+    -- STUDENT
+    ('gp-st-direkta-ayuda', 'Direkta Ayuda',               'Student Financial Assistance Program',                                                          'STUDENT', true, now(), now()),
+    ('gp-st-edu-assist',    'Educational Assistance Program', 'Financial support for educational expenses including books, supplies, and school fees',       'STUDENT', true, now(), now()),
+    ('gp-st-scholarship',   'Scholarship Grant',            'City scholarship program for outstanding students',                                             'STUDENT', true, now(), now()),
+    ('gp-st-uniform',       'School Uniform Assistance',    'Free school uniform and supplies for indigent students',                                        'STUDENT', true, now(), now()),
+    -- SENIOR_CITIZEN
+    ('gp-sc-monthly-pension', 'Senior Citizen Monthly Pension', 'Monthly financial assistance for qualified senior citizens',                            'SENIOR_CITIZEN', true, now(), now()),
+    ('gp-sc-health-card',     'Senior Citizen Health Card',     'Free medical services and discounts for senior citizens',                               'SENIOR_CITIZEN', true, now(), now()),
+    ('gp-sc-birthday-gift',   'Birthday Gift for Seniors',      'Birthday cash gift for senior citizens celebrating their birthdays',                    'SENIOR_CITIZEN', true, now(), now()),
+    ('gp-sc-discount-card',   'Senior Citizen Discount Card',   'Enhanced discount card for senior citizens in local establishments',                    'SENIOR_CITIZEN', true, now(), now()),
+    -- PWD
+    ('gp-pwd-monthly-allowance', 'PWD Monthly Allowance',       'Monthly financial assistance for registered PWDs',                                      'PWD', true, now(), now()),
+    ('gp-pwd-assistive-device',  'PWD Assistive Device Program', 'Free or subsidized assistive devices for PWDs (wheelchairs, hearing aids, etc.)',      'PWD', true, now(), now()),
+    ('gp-pwd-health-services',   'PWD Health Services',          'Free medical services and rehabilitation programs for PWDs',                            'PWD', true, now(), now()),
+    ('gp-pwd-livelihood',        'PWD Livelihood Assistance',    'Livelihood and skills training program for PWDs',                                       'PWD', true, now(), now()),
+    -- SOLO_PARENT
+    ('gp-sp-monthly-assist', 'Solo Parent Monthly Assistance',    'Monthly financial assistance for registered solo parents',             'SOLO_PARENT', true, now(), now()),
+    ('gp-sp-livelihood',     'Solo Parent Livelihood Program',    'Skills training and livelihood opportunities for solo parents',        'SOLO_PARENT', true, now(), now()),
+    ('gp-sp-health-benefits','Solo Parent Health Benefits',       'Free medical services and health insurance assistance for solo parents','SOLO_PARENT', true, now(), now()),
+    ('gp-sp-edu-assist',     'Solo Parent Educational Assistance','Educational support for children of solo parents',                    'SOLO_PARENT', true, now(), now()),
+    ('gp-sp-childcare',      'Solo Parent Childcare Support',     'Subsidized childcare services for solo parents',                      'SOLO_PARENT', true, now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 
@@ -751,7 +777,7 @@ BEGIN
     RAISE NOTICE '  Permissions:                  %', (SELECT COUNT(*) FROM public.permissions);
     RAISE NOTICE '  Role-Permission mappings:     %', (SELECT COUNT(*) FROM public.role_permissions);
     RAISE NOTICE '  Social amelioration settings: %', (SELECT COUNT(*) FROM public.social_amelioration_settings);
-    RAISE NOTICE '  Government programs:          %', (SELECT COUNT(*) FROM public.government_programs);
+    RAISE NOTICE '  Government programs:          % (8 national + 19 city-specific)', (SELECT COUNT(*) FROM public.government_programs);
     RAISE NOTICE '  FAQs:                         %', (SELECT COUNT(*) FROM public.faqs);
     RAISE NOTICE '  Services (certificates):      %', (SELECT COUNT(*) FROM public.services WHERE category = 'Barangay Certificate');
 END$$;
