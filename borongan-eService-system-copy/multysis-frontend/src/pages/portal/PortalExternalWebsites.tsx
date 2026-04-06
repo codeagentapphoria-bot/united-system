@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { PortalLayout } from '@/components/layout/PortalLayout';
-import { FiArrowRight, FiClipboard, FiCheckCircle, FiExternalLink, FiSearch, FiUser } from 'react-icons/fi';
+import { FiArrowRight, FiExternalLink, FiSearch } from 'react-icons/fi';
 
 export const PortalExternalWebsites: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
