@@ -25,7 +25,7 @@ import { calculateAge, cn, formatDateWithoutTimezone, formatIdType } from '@/lib
 import { getRegionName } from '@/constants/regions';
 
 // Icons
-import { FiBookOpen, FiDownload, FiEdit, FiEye, FiPlus, FiSearch, FiTrash2, FiUser } from 'react-icons/fi';
+import { FiBookOpen, FiCheck, FiDownload, FiEdit, FiEye, FiPlus, FiSearch, FiTrash2, FiUser } from 'react-icons/fi';
 
 
 // Full Information Modal Component
@@ -750,6 +750,7 @@ export const StudentsTab: React.FC = () => {
     handleAddBeneficiary,
     handleEditBeneficiary,
     handleDeleteBeneficiary,
+    handleActivateBeneficiary,
     handleDownloadList,
     isLoading,
   } = useBeneficiaryManagement('students');
@@ -867,6 +868,16 @@ export const StudentsTab: React.FC = () => {
                     <div className="mr-1"><FiEdit size={14} /></div>
                     Edit
                   </Button>
+                  {selectedBeneficiary.status === 'PENDING' && (
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => handleActivateBeneficiary(selectedBeneficiary.id)}
+                    >
+                      <div className="mr-1"><FiCheck size={14} /></div>
+                      Activate
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="destructive"

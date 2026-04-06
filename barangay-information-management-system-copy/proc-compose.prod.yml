@@ -1,0 +1,27 @@
+merge:
+  client: 4173
+  server: 5000
+
+processes:
+  redis:
+    cmd: redis-server --port 6379 --daemonize no
+    restart: on-failure
+    max_restarts: 5
+    ready_when:
+      tcp: localhost:6379
+  frontend:
+    cmd: npm run preview -- --port 4173 --host
+    dir: ./client
+  backend:
+    cmd: npm run start
+    dir: ./server
+    env:
+      PORT: "5000"
+      REDIS_HOST: "localhost"
+      REDIS_PORT: "6379"
+      REDIS_ENABLED: "true"
+    restart: on-failure
+    max_restarts: 10
+    shutdown_timeout: 10
+    depends_on:
+      - redis

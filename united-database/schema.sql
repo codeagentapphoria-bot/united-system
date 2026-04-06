@@ -1141,8 +1141,8 @@ CREATE TABLE public.pwd_beneficiaries (
     id                 text NOT NULL DEFAULT gen_random_uuid()::text,
     resident_id        text NOT NULL,         -- FK → residents(id) ON DELETE CASCADE
     pwd_id             text NOT NULL,
-    disability_level   text NOT NULL,
-    disability_type_id text NOT NULL,
+    disability_level   text,                  -- nullable until record is completed (PENDING → ACTIVE)
+    disability_type_id text,                  -- nullable until record is completed (PENDING → ACTIVE)
     monetary_allowance boolean NOT NULL DEFAULT false,
     assisted_device    boolean NOT NULL DEFAULT false,
     donor_device       text,
@@ -1157,7 +1157,7 @@ CREATE TABLE public.student_beneficiaries (
     id             text NOT NULL DEFAULT gen_random_uuid()::text,
     resident_id    text NOT NULL,             -- FK → residents(id) ON DELETE CASCADE
     student_id     text NOT NULL,
-    grade_level_id text NOT NULL,
+    grade_level_id text,                      -- nullable until record is completed (PENDING → ACTIVE)
     status         public.beneficiary_status NOT NULL DEFAULT 'ACTIVE',
     remarks        text,
     created_at     timestamp without time zone DEFAULT now(),
@@ -1169,7 +1169,7 @@ CREATE TABLE public.solo_parent_beneficiaries (
     id             text NOT NULL DEFAULT gen_random_uuid()::text,
     resident_id    text NOT NULL,             -- FK → residents(id) ON DELETE CASCADE
     solo_parent_id text NOT NULL,
-    category_id    text NOT NULL,
+    category_id    text,                      -- nullable until record is completed (PENDING → ACTIVE)
     status         public.beneficiary_status NOT NULL DEFAULT 'ACTIVE',
     remarks        text,
     created_at     timestamp without time zone DEFAULT now(),

@@ -19,13 +19,20 @@ const classificationTypes = [
     name: "Senior Citizen",
     description: "Residents aged 60 and above",
     color: "#FF9800",
-    details: [{ key: "remarks", label: "Remarks", type: "text" }],
+    details: [
+      { key: "pensionTypeIds", label: "Pension Types", type: "amelioration_multiselect", settingType: "PENSION_TYPE" },
+      { key: "remarks", label: "Remarks", type: "text" },
+    ],
   },
   {
     name: "Person with Disability",
     description: "Individuals with physical or mental disabilities",
     color: "#E91E63",
-    details: [{ key: "type", label: "Type of Disability", type: "text" }, { key: "remarks", label: "Remarks", type: "text" }],
+    details: [
+      { key: "disabilityTypeId", label: "Disability Type", type: "amelioration_select", settingType: "DISABILITY_TYPE" },
+      { key: "disabilityLevel", label: "Disability Level", type: "select", options: ["MILD", "MODERATE", "SEVERE", "PROFOUND"] },
+      { key: "remarks", label: "Remarks", type: "text" },
+    ],
   },
   {
     name: "Pregnant",
@@ -43,7 +50,10 @@ const classificationTypes = [
     name: "Solo Parent",
     description: "Single parents raising children alone",
     color: "#607D8B",
-    details: [{ key: "remarks", label: "Remarks", type: "text" }],
+    details: [
+      { key: "categoryId", label: "Category", type: "amelioration_select", settingType: "SOLO_PARENT_CATEGORY" },
+      { key: "remarks", label: "Remarks", type: "text" },
+    ],
   },
   {
     name: "Overseas Filipino Worker",
@@ -55,7 +65,10 @@ const classificationTypes = [
     name: "Student",
     description: "Students enrolled in educational institutions",
     color: "#2196F3",
-    details: [{ key: "educationLevel", label: "Education Level", type: "text" }, { key: "gradeLevel", label: "Grade Level", type: "text" }, { key: "remarks", label: "Remarks", type: "text" }],
+    details: [
+      { key: "gradeLevelId", label: "Grade Level", type: "amelioration_select", settingType: "GRADE_LEVEL" },
+      { key: "remarks", label: "Remarks", type: "text" },
+    ],
   },
   {
     name: "Unemployed",
@@ -132,7 +145,7 @@ const classificationTypes = [
     description: "Students enrolled in college or university",
     color: "#03A9F4",
     details: [
-      { key: "collegeLevel", label: "College Level", type: "text" },
+      { key: "gradeLevelId", label: "Grade Level", type: "amelioration_select", settingType: "GRADE_LEVEL" },
       { key: "course", label: "Course", type: "text" },
       { key: "remarks", label: "Remarks", type: "text" },
     ],

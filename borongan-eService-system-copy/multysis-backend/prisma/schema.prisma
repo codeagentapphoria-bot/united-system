@@ -607,8 +607,8 @@ model PWDBeneficiary {
   id                String                    @id @default(uuid())
   residentId        String                    @map("resident_id") @unique
   pwdId             String                    @map("pwd_id") @unique
-  disabilityLevel   String                    @map("disability_level")
-  disabilityTypeId  String                    @map("disability_type_id")
+  disabilityLevel   String?                   @map("disability_level")
+  disabilityTypeId  String?                   @map("disability_type_id")
   monetaryAllowance Boolean                   @map("monetary_allowance") @default(false)
   assistedDevice    Boolean                   @map("assisted_device") @default(false)
   donorDevice       String?                   @map("donor_device")
@@ -617,7 +617,7 @@ model PWDBeneficiary {
   createdAt         DateTime                  @map("created_at") @default(now())
   updatedAt         DateTime                  @map("updated_at") @updatedAt
   resident          Resident                  @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  disabilityType    SocialAmeliorationSetting @relation(fields: [disabilityTypeId], references: [id])
+  disabilityType    SocialAmeliorationSetting? @relation(fields: [disabilityTypeId], references: [id])
 
   @@map("pwd_beneficiaries")
 }
@@ -626,13 +626,13 @@ model StudentBeneficiary {
   id           String                    @id @default(uuid())
   residentId   String                    @map("resident_id") @unique
   studentId    String                    @map("student_id") @unique
-  gradeLevelId String                    @map("grade_level_id")
+  gradeLevelId String?                   @map("grade_level_id")
   status       BeneficiaryStatus         @default(ACTIVE)
   remarks      String?
   createdAt    DateTime                  @map("created_at") @default(now())
   updatedAt    DateTime                  @map("updated_at") @updatedAt
   resident     Resident                  @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  gradeLevel   SocialAmeliorationSetting @relation(fields: [gradeLevelId], references: [id])
+  gradeLevel   SocialAmeliorationSetting? @relation(fields: [gradeLevelId], references: [id])
 
   @@map("student_beneficiaries")
 }
@@ -641,13 +641,13 @@ model SoloParentBeneficiary {
   id           String                    @id @default(uuid())
   residentId   String                    @map("resident_id") @unique
   soloParentId String                    @map("solo_parent_id") @unique
-  categoryId   String                    @map("category_id")
+  categoryId   String?                   @map("category_id")
   status       BeneficiaryStatus         @default(ACTIVE)
   remarks      String?
   createdAt    DateTime                  @map("created_at") @default(now())
   updatedAt    DateTime                  @map("updated_at") @updatedAt
   resident     Resident                  @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  category     SocialAmeliorationSetting @relation(fields: [categoryId], references: [id])
+  category     SocialAmeliorationSetting? @relation(fields: [categoryId], references: [id])
 
   @@map("solo_parent_beneficiaries")
 }

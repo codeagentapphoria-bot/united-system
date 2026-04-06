@@ -19,6 +19,7 @@ import { toast } from "@/hooks/use-toast";
 import { BadgeCheck, User } from "lucide-react";
 import api from "@/utils/api";
 import { useClassificationTypes } from "@/hooks/useClassificationTypes";
+import { useAmeliorationSettings } from "@/hooks/useAmeliorationSettings";
 import { handleError } from "@/utils/errorHandler";
 import logger from "@/utils/logger";
 import ClassificationGuide from "@/components/ui/ClassificationGuide";
@@ -42,6 +43,7 @@ const ResidentClassificationsForm = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { classificationTypes, loading: typesLoading } = useClassificationTypes(municipalityId);
+  const { getSettingsByType } = useAmeliorationSettings();
   const [localClassificationOptions, setLocalClassificationOptions] = useState(
     []
   );
@@ -232,12 +234,65 @@ const ResidentClassificationsForm = ({
 
   const renderDetailField = (classification, detail) => {
     const currentDetails = form.watch("classificationDetails") || {};
-    const currentValue = currentDetails[classification]?.[detail.key] || "";
+    const currentValue = currentDetails[classification]?.[detail.key];
 
+    // Dropdown loaded from social_amelioration_settings (single select)
+    if (detail.type === "amelioration_select" && detail.settingType) {
+      const options = getSettingsByType(detail.settingType);
+      return (
+        <Select
+          value={currentValue || ""}
+          onValueChange={(value) =>
+            handleDetailChange(classification, detail.key, value)
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={`Select ${detail.label.toLowerCase()}`} />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((opt) => (
+              <SelectItem key={opt.id} value={opt.id}>{opt.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+
+    // Checkbox list loaded from social_amelioration_settings (multi-select)
+    if (detail.type === "amelioration_multiselect" && detail.settingType) {
+      const options = getSettingsByType(detail.settingType);
+      const selectedIds = Array.isArray(currentValue) ? currentValue : [];
+      return (
+        <div className="grid grid-cols-1 gap-2 pt-1">
+          {options.map((opt) => (
+            <div key={opt.id} className="flex items-center space-x-2">
+              <Checkbox
+                id={`${classification}-${detail.key}-${opt.id}`}
+                checked={selectedIds.includes(opt.id)}
+                onCheckedChange={(checked) => {
+                  const next = checked
+                    ? [...selectedIds, opt.id]
+                    : selectedIds.filter((v) => v !== opt.id);
+                  handleDetailChange(classification, detail.key, next);
+                }}
+              />
+              <Label
+                htmlFor={`${classification}-${detail.key}-${opt.id}`}
+                className="text-sm font-normal cursor-pointer"
+              >
+                {opt.name}
+              </Label>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Static options select (e.g. disability level)
     if (detail.type === "select" && detail.options) {
       return (
         <Select
-          value={currentValue}
+          value={currentValue || ""}
           onValueChange={(value) =>
             handleDetailChange(classification, detail.key, value)
           }
@@ -261,7 +316,7 @@ const ResidentClassificationsForm = ({
     return (
       <Input
         placeholder={`Enter ${detail.label.toLowerCase()}`}
-        value={currentValue}
+        value={currentValue || ""}
         onChange={(e) =>
           handleDetailChange(classification, detail.key, e.target.value)
         }

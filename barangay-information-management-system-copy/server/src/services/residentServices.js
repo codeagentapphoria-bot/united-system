@@ -175,7 +175,145 @@ class Resident {
       classificationType,
       JSON.stringify(classificationDetails || []),
     ]);
+
+    // Sync to eService beneficiary table (same DB — no HTTP call needed)
+    await Resident._syncBeneficiaryOnInsert(residentId, classificationType, classificationDetails);
+
     return result.rows[0];
+  }
+
+  // Mapping from BIMS classification names → beneficiary table info
+  static BENEFICIARY_SYNC_MAP = {
+    'Senior Citizen':         { table: 'senior_citizen_beneficiaries', idCol: 'senior_citizen_id', prefix: 'SC'  },
+    'Person with Disability': { table: 'pwd_beneficiaries',            idCol: 'pwd_id',            prefix: 'PWD' },
+    'Student':                { table: 'student_beneficiaries',        idCol: 'student_id',        prefix: 'ST'  },
+    'College Student':        { table: 'student_beneficiaries',        idCol: 'student_id',        prefix: 'ST'  },
+    'Solo Parent':            { table: 'solo_parent_beneficiaries',    idCol: 'solo_parent_id',    prefix: 'SP'  },
+  };
+
+  static async _syncBeneficiaryOnInsert(residentId, classificationType, classificationDetails = {}) {
+    const mapping = Resident.BENEFICIARY_SYNC_MAP[classificationType];
+    if (!mapping) return;
+
+    const { table, idCol, prefix } = mapping;
+
+    // Check if a record already exists for this resident
+    const existing = await pool.query(
+      `SELECT id, status FROM ${table} WHERE resident_id = $1`,
+      [residentId]
+    );
+    if (existing.rows.length > 0) {
+      // If it was deactivated (BIMS removed then re-added), reactivate to PENDING
+      if (existing.rows[0].status === 'INACTIVE') {
+        await pool.query(
+          `UPDATE ${table} SET status = 'PENDING', updated_at = now() WHERE resident_id = $1`,
+          [residentId]
+        );
+        logger.info(`[beneficiary-sync] Reactivated INACTIVE ${table} to PENDING for resident ${residentId}`);
+      }
+      // Also update any type-specific detail fields from the new classification
+      await Resident._syncBeneficiaryDetails(table, residentId, classificationDetails);
+      return;
+    }
+
+    // Generate display ID: PREFIX-YEAR-### (e.g. SC-2025-003)
+    const year = new Date().getFullYear();
+    const countResult = await pool.query(`SELECT COUNT(*) AS cnt FROM ${table}`);
+    const seq = parseInt(countResult.rows[0].cnt, 10) + 1;
+    const displayId = `${prefix}-${year}-${String(seq).padStart(3, '0')}`;
+
+    // Insert with type-specific fields from classificationDetails
+    if (table === 'pwd_beneficiaries') {
+      const disabilityTypeId = classificationDetails?.disabilityTypeId || null;
+      const disabilityLevel  = classificationDetails?.disabilityLevel  || null;
+      await pool.query(
+        `INSERT INTO pwd_beneficiaries (resident_id, pwd_id, disability_type_id, disability_level, status)
+         VALUES ($1, $2, $3, $4, 'PENDING')`,
+        [residentId, displayId, disabilityTypeId, disabilityLevel]
+      );
+    } else if (table === 'student_beneficiaries') {
+      const gradeLevelId = classificationDetails?.gradeLevelId || null;
+      await pool.query(
+        `INSERT INTO student_beneficiaries (resident_id, student_id, grade_level_id, status)
+         VALUES ($1, $2, $3, 'PENDING')`,
+        [residentId, displayId, gradeLevelId]
+      );
+    } else if (table === 'solo_parent_beneficiaries') {
+      const categoryId = classificationDetails?.categoryId || null;
+      await pool.query(
+        `INSERT INTO solo_parent_beneficiaries (resident_id, solo_parent_id, category_id, status)
+         VALUES ($1, $2, $3, 'PENDING')`,
+        [residentId, displayId, categoryId]
+      );
+    } else {
+      // senior_citizen_beneficiaries (no nullable FK columns)
+      await pool.query(
+        `INSERT INTO senior_citizen_beneficiaries (resident_id, senior_citizen_id, status)
+         VALUES ($1, $2, 'PENDING')`,
+        [residentId, displayId]
+      );
+    }
+
+    // Pension type pivots for senior citizens (multi-select)
+    if (table === 'senior_citizen_beneficiaries') {
+      const pensionTypeIds = Array.isArray(classificationDetails?.pensionTypeIds)
+        ? classificationDetails.pensionTypeIds : [];
+      if (pensionTypeIds.length > 0) {
+        const ben = await pool.query(
+          `SELECT id FROM senior_citizen_beneficiaries WHERE resident_id = $1`, [residentId]
+        );
+        if (ben.rows.length > 0) {
+          const benId = ben.rows[0].id;
+          for (const settingId of pensionTypeIds) {
+            await pool.query(
+              `INSERT INTO senior_citizen_pension_type_pivots (beneficiary_id, setting_id)
+               VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+              [benId, settingId]
+            );
+          }
+        }
+      }
+    }
+
+    logger.info(`[beneficiary-sync] Created PENDING ${table} for resident ${residentId} (${displayId})`);
+  }
+
+  // Update type-specific detail columns on an already-existing PENDING record
+  static async _syncBeneficiaryDetails(table, residentId, classificationDetails = {}) {
+    if (table === 'pwd_beneficiaries') {
+      const disabilityTypeId = classificationDetails?.disabilityTypeId || null;
+      const disabilityLevel  = classificationDetails?.disabilityLevel  || null;
+      if (disabilityTypeId || disabilityLevel) {
+        await pool.query(
+          `UPDATE pwd_beneficiaries
+           SET disability_type_id = COALESCE($2, disability_type_id),
+               disability_level   = COALESCE($3, disability_level),
+               updated_at = now()
+           WHERE resident_id = $1 AND status = 'PENDING'`,
+          [residentId, disabilityTypeId, disabilityLevel]
+        );
+      }
+    } else if (table === 'student_beneficiaries') {
+      const gradeLevelId = classificationDetails?.gradeLevelId || null;
+      if (gradeLevelId) {
+        await pool.query(
+          `UPDATE student_beneficiaries
+           SET grade_level_id = $2, updated_at = now()
+           WHERE resident_id = $1 AND status = 'PENDING'`,
+          [residentId, gradeLevelId]
+        );
+      }
+    } else if (table === 'solo_parent_beneficiaries') {
+      const categoryId = classificationDetails?.categoryId || null;
+      if (categoryId) {
+        await pool.query(
+          `UPDATE solo_parent_beneficiaries
+           SET category_id = $2, updated_at = now()
+           WHERE resident_id = $1 AND status = 'PENDING'`,
+          [residentId, categoryId]
+        );
+      }
+    }
   }
 
   static async classificationList({ barangayId, userTargetType, userTargetId }) {
@@ -209,7 +347,28 @@ class Resident {
 
   static async deleteClassification({ classificationId }) {
     const result = await pool.query(DELETE_CLASSIFICATION, [classificationId]);
-    return result.rows[0];
+    const deleted = result.rows[0];
+
+    // Soft-deactivate the corresponding beneficiary record (preserves program history)
+    if (deleted) {
+      await Resident._syncBeneficiaryOnDelete(deleted.resident_id, deleted.classification_type);
+    }
+
+    return deleted;
+  }
+
+  static async _syncBeneficiaryOnDelete(residentId, classificationType) {
+    const mapping = Resident.BENEFICIARY_SYNC_MAP[classificationType];
+    if (!mapping) return;
+
+    const { table } = mapping;
+
+    await pool.query(
+      `UPDATE ${table} SET status = 'INACTIVE', updated_at = now() WHERE resident_id = $1`,
+      [residentId]
+    );
+
+    logger.info(`[beneficiary-sync] Set ${table} INACTIVE for resident ${residentId}`);
   }
 
   // ==========================================================================
@@ -260,6 +419,19 @@ class Resident {
       JSON.stringify(details || []),
     ]);
     return result.rows[0];
+  }
+
+  // ==========================================================================
+  // SOCIAL AMELIORATION SETTINGS (shared lookup for BIMS classification form)
+  // ==========================================================================
+
+  static async getSocialAmeliorationSettings({ type }) {
+    const result = await pool.query(
+      `SELECT id, name, description FROM social_amelioration_settings
+       WHERE type = $1 AND is_active = true ORDER BY name ASC`,
+      [type]
+    );
+    return result.rows;
   }
 
   static async deleteClassificationType({ id, municipalityId }) {

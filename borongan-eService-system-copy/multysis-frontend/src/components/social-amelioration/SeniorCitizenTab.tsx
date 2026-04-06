@@ -35,7 +35,7 @@ import type { SeniorCitizenInput } from '@/validations/beneficiary.schema';
 import { calculateAge, cn, formatDateWithoutTimezone, formatIdType, getAgeClassification, getAgeClassificationBadgeVariant } from '@/lib/utils';
 
 // Icons
-import { FiDownload, FiEdit, FiEye, FiPlus, FiSearch, FiTrash2, FiUser } from 'react-icons/fi';
+import { FiCheck, FiDownload, FiEdit, FiEye, FiPlus, FiSearch, FiTrash2, FiUser } from 'react-icons/fi';
 
 // Senior Citizen Card Component - Using shared BeneficiaryCard
 const SeniorCitizenCard: React.FC<{
@@ -962,6 +962,7 @@ export const SeniorCitizenTab: React.FC = () => {
     handleAddBeneficiary,
     handleEditBeneficiary,
     handleDeleteBeneficiary,
+    handleActivateBeneficiary,
     handleDownloadList,
     isLoading,
   } = useBeneficiaryManagement('senior-citizen');
@@ -1076,6 +1077,16 @@ export const SeniorCitizenTab: React.FC = () => {
                     <div className="mr-1"><FiEdit size={14} /></div>
                     Edit
                   </Button>
+                  {selectedBeneficiary.status === 'PENDING' && (
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => handleActivateBeneficiary(selectedBeneficiary.id)}
+                    >
+                      <div className="mr-1"><FiCheck size={14} /></div>
+                      Activate
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="destructive"

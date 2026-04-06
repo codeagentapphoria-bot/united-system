@@ -601,14 +601,20 @@ const ResidentsPage = ({ role }) => {
       const toAdd = newClassifications.filter(c => !oldTypes.has((c.type || '').toLowerCase()));
 
       try {
-        await Promise.all([
-          ...toDelete.map(c => api.delete(`/classification/${c.classification_id}`)),
-          ...toAdd.map(c => api.post('/classification', {
+        // Deletes must complete before adds so the sync reactivation logic in
+        // _syncBeneficiaryOnInsert can see the INACTIVE state and restore it to PENDING.
+        // Running them in parallel causes a race: the add sees ACTIVE, updates details,
+        // then the delete fires and leaves the beneficiary INACTIVE.
+        if (toDelete.length > 0) {
+          await Promise.all(toDelete.map(c => api.delete(`/classification/${c.classification_id}`)));
+        }
+        if (toAdd.length > 0) {
+          await Promise.all(toAdd.map(c => api.post('/classification', {
             residentId: editResident.id,
             classificationType: c.type,
             classificationDetails: c.details || null,
-          })),
-        ]);
+          })));
+        }
 
         setEditClassificationsDialogOpen(false);
         setEditResident(null);
