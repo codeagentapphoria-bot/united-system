@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y curl ca-certificates redis-server && \
 ENV PATH="/usr/local/go/bin:/root/go/bin:$PATH"
 
 # Install proc-compose and merge-port
-RUN go install github.com/anivaryam/proc-compose/cmd/proc-compose@v0.5.0 && \
+RUN go install github.com/anivaryam/proc-compose/cmd/proc-compose@v0.5.2 && \
     go install github.com/anivaryam/merge-port/cmd/merge-port@v0.3.0
 
 WORKDIR /app
