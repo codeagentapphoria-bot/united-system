@@ -19,6 +19,7 @@ import { pool } from '../config/db.js';
 import { barangayUsersOnly } from '../middlewares/auth.js';
 import logger from '../utils/logger.js';
 import { sendEmail } from '../utils/email.js';
+import Resident from '../services/residentServices.js';
 
 const router = Router();
 
@@ -53,6 +54,133 @@ async function generateResidentId(client, municipalityId) {
   const munPart = String(municipalityId).padStart(3, '0');
   const cntPart = String(counter).padStart(4, '0');
   return `${prefix}-${year}-${munPart}${cntPart}`;
+}
+
+// =============================================================================
+// AUTO-CLASSIFICATION
+//
+// Maps flat resident fields (is_voter, employment_status, education_attainment,
+// indigenous_person, birthdate) to resident_classifications rows.
+//
+// Runs inside the approval transaction (uses the transaction client).
+// Beneficiary sync runs AFTER commit via autoSyncBeneficiaries().
+// =============================================================================
+
+/** Maps employment_status enum → classification type name (null = skip) */
+const EMPLOYMENT_STATUS_TO_CLASSIFICATION = {
+  unemployed:     'Unemployed',
+  'self-employed': 'Self Employed',
+  retired:        'Retired',
+  student:        'Student',
+  // 'employed' is intentionally omitted — too broad; admin assigns specific type
+  // 'not_applicable' is intentionally omitted
+};
+
+/** Detects college-level education from free-text education_attainment */
+function isCollegeLevel(educationAttainment) {
+  if (!educationAttainment) return false;
+  const val = educationAttainment.toLowerCase();
+  return (
+    val.includes('college') ||
+    val.includes('bachelor') ||
+    val.includes('master') ||
+    val.includes('doctorate') ||
+    val.includes('doctoral') ||
+    val.includes('university') ||
+    val.includes('post-secondary') ||
+    val.includes('tertiary')
+  );
+}
+
+/**
+ * Auto-create resident_classifications rows from flat registration fields.
+ * Must be called inside an open transaction (pass the transaction client).
+ * Returns list of classification types inserted.
+ */
+async function autoClassifyResident(client, residentUUID, municipalityId) {
+  // Fetch the resident's flat fields needed for mapping
+  const { rows } = await client.query(
+    `SELECT is_voter, employment_status, education_attainment,
+            indigenous_person, birthdate
+       FROM residents WHERE id = $1`,
+    [residentUUID]
+  );
+  if (rows.length === 0) return [];
+
+  const r = rows[0];
+  const inserted = [];
+
+  // Build list of (classificationType, details) to insert
+  const toInsert = [];
+
+  if (r.is_voter) {
+    toInsert.push({ type: 'Voter', details: [{ typeOfVoter: 'Regular' }] });
+  }
+
+  const employmentClass = EMPLOYMENT_STATUS_TO_CLASSIFICATION[r.employment_status];
+  if (employmentClass) {
+    // If student, check education level to pick Student vs College Student
+    if (r.employment_status === 'student') {
+      const classType = isCollegeLevel(r.education_attainment) ? 'College Student' : 'Student';
+      toInsert.push({ type: classType, details: [] });
+    } else {
+      toInsert.push({ type: employmentClass, details: [] });
+    }
+  }
+
+  if (r.indigenous_person) {
+    toInsert.push({ type: 'Indigenous Person', details: [] });
+  }
+
+  // Senior Citizen — age >= 60
+  if (r.birthdate) {
+    const ageDays = (Date.now() - new Date(r.birthdate).getTime()) / 86400000;
+    if (ageDays >= 60 * 365.25) {
+      toInsert.push({ type: 'Senior Citizen', details: [] });
+    }
+  }
+
+  // Insert each, skipping any whose classification_type doesn't exist for this
+  // municipality (graceful degradation — log a warning, don't fail the transaction)
+  for (const { type, details } of toInsert) {
+    // Verify the classification type exists for this municipality
+    const typeCheck = await client.query(
+      `SELECT id FROM classification_types WHERE name = $1 AND municipality_id = $2 LIMIT 1`,
+      [type, municipalityId]
+    );
+    if (typeCheck.rows.length === 0) {
+      logger.warn(`[auto-classify] Classification type "${type}" not found for municipality ${municipalityId} — skipping`);
+      continue;
+    }
+
+    await client.query(
+      `INSERT INTO resident_classifications (resident_id, classification_type, classification_details)
+       VALUES ($1, $2, $3)
+       ON CONFLICT ON CONSTRAINT resident_classifications_unique_type DO NOTHING`,
+      [residentUUID, type, JSON.stringify(details)]
+    );
+    inserted.push(type);
+    logger.info(`[auto-classify] Inserted classification "${type}" for resident ${residentUUID}`);
+  }
+
+  return inserted;
+}
+
+/**
+ * Run beneficiary sync for auto-classified types.
+ * Called AFTER transaction commit using the shared pool (not a transaction client).
+ */
+async function autoSyncBeneficiaries(residentUUID, classificationTypes) {
+  for (const type of classificationTypes) {
+    if (Resident.BENEFICIARY_SYNC_MAP[type]) {
+      try {
+        await Resident._syncBeneficiaryOnInsert(residentUUID, type, {});
+        logger.info(`[auto-classify] Beneficiary sync done for "${type}" resident ${residentUUID}`);
+      } catch (err) {
+        logger.error(`[auto-classify] Beneficiary sync failed for "${type}" resident ${residentUUID}: ${err.message}`);
+      }
+    }
+  }
 }
 
 // =============================================================================
@@ -298,7 +426,12 @@ router.post('/requests/:id/review', ...barangayUsersOnly, async (req, res) => {
         [residentId, adminNotes || null, regReq.resident_fk]
       );
 
-      // 4. Mark request approved
+      // 4. Auto-create classifications from flat registration fields
+      const autoClassified = await autoClassifyResident(
+        client, regReq.resident_fk, regReq.municipality_id
+      );
+
+      // 5. Mark request approved
       await client.query(
         `UPDATE registration_requests
             SET status       = 'approved',
@@ -312,10 +445,17 @@ router.post('/requests/:id/review', ...barangayUsersOnly, async (req, res) => {
 
       await client.query('COMMIT');
 
+      // 6. Beneficiary sync (after commit — uses pool, not transaction client)
+      if (autoClassified.length > 0) {
+        autoSyncBeneficiaries(regReq.resident_fk, autoClassified).catch((err) =>
+          logger.error(`[auto-classify] autoSyncBeneficiaries error: ${err.message}`)
+        );
+      }
+
       res.json({
         status: 'success',
         message: `Registration approved. Resident ID: ${residentId}`,
-        data: { residentId },
+        data: { residentId, autoClassified },
       });
 
     } else {

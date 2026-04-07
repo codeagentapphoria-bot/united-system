@@ -110,11 +110,14 @@ export default function RegistrationApprovalsPage() {
         action,
         adminNotes: notes,
       }),
-    onSuccess: (_, { action }) => {
+    onSuccess: (response, { action }) => {
       toast({ title: action === "approve" ? "Registration Approved" : "Registration Rejected" });
       queryClient.invalidateQueries({ queryKey: ["registrationRequests"] });
       if (action === "approve" && selectedRequest?.resident) {
-        setClassifyResident(selectedRequest.resident);
+        // Pre-check classifications that were auto-created on approval
+        const autoClassified = response?.data?.data?.autoClassified || [];
+        const preChecked = autoClassified.map((type) => ({ classification_type: type }));
+        setClassifyResident({ ...selectedRequest.resident, classifications: preChecked });
       }
       setSelectedRequest(null);
       setAdminNotes("");
@@ -163,8 +166,20 @@ export default function RegistrationApprovalsPage() {
 
   const handleClassificationSave = async (formValues) => {
     if (!classifyResident) return;
-    const newClassifications = formValues.classifications || [];
+    const allClassifications = formValues.classifications || [];
+    if (allClassifications.length === 0) { setClassifyResident(null); return; }
+
+    // Skip types already auto-created on approval to avoid duplicate POSTs
+    const autoCreatedTypes = new Set(
+      (classifyResident.classifications || []).map((c) => c.classification_type)
+    );
+    const newClassifications = allClassifications.filter(
+      (c) => !autoCreatedTypes.has(c.type)
+    );
+
+    // If admin only kept auto-created ones (no new additions), just close
     if (newClassifications.length === 0) { setClassifyResident(null); return; }
+
     setClassifySaving(true);
     try {
       await Promise.all(
@@ -363,7 +378,8 @@ export default function RegistrationApprovalsPage() {
 
       {/* ── Detail View Dialog ─────────────────────────────────────────────────── */}
       <Dialog open={!!(selectedRequest && !actionType)} onOpenChange={(v) => { if (!v) setSelectedRequest(null); }}>
-        <DialogContent className="max-w-6xl w-[95vw] max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogContent className="max-w-6xl w-[95vw] max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden" aria-describedby={undefined}>
+          <DialogTitle className="sr-only">Registration Request Details</DialogTitle>
           {selectedRequest && (() => {
             const r   = selectedRequest.resident || {};
             const age = r.birthdate
@@ -713,7 +729,7 @@ export default function RegistrationApprovalsPage() {
           <div className="flex-1 overflow-y-auto px-6 py-5">
             {classifyResident && (
               <ResidentClassificationsForm
-                resident={{ ...classifyResident, classifications: [] }}
+                resident={classifyResident}
                 municipalityId={municipalityId}
                 loading={classifySaving}
                 onSubmit={handleClassificationSave}

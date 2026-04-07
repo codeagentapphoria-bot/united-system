@@ -59,7 +59,7 @@ export interface ResidentRegistrationData {
   // Government ID
   idType: string;
   idDocumentNumber: string;
-  idDocumentUrl: string;   // base64 or uploaded file path
+  idDocumentUrl: string; // base64 or uploaded file path
   // Selfie (for admin identity verification)
   selfieUrl?: string;
   // Profile picture path (from pre-registration upload)
@@ -366,7 +366,111 @@ export const markUnderReview = async (requestId: string, reviewerId: number) => 
 export interface ReviewData {
   action: 'approve' | 'reject';
   adminNotes?: string;
-  reviewerId: number;   // bims_users.id
+  reviewerId: number; // bims_users.id
+}
+
+// =============================================================================
+// AUTO-CLASSIFICATION HELPERS
+// =============================================================================
+
+const EMPLOYMENT_STATUS_TO_CLASSIFICATION: Record<string, string> = {
+  unemployed: 'Unemployed',
+  'self-employed': 'Self Employed',
+  retired: 'Retired',
+  student: 'Student',
+};
+
+function isCollegeLevel(educationAttainment?: string | null): boolean {
+  if (!educationAttainment) return false;
+  const val = educationAttainment.toLowerCase();
+  return (
+    val.includes('college') ||
+    val.includes('bachelor') ||
+    val.includes('master') ||
+    val.includes('doctorate') ||
+    val.includes('doctoral') ||
+    val.includes('university') ||
+    val.includes('post-secondary') ||
+    val.includes('tertiary')
+  );
+}
+
+/**
+ * Auto-insert resident_classifications rows from flat resident fields.
+ * Uses raw SQL since resident_classifications is not in the Prisma schema.
+ * Best-effort — errors are logged but do not throw.
+ */
+async function autoClassifyResident(
+  residentUUID: string,
+  municipalityId: number,
+  resident: {
+    isVoter?: boolean;
+    employmentStatus?: string | null;
+    educationAttainment?: string | null;
+    indigenousPerson?: boolean;
+    birthdate?: Date | null;
+  }
+): Promise<void> {
+  const toInsert: Array<{ type: string; details: object }> = [];
+
+  if (resident.isVoter) {
+    toInsert.push({ type: 'Voter', details: [{ typeOfVoter: 'Regular' }] });
+  }
+
+  const employmentClass = resident.employmentStatus
+    ? EMPLOYMENT_STATUS_TO_CLASSIFICATION[resident.employmentStatus]
+    : undefined;
+
+  if (employmentClass) {
+    if (resident.employmentStatus === 'student') {
+      const classType = isCollegeLevel(resident.educationAttainment)
+        ? 'College Student'
+        : 'Student';
+      toInsert.push({ type: classType, details: [] });
+    } else {
+      toInsert.push({ type: employmentClass, details: [] });
+    }
+  }
+
+  if (resident.indigenousPerson) {
+    toInsert.push({ type: 'Indigenous Person', details: [] });
+  }
+
+  if (resident.birthdate) {
+    const ageDays = (Date.now() - new Date(resident.birthdate).getTime()) / 86400000;
+    if (ageDays >= 60 * 365.25) {
+      toInsert.push({ type: 'Senior Citizen', details: [] });
+    }
+  }
+
+  for (const { type, details } of toInsert) {
+    try {
+      // Verify type exists for this municipality
+      const typeRows = await prisma.$queryRaw<{ id: number }[]>`
+        SELECT id FROM classification_types
+        WHERE name = ${type} AND municipality_id = ${municipalityId}
+        LIMIT 1
+      `;
+      if (typeRows.length === 0) {
+        console.warn(
+          `[auto-classify] Type "${type}" not found for municipality ${municipalityId} — skipping`
+        );
+        continue;
+      }
+
+      await prisma.$executeRaw`
+        INSERT INTO resident_classifications (resident_id, classification_type, classification_details)
+        VALUES (${residentUUID}, ${type}, ${JSON.stringify(details)}::jsonb)
+        ON CONFLICT ON CONSTRAINT resident_classifications_unique_type DO NOTHING
+      `;
+      // eslint-disable-next-line no-console
+      console.info(`[auto-classify] Inserted "${type}" for resident ${residentUUID}`);
+    } catch (err: any) {
+      console.error(
+        `[auto-classify] Failed to insert "${type}" for ${residentUUID}: ${(err as Error).message}`
+      );
+    }
+  }
 }
 
 export const reviewRegistrationRequest = async (requestId: string, data: ReviewData) => {
@@ -416,6 +520,22 @@ export const reviewRegistrationRequest = async (requestId: string, data: ReviewD
       }),
     ]);
 
+    // Auto-create classifications from flat registration fields (non-blocking)
+    const classifyMunicipalityId = resident.barangay?.municipality?.id;
+    if (classifyMunicipalityId) {
+      autoClassifyResident(resident.id, classifyMunicipalityId, {
+        isVoter: resident.isVoter ?? false,
+        employmentStatus: resident.employmentStatus,
+        educationAttainment: resident.educationAttainment,
+        indigenousPerson: resident.indigenousPerson ?? false,
+        birthdate: resident.birthdate,
+      }).catch((err: any) =>
+        console.error(
+          `[auto-classify] autoClassifyResident error for ${resident.id}: ${(err as Error).message}`
+        )
+      );
+    }
+
     // Send approval email (non-blocking)
     if (resident.email) {
       const tempPassword = generateTempPassword();
@@ -432,7 +552,9 @@ export const reviewRegistrationRequest = async (requestId: string, data: ReviewD
           residentId,
           email: resident.email,
           tempPassword,
-          loginUrl: process.env.PORTAL_URL ? `${process.env.PORTAL_URL}/portal/login` : '/portal/login',
+          loginUrl: process.env.PORTAL_URL
+            ? `${process.env.PORTAL_URL}/portal/login`
+            : '/portal/login',
         });
         await sendEmailSafely(resident.email, subject, html, text);
       } catch (err: any) {
