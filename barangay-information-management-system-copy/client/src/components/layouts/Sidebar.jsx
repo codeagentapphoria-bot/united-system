@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useNotificationBadges } from "@/hooks/useNotificationBadges";
 
 // Create context for sidebar state
 const SidebarContext = createContext();
@@ -83,6 +84,7 @@ export const Sidebar = ({ userType, role, onLogout }) => {
   const { isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen, isMobile } = useSidebar();
   const location = useLocation();
   const { user } = useAuth();
+  const { getBadgeCount } = useNotificationBadges(userType);
 
   const toggleSidebar = () => {
     if (isMobile) {
@@ -290,7 +292,8 @@ export const Sidebar = ({ userType, role, onLogout }) => {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            
+            const badgeCount = getBadgeCount(item.path);
+
             return (
               <li key={item.path}>
                 <TooltipProvider>
@@ -300,8 +303,8 @@ export const Sidebar = ({ userType, role, onLogout }) => {
                         to={item.path}
                         onClick={closeMobileSidebar}
                         className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isCollapsed && !isMobile 
-                            ? "justify-center" 
+                          isCollapsed && !isMobile
+                            ? "justify-center"
                             : "gap-3"
                         } ${
                           isActive
@@ -309,9 +312,21 @@ export const Sidebar = ({ userType, role, onLogout }) => {
                             : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         }`}
                     >
-                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      <span className="relative flex-shrink-0">
+                        <Icon className="h-4 w-4" />
+                        {badgeCount > 0 && isCollapsed && !isMobile && (
+                          <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                            {badgeCount > 9 ? "9+" : badgeCount}
+                          </span>
+                        )}
+                      </span>
                         {(!isCollapsed || isMobile) && (
-                          <span className="truncate">{item.title}</span>
+                          <span className="truncate flex-1">{item.title}</span>
+                      )}
+                      {badgeCount > 0 && (!isCollapsed || isMobile) && (
+                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                          {badgeCount > 99 ? "99+" : badgeCount}
+                        </span>
                       )}
                     </NavLink>
                     </TooltipTrigger>
@@ -320,6 +335,11 @@ export const Sidebar = ({ userType, role, onLogout }) => {
                         <div className="flex items-center gap-2">
                           <Icon className="h-4 w-4" />
                           <span className="font-medium">{item.title}</span>
+                          {badgeCount > 0 && (
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                              {badgeCount}
+                            </span>
+                          )}
                   </div>
                         <p className="text-xs text-muted-foreground mt-1">
                           {item.title === "Dashboard" && "View overview and statistics"}
