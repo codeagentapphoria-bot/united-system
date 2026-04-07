@@ -62,8 +62,11 @@ export const buildEGovernmentSubmenu = (services: Service[]): MenuEntry[] => {
     categoryGroups.get(category)!.push(service);
   });
 
-  // Define category order (Barangay Services first)
-  const categoryOrder = ['Barangay Services', 'Civil Registry Services', 'Tax Services', 'Other Services'];
+  // Barangay certificates are handled by barangay admin/staff in the BIMS — hide from municipality admin sidebar
+  categoryGroups.delete('Barangay Certificate');
+
+  // Define category order
+  const categoryOrder = ['Civil Registry Services', 'Tax Services', 'Other Services'];
   
   // Sort categories: defined categories first (in order), then others alphabetically
   const sortedCategories = Array.from(categoryGroups.keys()).sort((a, b) => {
@@ -83,7 +86,7 @@ export const buildEGovernmentSubmenu = (services: Service[]): MenuEntry[] => {
     return {
       type: 'section',
       title: category,
-      defaultExpanded: category === 'Barangay Services', // Expand barangay by default
+      defaultExpanded: false,
       items: categoryServices.map(service => ({
         path: `/admin/e-government/${service.code.toLowerCase().replace(/_/g, '-')}`,
         label: service.name,
