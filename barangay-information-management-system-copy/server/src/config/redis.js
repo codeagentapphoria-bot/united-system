@@ -16,7 +16,23 @@ let cacheUtils;
 if (redisDisabled) {
   logger.info('Redis is disabled (REDIS_ENABLED=false). Using no-op stubs.');
 
-  redis = null;
+  redis = {
+    incr: async () => 1,
+    expire: async () => 1,
+    ttl: async () => -1,
+    get: async () => null,
+    set: async () => null,
+    setex: async () => null,
+    del: async () => null,
+    exists: async () => 0,
+    keys: async () => [],
+    mget: async (keys) => keys.map(() => null),
+    flushall: async () => null,
+    info: async () => '',
+    dbsize: async () => 0,
+    pipeline: () => ({ setex: () => {}, exec: async () => [] }),
+    quit: async () => {},
+  };
   testRedisConnection = async () => false;
   closeRedisConnection = async () => {};
   cacheUtils = {

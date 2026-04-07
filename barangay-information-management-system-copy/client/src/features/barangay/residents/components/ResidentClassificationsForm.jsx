@@ -58,6 +58,9 @@ const ResidentClassificationsForm = ({
   });
 
   // Fetch classification options
+  // Note: classificationOptions is excluded from deps — its default value `[]`
+  // creates a new reference every render, causing an infinite loop.
+  // classificationTypes is the stable server-fetched value to depend on.
   useEffect(() => {
     if (classificationOptions && classificationOptions.length > 0) {
       setLocalClassificationOptions(classificationOptions);
@@ -75,7 +78,8 @@ const ResidentClassificationsForm = ({
       }));
       setLocalClassificationOptions(options);
     }
-  }, [classificationOptions, classificationTypes, typesLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classificationTypes]);
 
   // Function to normalize classification values
   const normalizeClassificationValue = (value, options) => {
@@ -163,7 +167,11 @@ const ResidentClassificationsForm = ({
         classificationDetails: classificationDetails,
       });
     }
-  }, [resident, form, localClassificationOptions]);
+  // Note: `form` is intentionally excluded from deps — form.reset() is a stable
+  // reference in react-hook-form, and including `form` causes infinite re-renders
+  // because calling reset() triggers a render that changes the form reference.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resident, localClassificationOptions]);
 
   const handleSubmit = async (data) => {
     logger.debug("Data", data);
