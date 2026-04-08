@@ -20,9 +20,7 @@ import {
   FileText,
   User,
   Maximize2,
-  X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 
 const SERVER_URL   = import.meta.env.VITE_SERVER_URL        || "";
@@ -387,7 +385,7 @@ const ViewOfficialDialog = ({ open, onOpenChange, official }) => {
 
       {/* Image Modal */}
       <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
-        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] p-0 overflow-hidden [&>button:last-child]:text-white [&>button:last-child]:hover:text-white [&>button:last-child]:bg-black/50 [&>button:last-child]:hover:bg-black/70 [&>button:last-child]:rounded-full">
           <DialogHeader className="sr-only">
             <DialogTitle>
               {official ? `${official.first_name} ${official.last_name} - Official Picture` : 'Official Picture'}
@@ -397,23 +395,13 @@ const ViewOfficialDialog = ({ open, onOpenChange, official }) => {
             </DialogDescription>
           </DialogHeader>
           <div className="relative">
-            {/* Close Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-2 right-2 z-10 bg-black/50 text-white hover:bg-black/70"
-              onClick={() => setImageModalOpen(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            
             {/* Maximized Image */}
             {official?.picture_path ? (
-              <div className="w-full max-h-[90vh] flex items-center justify-center bg-black">
+              <div className="w-full flex items-center justify-center bg-black">
                 <img
                   src={toAbsUrl(official.picture_path)}
                   alt={`${official.first_name || 'Official'} ${official.last_name || ''} - Full size image`}
-                  className="max-w-full max-h-[90vh] object-contain"
+                  className="max-w-full max-h-[85vh] object-contain"
                   onError={(e) => {
                     e.target.style.display = 'none';
                     e.target.nextSibling.style.display = 'flex';
@@ -434,7 +422,7 @@ const ViewOfficialDialog = ({ open, onOpenChange, official }) => {
                 </div>
               </div>
             )}
-            
+
             {/* Image Info Footer */}
             {official && (
               <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white p-4">
