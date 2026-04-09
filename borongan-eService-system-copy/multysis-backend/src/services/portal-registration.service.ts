@@ -72,6 +72,16 @@ export interface ResidentRegistrationData {
   emergencyContactNumber?: string;
   spouseName?: string;
   acrNo?: string;
+  // Social amelioration sub-fields (self-reported on registration)
+  hasDisability?: boolean;
+  hasChildren?: boolean;
+  ameliorationData?: {
+    seniorCitizen?: { pensionTypeIds: string[] };
+    pwd?: { disabilityTypeId: string; disabilityLevel?: string };
+    student?: { gradeLevelId: string };
+    soloParent?: { categoryId: string };
+    voter?: { voterType: 'Regular' | 'SK' };
+  };
 }
 
 export interface RegistrationRequestFilters {
@@ -180,6 +190,7 @@ export const submitRegistration = async (data: ResidentRegistrationData) => {
         residentFk: resident.id,
         selfieUrl: data.selfieUrl || null,
         status: 'pending',
+        ameliorationData: data.ameliorationData ?? null,
       },
     });
 
@@ -535,6 +546,10 @@ export const reviewRegistrationRequest = async (requestId: string, data: ReviewD
         )
       );
     }
+
+    // NOTE: Beneficiary sync with amelioration details is handled by the BIMS
+    // approval route (registrationRoutes.js) which reads amelioration_data from
+    // registration_requests and passes it to _syncBeneficiaryOnInsert.
 
     // Send approval email (non-blocking)
     if (resident.email) {

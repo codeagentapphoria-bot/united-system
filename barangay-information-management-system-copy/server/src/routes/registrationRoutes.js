@@ -93,11 +93,52 @@ function isCollegeLevel(educationAttainment) {
 }
 
 /**
- * Auto-create resident_classifications rows from flat registration fields.
+ * Build classification_details JSONB for a given type from amelioration_data.
+ * Uses the BIMS form's field key names (not DB column names).
+ */
+function buildClassificationDetails(type, ameliorationData) {
+  if (!ameliorationData) return {};
+  switch (type) {
+    case 'Senior Citizen':
+      return {
+        pensionTypes: ameliorationData.seniorCitizen?.pensionTypeIds || [],
+        remarks: '',
+      };
+    case 'Person with Disability':
+      return {
+        disabilityType:  ameliorationData.pwd?.disabilityTypeId || '',
+        disabilityLevel: ameliorationData.pwd?.disabilityLevel  || '',
+        remarks: '',
+      };
+    case 'Student':
+      return {
+        gradeLevel: ameliorationData.student?.gradeLevelId || '',
+        remarks: '',
+      };
+    case 'College Student':
+      return {
+        courseField: ameliorationData.student?.courseField || '',
+        remarks: '',
+      };
+    case 'Solo Parent':
+      return {
+        category: ameliorationData.soloParent?.categoryId || '',
+        remarks: '',
+      };
+    case 'Voter':
+      return { typeOfVoter: ameliorationData.voter?.voterType || 'Regular' };
+    default:
+      return {};
+  }
+}
+
+/**
+ * Auto-create resident_classifications rows from flat registration fields
+ * and self-reported amelioration data.
  * Must be called inside an open transaction (pass the transaction client).
  * Returns list of classification types inserted.
  */
-async function autoClassifyResident(client, residentUUID, municipalityId) {
+async function autoClassifyResident(client, residentUUID, municipalityId, ameliorationData = null) {
   // Fetch the resident's flat fields needed for mapping
   const { rows } = await client.query(
     `SELECT is_voter, employment_status, education_attainment,
@@ -114,7 +155,7 @@ async function autoClassifyResident(client, residentUUID, municipalityId) {
   const toInsert = [];
 
   if (r.is_voter) {
-    toInsert.push({ type: 'Voter', details: [{ typeOfVoter: 'Regular' }] });
+    toInsert.push({ type: 'Voter', details: buildClassificationDetails('Voter', ameliorationData) });
   }
 
   const employmentClass = EMPLOYMENT_STATUS_TO_CLASSIFICATION[r.employment_status];
@@ -122,22 +163,32 @@ async function autoClassifyResident(client, residentUUID, municipalityId) {
     // If student, check education level to pick Student vs College Student
     if (r.employment_status === 'student') {
       const classType = isCollegeLevel(r.education_attainment) ? 'College Student' : 'Student';
-      toInsert.push({ type: classType, details: [] });
+      toInsert.push({ type: classType, details: buildClassificationDetails(classType, ameliorationData) });
     } else {
-      toInsert.push({ type: employmentClass, details: [] });
+      toInsert.push({ type: employmentClass, details: {} });
     }
   }
 
   if (r.indigenous_person) {
-    toInsert.push({ type: 'Indigenous Person', details: [] });
+    toInsert.push({ type: 'Indigenous Person', details: {} });
   }
 
   // Senior Citizen — age >= 60
   if (r.birthdate) {
     const ageDays = (Date.now() - new Date(r.birthdate).getTime()) / 86400000;
     if (ageDays >= 60 * 365.25) {
-      toInsert.push({ type: 'Senior Citizen', details: [] });
+      toInsert.push({ type: 'Senior Citizen', details: buildClassificationDetails('Senior Citizen', ameliorationData) });
     }
+  }
+
+  // PWD — self-reported via amelioration_data
+  if (ameliorationData?.pwd?.disabilityTypeId) {
+    toInsert.push({ type: 'Person with Disability', details: buildClassificationDetails('Person with Disability', ameliorationData) });
+  }
+
+  // Solo Parent — self-reported via amelioration_data
+  if (ameliorationData?.soloParent?.categoryId) {
+    toInsert.push({ type: 'Solo Parent', details: buildClassificationDetails('Solo Parent', ameliorationData) });
   }
 
   // Insert each, skipping any whose classification_type doesn't exist for this
@@ -167,14 +218,40 @@ async function autoClassifyResident(client, residentUUID, municipalityId) {
 }
 
 /**
+ * Map amelioration_data JSONB (stored by the portal registration form) to
+ * the detail keys expected by _syncBeneficiaryOnInsert for each type.
+ */
+function getAmeliorationDetailsForType(classificationType, ameliorationData) {
+  if (!ameliorationData) return {};
+  switch (classificationType) {
+    case 'Senior Citizen':
+      return { pensionTypeIds: ameliorationData.seniorCitizen?.pensionTypeIds ?? [] };
+    case 'Person with Disability':
+      return {
+        disabilityTypeId: ameliorationData.pwd?.disabilityTypeId ?? null,
+        disabilityLevel:  ameliorationData.pwd?.disabilityLevel ?? null,
+      };
+    case 'Student':
+    case 'College Student':
+      return { gradeLevelId: ameliorationData.student?.gradeLevelId ?? null };
+    case 'Solo Parent':
+      return { categoryId: ameliorationData.soloParent?.categoryId ?? null };
+    default:
+      return {};
+  }
+}
+
+/**
  * Run beneficiary sync for auto-classified types.
  * Called AFTER transaction commit using the shared pool (not a transaction client).
+ * ameliorationData is the parsed JSON from registration_requests.amelioration_data.
  */
-async function autoSyncBeneficiaries(residentUUID, classificationTypes) {
+async function autoSyncBeneficiaries(residentUUID, classificationTypes, ameliorationData = null) {
   for (const type of classificationTypes) {
     if (Resident.BENEFICIARY_SYNC_MAP[type]) {
       try {
-        await Resident._syncBeneficiaryOnInsert(residentUUID, type, {});
+        const details = getAmeliorationDetailsForType(type, ameliorationData);
+        await Resident._syncBeneficiaryOnInsert(residentUUID, type, details);
         logger.info(`[auto-classify] Beneficiary sync done for "${type}" resident ${residentUUID}`);
       } catch (err) {
         logger.error(`[auto-classify] Beneficiary sync failed for "${type}" resident ${residentUUID}: ${err.message}`);
@@ -374,9 +451,9 @@ router.post('/requests/:id/review', ...barangayUsersOnly, async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // 1. Fetch the registration request + resident info
+    // 1. Fetch the registration request + resident info (including amelioration_data)
     const { rows: reqRows } = await client.query(
-      `SELECT rr.id, rr.status, rr.resident_fk,
+      `SELECT rr.id, rr.status, rr.resident_fk, rr.amelioration_data,
               r.barangay_id, b.municipality_id
          FROM registration_requests rr
          JOIN residents r ON r.id = rr.resident_fk
@@ -426,9 +503,9 @@ router.post('/requests/:id/review', ...barangayUsersOnly, async (req, res) => {
         [residentId, adminNotes || null, regReq.resident_fk]
       );
 
-      // 4. Auto-create classifications from flat registration fields
+      // 4. Auto-create classifications from flat registration fields + amelioration data
       const autoClassified = await autoClassifyResident(
-        client, regReq.resident_fk, regReq.municipality_id
+        client, regReq.resident_fk, regReq.municipality_id, regReq.amelioration_data
       );
 
       // 5. Mark request approved
@@ -446,8 +523,9 @@ router.post('/requests/:id/review', ...barangayUsersOnly, async (req, res) => {
       await client.query('COMMIT');
 
       // 6. Beneficiary sync (after commit — uses pool, not transaction client)
+      // Pass amelioration_data so beneficiary rows are created with real field values
       if (autoClassified.length > 0) {
-        autoSyncBeneficiaries(regReq.resident_fk, autoClassified).catch((err) =>
+        autoSyncBeneficiaries(regReq.resident_fk, autoClassified, regReq.amelioration_data).catch((err) =>
           logger.error(`[auto-classify] autoSyncBeneficiaries error: ${err.message}`)
         );
       }

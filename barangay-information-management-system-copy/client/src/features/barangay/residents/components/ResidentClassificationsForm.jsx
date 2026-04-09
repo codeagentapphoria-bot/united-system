@@ -246,7 +246,11 @@ const ResidentClassificationsForm = ({
 
     // Dropdown loaded from social_amelioration_settings (single select)
     if (detail.type === "amelioration_select" && detail.settingType) {
-      const options = getSettingsByType(detail.settingType);
+      const allOptions = getSettingsByType(detail.settingType);
+      // Apply filterIds if present (e.g. College Student only shows college-level options)
+      const options = detail.filterIds
+        ? allOptions.filter((opt) => detail.filterIds.includes(opt.id))
+        : allOptions;
       return (
         <Select
           value={currentValue || ""}
