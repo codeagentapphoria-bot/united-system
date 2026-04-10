@@ -76,18 +76,19 @@ npm run deploy:manual
 ## 📊 **Current Database Status**
 
 ```
-📊 Migration Summary:
-  municipalities: 1 records
-  barangays: 0 records
-  puroks: 0 records
-  residents: 0 records
-  users: 1 records
-  classification_types: 0 records
-  PostGIS: PostgreSQL 17.6
+📊 v2 Schema Summary (unified-database/):
+  municipalities: seeded
+  barangays: seeded via GIS
+  residents: seeded via registration
+  households: seeded via households
+  users: seeded (bims_users)
+  classification_types: seeded
+  PostGIS: Enabled
 
 ✅ All municipalities have GIS codes
-✅ Database schema complete
-✅ Migration system unified
+✅ Database schema v2 complete
+✅ 2-tier address (municipality → barangay)
+✅ Puroks removed (superseded in v2)
 ```
 
 ## 🚫 **Deprecated Commands**
