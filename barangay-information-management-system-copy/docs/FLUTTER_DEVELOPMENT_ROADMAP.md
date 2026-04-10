@@ -1,5 +1,10 @@
-# Flutter Mobile App Development Roadmap
-## Offline-First Resident and Household Management System
+# ⚠️ LEGACY - Flutter Mobile App Development Roadmap
+
+> **⚠️ DEPRECATED:** The Flutter mobile app described in this document is deprecated as of v2 (2026-03-25). Resident registration is now centralized to the portal. The offline-first SQLite sync architecture described below is no longer relevant.
+>
+> **Current architecture:** Mobile app is not part of the v2 system. All resident registration happens via the web portal (`/register`).
+
+## Flutter Mobile App Development Roadmap
 
 ### Project Overview
 This document outlines the step-by-step development plan for a Flutter mobile application that enables barangay officials to collect resident and household information offline using SQLite, with automatic synchronization to the backend API when internet connectivity is restored.
