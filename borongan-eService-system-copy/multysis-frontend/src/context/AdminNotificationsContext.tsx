@@ -9,6 +9,7 @@ import type {
   NewTransactionPayload,
   CitizenStatusChangePayload,
   TransactionNoteReadPayload,
+  ProgramApplicationNewPayload,
 } from '@/types/socket.types';
 
 interface AdminNotificationsContextType {
@@ -25,6 +26,7 @@ const EMPTY_COUNTS: NotificationCounts = {
   pendingCitizens: 0,
   pendingUpdateRequests: 0,
   unreadMessages: 0,
+  pendingProgramApplications: 0,
   total: 0,
   pendingApplicationsByService: {},
 };
@@ -388,16 +390,46 @@ export const AdminNotificationsProvider: React.FC<AdminNotificationsProviderProp
       });
     };
 
+    const handleProgramApplicationNew = (_data: ProgramApplicationNewPayload) => {
+      updateLastEventTime();
+      setCounts(prev => {
+        const updated = {
+          ...prev,
+          pendingProgramApplications: prev.pendingProgramApplications + 1,
+          total: prev.total + 1,
+        };
+        globalCounts = updated;
+        return updated;
+      });
+    };
+
+    const handleProgramApplicationReview = () => {
+      updateLastEventTime();
+      setCounts(prev => {
+        const updated = {
+          ...prev,
+          pendingProgramApplications: Math.max(0, prev.pendingProgramApplications - 1),
+          total: Math.max(0, prev.total - 1),
+        };
+        globalCounts = updated;
+        return updated;
+      });
+    };
+
     socket.on('transaction:new', handleNewTransaction);
     socket.on('transaction:update', handleTransactionUpdate);
     socket.on('citizen:status-change', handleCitizenStatusChange);
     socket.on('transaction:note:read', handleTransactionNoteRead);
+    socket.on('program-application:new', handleProgramApplicationNew);
+    socket.on('program-application:review', handleProgramApplicationReview);
 
     return () => {
       socket.off('transaction:new', handleNewTransaction);
       socket.off('transaction:update', handleTransactionUpdate);
       socket.off('citizen:status-change', handleCitizenStatusChange);
       socket.off('transaction:note:read', handleTransactionNoteRead);
+      socket.off('program-application:new', handleProgramApplicationNew);
+      socket.off('program-application:review', handleProgramApplicationReview);
     };
   }, [socket, isConnected, user, isPendingPaymentStatus, isWebSocketHealthy]);
 

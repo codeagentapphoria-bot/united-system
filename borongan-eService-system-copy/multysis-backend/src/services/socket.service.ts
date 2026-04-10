@@ -35,6 +35,7 @@ import type {
   NewServicePayload,
   NewSubscriberPayload,
   NewTransactionPayload,
+  ProgramApplicationNewPayload,
   ProgramApplicationReviewPayload,
   ServiceDeletePayload,
   ServiceUpdatePayload,
@@ -655,6 +656,18 @@ export const emitDevLogUpdate = (log: {
   }
 };
 
+export const emitProgramApplicationNew = async (
+  payload: ProgramApplicationNewPayload
+): Promise<void> => {
+  const io = getSocketInstance();
+  if (!io) {
+    console.warn('[socket] emitProgramApplicationNew: socket instance not available');
+    return;
+  }
+  io.to('admins').emit('program-application:new', payload);
+  await invalidateAdminNotificationCache();
+};
+
 export const emitProgramApplicationReview = async (
   residentId: string,
   payload: ProgramApplicationReviewPayload
@@ -664,9 +677,10 @@ export const emitProgramApplicationReview = async (
     console.warn('[socket] emitProgramApplicationReview: socket instance not available');
     return;
   }
-  const room = `user:${residentId}`;
-  const sockets = await io.in(room).fetchSockets();
-  console.log(`[socket] emitProgramApplicationReview → room=${room} connected_sockets=${sockets.length} status=${payload.status}`);
-  io.to(room).emit('program-application:review', payload);
+  // Notify the resident
+  io.to(`user:${residentId}`).emit('program-application:review', payload);
+  // Notify admins so they can decrement their pending count in real-time
+  io.to('admins').emit('program-application:review', payload);
   await invalidateSubscriberNotificationCache(residentId);
+  await invalidateAdminNotificationCache();
 };

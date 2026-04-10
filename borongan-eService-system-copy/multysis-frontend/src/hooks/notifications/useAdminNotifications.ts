@@ -14,6 +14,7 @@ import type {
   NewTransactionPayload,
   CitizenStatusChangePayload,
   TransactionNoteReadPayload,
+  ProgramApplicationNewPayload,
 } from '@/types/socket.types';
 
 interface UseAdminNotificationsOptions {
@@ -35,6 +36,7 @@ const EMPTY_COUNTS: NotificationCounts = {
   pendingCitizens: 0,
   pendingUpdateRequests: 0,
   unreadMessages: 0,
+  pendingProgramApplications: 0,
   total: 0,
   pendingApplicationsByService: {},
 };
@@ -219,16 +221,42 @@ export const useAdminNotifications = ({
       setAdminNotificationsGlobal({ counts: updated });
     };
 
+    const handleProgramApplicationNew = (_data: ProgramApplicationNewPayload) => {
+      updateLastEventTime();
+      const current = globalState.counts;
+      const updated = {
+        ...current,
+        pendingProgramApplications: current.pendingProgramApplications + 1,
+        total: current.total + 1,
+      };
+      setAdminNotificationsGlobal({ counts: updated });
+    };
+
+    const handleProgramApplicationReview = () => {
+      updateLastEventTime();
+      const current = globalState.counts;
+      const updated = {
+        ...current,
+        pendingProgramApplications: Math.max(0, current.pendingProgramApplications - 1),
+        total: Math.max(0, current.total - 1),
+      };
+      setAdminNotificationsGlobal({ counts: updated });
+    };
+
     socket.on('transaction:new', handleNewTransaction);
     socket.on('transaction:update', handleTransactionUpdate);
     socket.on('citizen:status-change', handleCitizenStatusChange);
     socket.on('transaction:note:read', handleTransactionNoteRead);
+    socket.on('program-application:new', handleProgramApplicationNew);
+    socket.on('program-application:review', handleProgramApplicationReview);
 
     return () => {
       socket.off('transaction:new', handleNewTransaction);
       socket.off('transaction:update', handleTransactionUpdate);
       socket.off('citizen:status-change', handleCitizenStatusChange);
       socket.off('transaction:note:read', handleTransactionNoteRead);
+      socket.off('program-application:new', handleProgramApplicationNew);
+      socket.off('program-application:review', handleProgramApplicationReview);
       socketListenerAttached = false;
     };
   }, [socket, isConnected, user, globalState.counts]);

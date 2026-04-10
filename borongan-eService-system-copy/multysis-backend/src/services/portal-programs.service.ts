@@ -1,6 +1,6 @@
 import { GovernmentProgramType, Prisma } from '@prisma/client';
 import prisma from '../config/database';
-import { emitProgramApplicationReview } from './socket.service';
+import { emitProgramApplicationNew, emitProgramApplicationReview } from './socket.service';
 
 type ProgramTypeValue = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
 
@@ -176,7 +176,7 @@ export const applyForProgram = async (residentId: string, programId: string) => 
 
   // Upsert: if cancelled/rejected, restart application
   if (existing) {
-    return prisma.governmentProgramApplication.update({
+    const result = await prisma.governmentProgramApplication.update({
       where: { id: existing.id },
       data: {
         status: 'pending',
@@ -186,12 +186,28 @@ export const applyForProgram = async (residentId: string, programId: string) => 
         reviewedBy: null,
       },
     });
+    await emitProgramApplicationNew({
+      applicationId: result.id,
+      programId,
+      programName: program.name,
+      residentId,
+      appliedAt: result.appliedAt.toISOString(),
+    });
+    return result;
   }
 
   try {
-    return await prisma.governmentProgramApplication.create({
+    const result = await prisma.governmentProgramApplication.create({
       data: { residentId, programId, status: 'pending' },
     });
+    await emitProgramApplicationNew({
+      applicationId: result.id,
+      programId,
+      programName: program.name,
+      residentId,
+      appliedAt: result.appliedAt.toISOString(),
+    });
+    return result;
   } catch (err) {
     // Concurrent insert (race between the check above and the insert)
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {

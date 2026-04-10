@@ -296,7 +296,15 @@ export interface DevLogPayload {
   metadata?: Record<string, any>;
 }
 
-// Program Application Review Events
+// Program Application Events
+export interface ProgramApplicationNewPayload {
+  applicationId: string;
+  programId: string;
+  programName: string;
+  residentId: string;
+  appliedAt: string;
+}
+
 export interface ProgramApplicationReviewPayload {
   applicationId: string;
   programId: string;
