@@ -34,7 +34,7 @@ interface PortalHeaderProps {}
 export const PortalHeader: React.FC<PortalHeaderProps> = () => {
   const { user, logout, isLoading, isLoggingOut } = useAuth();
   const { isLoginOpen, openLoginSheet, setLoginSheetOpen } = useLoginSheet();
-  const { counts } = usePortalNotifications();
+  const { counts, refresh } = usePortalNotifications();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -103,7 +103,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = () => {
               <>
                 {/* Notification Bell - Only for subscribers */}
                 {isSubscriber && (
-                  <PortalNotificationDropdown>
+                  <PortalNotificationDropdown counts={counts} refresh={refresh}>
                     <Button
                       variant="ghost"
                       size="icon"

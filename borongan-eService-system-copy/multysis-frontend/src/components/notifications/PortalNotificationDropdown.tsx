@@ -14,21 +14,24 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-// Hooks
-import { usePortalNotifications } from '@/hooks/notifications/usePortalNotifications';
+// Types
+import type { SubscriberNotificationCounts } from '@/services/api/notification.service';
 
 // Utils
 import { FiBell, FiEdit, FiFileText, FiMessageSquare } from 'react-icons/fi';
 
 interface PortalNotificationDropdownProps {
   children: React.ReactNode;
+  counts: SubscriberNotificationCounts;
+  refresh: () => void;
 }
 
 export const PortalNotificationDropdown: React.FC<PortalNotificationDropdownProps> = ({
   children,
+  counts,
+  refresh,
 }) => {
   const navigate = useNavigate();
-  const { counts, refresh } = usePortalNotifications();
   const [isOpen, setIsOpen] = useState(false);
 
   const hasNotifications = counts.total > 0;
