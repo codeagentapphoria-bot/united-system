@@ -197,6 +197,87 @@ cd borongan-eService-system-copy/multysis-frontend && npm run dev
 | E-Services Frontend | http://localhost:5174 |
 | E-Services Backend API | http://localhost:3000/api |
 
+#### Alternative: proc-compose + merge-port
+
+Instead of 4 terminal commands, use [proc-compose](https://github.com/anivaryam/proc-compose) to orchestrate everything from YAML. Install tools via [brokit](https://github.com/anivaryam/brokit).
+
+**Install tools:**
+
+```bash
+# Linux / macOS
+curl -sSfL https://raw.githubusercontent.com/anivaryam/brokit/main/install.sh | sh
+
+# Windows (PowerShell — run as Administrator)
+irm https://raw.githubusercontent.com/anivaryam/brokit/main/install.ps1 | iex
+
+# Then install the required tools
+brokit install proc-compose merge-port
+```
+
+**Configure BIMS** — create `proc-compose-bims.yml` in the project root:
+
+```yaml
+merge:
+  client: 5173
+  server: 5000
+
+processes:
+  backend:
+    cmd: node server.js
+    dir: ./barangay-information-management-system-copy/server
+    env:
+      PORT: "5000"
+    restart: on-failure
+
+  frontend:
+    cmd: npm run dev
+    dir: ./barangay-information-management-system-copy/client
+    env:
+      PORT: "5173"
+```
+
+**Configure E-Services** — create `proc-compose-multysis.yml`:
+
+```yaml
+merge:
+  client: 5174
+  server: 3000
+
+processes:
+  backend:
+    cmd: npm run dev
+    dir: ./borongan-eService-system-copy/multysis-backend
+    env:
+      PORT: "3000"
+    restart: on-failure
+
+  frontend:
+    cmd: npm run dev
+    dir: ./borongan-eService-system-copy/multysis-frontend
+    env:
+      PORT: "5174"
+```
+
+**Start services:**
+
+```bash
+# Terminal 1 — BIMS (ports 5173, 5000 → merged to 8080)
+proc-compose up -f proc-compose-bims.yml
+
+# Terminal 2 — E-Services (ports 5174, 3000 → merged to 8081)
+proc-compose up -f proc-compose-multysis.yml
+```
+
+Other useful commands:
+
+```bash
+proc-compose monitor -f proc-compose-bims.yml   # TUI with live logs
+proc-compose restart backend -f proc-compose-bims.yml
+proc-compose reload -f proc-compose-bims.yml    # reload config, restart changed procs
+```
+
+> **Windows users:** The YAML `dir` paths use forward slashes (`./`). These work on Windows CMD — `cmd /c` accepts `/` as a path separator. No changes needed to the config files.
+
 ### 6. First-time BIMS setup
 
 After starting the system, a BIMS admin must complete the **Municipality Setup**:
