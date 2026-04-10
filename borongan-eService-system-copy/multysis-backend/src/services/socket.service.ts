@@ -661,7 +661,7 @@ export const emitProgramApplicationReview = async (
 ): Promise<void> => {
   const io = getSocketInstance();
   if (io) {
-    io.to(`resident:${residentId}`).emit('program-application:review', payload);
+    io.to(`user:${residentId}`).emit('program-application:review', payload);
     await invalidateSubscriberNotificationCache(residentId);
   }
 };

@@ -1,14 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  FiAlertCircle,
-  FiBookOpen,
-  FiCheck,
-  FiChevronLeft,
-  FiClock,
-  FiRefreshCw,
-  FiSearch,
-  FiX,
-} from 'react-icons/fi';
+import { FiAlertCircle, FiBookOpen, FiCheck, FiChevronLeft, FiClock, FiRefreshCw, FiSearch, FiX } from 'react-icons/fi';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -274,11 +265,20 @@ export const PortalPrograms: React.FC = () => {
     try {
       await portalProgramsService.applyForProgram(program.id);
       const [programsResult, updatedApps] = await Promise.all([
-        portalProgramsService.listPrograms({ search: debouncedSearch || undefined, type: typeFilter, page: pagination.page, limit: 12 }),
+        portalProgramsService.listPrograms({
+          search: debouncedSearch || undefined,
+          type: typeFilter,
+          page: pagination.page,
+          limit: 12,
+        }),
         portalProgramsService.getMyApplications(),
       ]);
       setPrograms(programsResult.data);
-      setPagination({ page: programsResult.pagination.page, totalPages: programsResult.pagination.totalPages, total: programsResult.pagination.total });
+      setPagination({
+        page: programsResult.pagination.page,
+        totalPages: programsResult.pagination.totalPages,
+        total: programsResult.pagination.total,
+      });
       setApplications(updatedApps);
       toast({ title: 'Application submitted', description: `You applied for ${program.name}.` });
     } catch (error: any) {
@@ -297,11 +297,20 @@ export const PortalPrograms: React.FC = () => {
     try {
       await portalProgramsService.cancelApplication(appId);
       const [programsResult, updatedApps] = await Promise.all([
-        portalProgramsService.listPrograms({ search: debouncedSearch || undefined, type: typeFilter, page: pagination.page, limit: 12 }),
+        portalProgramsService.listPrograms({
+          search: debouncedSearch || undefined,
+          type: typeFilter,
+          page: pagination.page,
+          limit: 12,
+        }),
         portalProgramsService.getMyApplications(),
       ]);
       setPrograms(programsResult.data);
-      setPagination({ page: programsResult.pagination.page, totalPages: programsResult.pagination.totalPages, total: programsResult.pagination.total });
+      setPagination({
+        page: programsResult.pagination.page,
+        totalPages: programsResult.pagination.totalPages,
+        total: programsResult.pagination.total,
+      });
       setApplications(updatedApps);
       toast({ title: 'Application cancelled' });
     } catch (error: any) {
@@ -317,14 +326,11 @@ export const PortalPrograms: React.FC = () => {
 
   return (
     <PortalLayout>
-      <div className="max-w-4xl mx-auto space-y-6 px-4 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Page header */}
-        <div>
-          <h1 className="text-2xl font-bold text-heading-800 flex items-center gap-2">
-            <FiBookOpen className="text-primary-600" />
-            Government Programs
-          </h1>
-          <p className="text-gray-500 mt-1 text-sm">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-heading-700 mb-4">Government Programs</h1>
+          <p className="text-lg text-heading-600">
             Browse available government assistance programs and apply for the ones you qualify for.
           </p>
         </div>
@@ -381,7 +387,9 @@ export const PortalPrograms: React.FC = () => {
 
             {/* Result count */}
             {!isLoadingPrograms && (
-              <p className="text-xs text-gray-500">{pagination.total} program{pagination.total !== 1 ? 's' : ''} found</p>
+              <p className="text-xs text-gray-500">
+                {pagination.total} program{pagination.total !== 1 ? 's' : ''} found
+              </p>
             )}
 
             {isLoadingPrograms ? (

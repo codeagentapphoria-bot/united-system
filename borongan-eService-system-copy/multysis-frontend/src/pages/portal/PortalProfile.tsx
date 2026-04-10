@@ -12,13 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PortalLayout } from '@/components/layout/PortalLayout';
 import { LoginPrompt } from '@/components/portal/LoginPrompt';
@@ -31,7 +25,7 @@ import {
   getProvincesByRegion as getPHProvinces,
   getMunicipalitiesByProvince as getPHMunicipalities,
 } from '@/constants/philippine-addresses';
-import { formatDateWithoutTimezone } from '@/lib/utils';
+import { cn, formatDateWithoutTimezone } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useMyProfile } from '@/hooks/residents/useMyProfile';
 import { useMyHousehold } from '@/hooks/portal/useMyHousehold';
@@ -65,8 +59,13 @@ import {
 // ── Constants ──────────────────────────────────────────────────────────────────
 const EMPLOYMENT_STATUS_OPTIONS = ['employed', 'self_employed', 'unemployed', 'student', 'retired', 'ofw'];
 const EDUCATION_OPTIONS = [
-  'no_formal_education', 'elementary', 'high_school', 'senior_high_school',
-  'vocational', 'college', 'post_graduate',
+  'no_formal_education',
+  'elementary',
+  'high_school',
+  'senior_high_school',
+  'vocational',
+  'college',
+  'post_graduate',
 ];
 // ── Status badge ───────────────────────────────────────────────────────────────
 const STATUS_STYLES: Record<string, string> = {
@@ -80,13 +79,15 @@ const STATUS_STYLES: Record<string, string> = {
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => (
   <Badge className={STATUS_STYLES[status.toLowerCase()] ?? 'bg-neutral-200 text-neutral-700'}>
-    {status.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+    {status.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
   </Badge>
 );
 
 // ── Info row ───────────────────────────────────────────────────────────────────
 const InfoRow: React.FC<{ icon?: React.ReactNode; label: string; value?: string | null }> = ({
-  icon, label, value,
+  icon,
+  label,
+  value,
 }) => (
   <div className="flex items-start gap-3">
     {icon && <span className="text-primary-500 mt-0.5 flex-shrink-0">{icon}</span>}
@@ -118,9 +119,9 @@ const SelectField: React.FC<{
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
-        {options.map((o) => (
+        {options.map(o => (
           <SelectItem key={o} value={o}>
-            {o.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+            {o.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
           </SelectItem>
         ))}
       </SelectContent>
@@ -255,7 +256,7 @@ const MyProgramApplications: React.FC = () => {
     <Card>
       <CardContent className="p-0">
         <div className="px-6 py-2">
-          {apps.map((app) => {
+          {apps.map(app => {
             const conf = PROG_STATUS_CONFIG[app.status];
             return (
               <div
@@ -316,7 +317,7 @@ export const PortalProfile: React.FC = () => {
   };
 
   const set = (key: keyof EditForm) => (val: string | boolean) =>
-    setForm((prev) => prev ? { ...prev, [key]: val } : prev);
+    setForm(prev => (prev ? { ...prev, [key]: val } : prev));
 
   const handleSave = async () => {
     if (!form) return;
@@ -343,7 +344,11 @@ export const PortalProfile: React.FC = () => {
 
   // ── Guards ─────────────────────────────────────────────────────────────────
   if (!isAuthenticated) {
-    return <PortalLayout><LoginPrompt description="Please log in to view your profile." /></PortalLayout>;
+    return (
+      <PortalLayout>
+        <LoginPrompt description="Please log in to view your profile." />
+      </PortalLayout>
+    );
   }
   if (isLoading) {
     return (
@@ -367,22 +372,25 @@ export const PortalProfile: React.FC = () => {
   }
 
   const fullName = [resident.firstName, resident.middleName, resident.lastName, resident.extensionName]
-    .filter(Boolean).join(' ');
+    .filter(Boolean)
+    .join(' ');
   const address = [resident.streetAddress, resident.barangay?.name, resident.barangay?.municipality?.name]
-    .filter(Boolean).join(', ');
+    .filter(Boolean)
+    .join(', ');
 
   return (
     <PortalLayout>
       <div className="max-w-4xl mx-auto space-y-6 px-4 py-12">
-
         {/* Header */}
         <Card>
           <CardContent className="py-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
               <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                {resident.picturePath
-                  ? <img src={resident.picturePath} alt={fullName} className="w-full h-full object-cover" />
-                  : <FiUser size={40} className="text-primary-500" />}
+                {resident.picturePath ? (
+                  <img src={resident.picturePath} alt={fullName} className="w-full h-full object-cover" />
+                ) : (
+                  <FiUser size={40} className="text-primary-500" />
+                )}
               </div>
               <div className="text-center sm:text-left flex-1">
                 <h2 className="text-2xl font-bold text-heading-800">{fullName}</h2>
@@ -392,7 +400,9 @@ export const PortalProfile: React.FC = () => {
                 <div className="flex flex-wrap gap-2 mt-2 justify-center sm:justify-start">
                   <StatusBadge status={resident.status} />
                   {resident.username && (
-                    <Badge variant="outline" className="text-xs font-mono">@{resident.username}</Badge>
+                    <Badge variant="outline" className="text-xs font-mono">
+                      @{resident.username}
+                    </Badge>
                   )}
                 </div>
                 {address && (
@@ -416,16 +426,25 @@ export const PortalProfile: React.FC = () => {
         {/* Tabs */}
         <Tabs defaultValue="personal">
           <TabsList>
-            <TabsTrigger value="personal"><FiUser size={14} className="mr-1.5" /> Personal</TabsTrigger>
-            <TabsTrigger value="contact"><FiPhone size={14} className="mr-1.5" /> Contact</TabsTrigger>
-            <TabsTrigger value="household"><FiHome size={14} className="mr-1.5" /> Household</TabsTrigger>
-            <TabsTrigger value="applications"><FiFileText size={14} className="mr-1.5" /> Applications</TabsTrigger>
-            <TabsTrigger value="programs"><FiBookOpen size={14} className="mr-1.5" /> Programs</TabsTrigger>
+            <TabsTrigger value="personal">
+              <FiUser size={14} className="mr-1.5" /> Personal
+            </TabsTrigger>
+            <TabsTrigger value="contact">
+              <FiPhone size={14} className="mr-1.5" /> Contact
+            </TabsTrigger>
+            <TabsTrigger value="household">
+              <FiHome size={14} className="mr-1.5" /> Household
+            </TabsTrigger>
+            <TabsTrigger value="applications">
+              <FiFileText size={14} className="mr-1.5" /> Applications
+            </TabsTrigger>
+            <TabsTrigger value="programs">
+              <FiBookOpen size={14} className="mr-1.5" /> Programs
+            </TabsTrigger>
           </TabsList>
 
           {/* ── Personal Tab ── */}
           <TabsContent value="personal" className="space-y-4">
-
             {/* Edit button — covers all personal sections */}
             <div className="flex justify-end">
               <Button variant="outline" size="sm" onClick={openEdit} className="gap-1.5">
@@ -441,23 +460,38 @@ export const PortalProfile: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <InfoRow icon={<FiCalendar size={14} />} label="Date of Birth"
-                  value={resident.birthdate ? formatDateWithoutTimezone(resident.birthdate, { dateStyle: 'long' }) : undefined} />
+                <InfoRow
+                  icon={<FiCalendar size={14} />}
+                  label="Date of Birth"
+                  value={
+                    resident.birthdate
+                      ? formatDateWithoutTimezone(resident.birthdate, { dateStyle: 'long' })
+                      : undefined
+                  }
+                />
                 <InfoRow label="Sex" value={fmt(resident.sex)} />
                 <InfoRow label="Civil Status" value={fmt(resident.civilStatus)} />
                 <InfoRow label="Citizenship" value={resident.citizenship} />
                 <InfoRow icon={<FiHeart size={14} />} label="Spouse Name" value={resident.spouseName} />
-                <InfoRow label="Registered Voter"
-                  value={resident.isVoter === true ? 'Yes' : resident.isVoter === false ? 'No' : undefined} />
-                <InfoRow label="Indigenous Person"
-                  value={resident.indigenousPerson === true ? 'Yes' : resident.indigenousPerson === false ? 'No' : undefined} />
+                <InfoRow
+                  label="Registered Voter"
+                  value={resident.isVoter === true ? 'Yes' : resident.isVoter === false ? 'No' : undefined}
+                />
+                <InfoRow
+                  label="Indigenous Person"
+                  value={
+                    resident.indigenousPerson === true ? 'Yes' : resident.indigenousPerson === false ? 'No' : undefined
+                  }
+                />
               </CardContent>
             </Card>
 
             {/* Place of Birth */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2"><FiMapPin size={15} /> Place of Birth</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FiMapPin size={15} /> Place of Birth
+                </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                 <InfoRow label="Region" value={resident.birthRegion} />
@@ -469,17 +503,29 @@ export const PortalProfile: React.FC = () => {
             {/* Employment & Education */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2"><FiBriefcase size={15} /> Employment & Education</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FiBriefcase size={15} /> Employment & Education
+                </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <InfoRow label="Occupation" value={resident.occupation} />
                 <InfoRow label="Profession" value={resident.profession} />
                 <InfoRow label="Employment Status" value={fmt(resident.employmentStatus)} />
-                <InfoRow label="Employed"
-                  value={resident.isEmployed === true ? 'Yes' : resident.isEmployed === false ? 'No' : undefined} />
-                <InfoRow icon={<FiBook size={14} />} label="Education Attainment" value={fmt(resident.educationAttainment)} />
-                <InfoRow label="Monthly Income"
-                  value={resident.monthlyIncome != null ? `₱${Number(resident.monthlyIncome).toLocaleString()}` : undefined} />
+                <InfoRow
+                  label="Employed"
+                  value={resident.isEmployed === true ? 'Yes' : resident.isEmployed === false ? 'No' : undefined}
+                />
+                <InfoRow
+                  icon={<FiBook size={14} />}
+                  label="Education Attainment"
+                  value={fmt(resident.educationAttainment)}
+                />
+                <InfoRow
+                  label="Monthly Income"
+                  value={
+                    resident.monthlyIncome != null ? `₱${Number(resident.monthlyIncome).toLocaleString()}` : undefined
+                  }
+                />
               </CardContent>
             </Card>
 
@@ -510,7 +556,11 @@ export const PortalProfile: React.FC = () => {
                       key={c.id}
                       style={
                         c.type_color
-                          ? { backgroundColor: c.type_color + '22', color: c.type_color, borderColor: c.type_color + '44' }
+                          ? {
+                              backgroundColor: c.type_color + '22',
+                              color: c.type_color,
+                              borderColor: c.type_color + '44',
+                            }
                           : undefined
                       }
                       variant="outline"
@@ -527,7 +577,9 @@ export const PortalProfile: React.FC = () => {
           <TabsContent value="contact" className="space-y-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2"><FiPhone size={15} /> Contact Information</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FiPhone size={15} /> Contact Information
+                </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <InfoRow icon={<FiPhone size={14} />} label="Contact Number" value={resident.contactNumber} />
@@ -538,7 +590,9 @@ export const PortalProfile: React.FC = () => {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2"><FiHeart size={15} /> Emergency Contact</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FiHeart size={15} /> Emergency Contact
+                </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <InfoRow label="Name" value={resident.emergencyContactPerson} />
@@ -548,7 +602,9 @@ export const PortalProfile: React.FC = () => {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2"><FiShield size={15} /> Identification</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FiShield size={15} /> Identification
+                </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <InfoRow label="ID Type" value={resident.idType} />
@@ -670,7 +726,12 @@ export const PortalProfile: React.FC = () => {
 
           {!form ? (
             <div className="flex items-center justify-center py-16 text-gray-400 text-sm gap-2">
-              <svg className="animate-spin h-5 w-5 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg
+                className="animate-spin h-5 w-5 text-primary-500"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
               </svg>
@@ -679,31 +740,52 @@ export const PortalProfile: React.FC = () => {
           ) : (
             <>
               <div className="space-y-6 py-2">
-
                 {/* Personal Information */}
                 <div>
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Personal Information</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Field label="Date of Birth">
-                      <Input value={form.birthdate} onChange={(e) => set('birthdate')(e.target.value)}
-                        type="date" max={new Date().toISOString().split('T')[0]} className="h-9 text-sm" />
+                      <Input
+                        value={form.birthdate}
+                        onChange={e => set('birthdate')(e.target.value)}
+                        type="date"
+                        max={new Date().toISOString().split('T')[0]}
+                        className="h-9 text-sm"
+                      />
                     </Field>
-                    <SelectField label="Sex" value={form.sex}
-                      onChange={(v) => set('sex')(v)} options={['male', 'female']} />
-                    <SelectField label="Civil Status" value={form.civilStatus}
-                      onChange={(v) => set('civilStatus')(v)}
-                      options={['single', 'married', 'widowed', 'separated', 'divorced', 'live_in', 'annulled']} />
+                    <SelectField
+                      label="Sex"
+                      value={form.sex}
+                      onChange={v => set('sex')(v)}
+                      options={['male', 'female']}
+                    />
+                    <SelectField
+                      label="Civil Status"
+                      value={form.civilStatus}
+                      onChange={v => set('civilStatus')(v)}
+                      options={['single', 'married', 'widowed', 'separated', 'divorced', 'live_in', 'annulled']}
+                    />
                     <Field label="Citizenship">
-                      <Input value={form.citizenship} onChange={(e) => set('citizenship')(e.target.value)}
-                        placeholder="e.g. Filipino" className="h-9 text-sm" />
+                      <Input
+                        value={form.citizenship}
+                        onChange={e => set('citizenship')(e.target.value)}
+                        placeholder="e.g. Filipino"
+                        className="h-9 text-sm"
+                      />
                     </Field>
                     <Field label="Spouse Name">
-                      <Input value={form.spouseName} onChange={(e) => set('spouseName')(e.target.value)}
-                        placeholder="Full name" className="h-9 text-sm" />
+                      <Input
+                        value={form.spouseName}
+                        onChange={e => set('spouseName')(e.target.value)}
+                        placeholder="Full name"
+                        className="h-9 text-sm"
+                      />
                     </Field>
                     <Field label="Registered Voter">
-                      <Select value={form.isVoter ? 'true' : 'false'} onValueChange={(v) => set('isVoter')(v === 'true')}>
-                        <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                      <Select value={form.isVoter ? 'true' : 'false'} onValueChange={v => set('isVoter')(v === 'true')}>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="true">Yes</SelectItem>
                           <SelectItem value="false">No</SelectItem>
@@ -711,8 +793,13 @@ export const PortalProfile: React.FC = () => {
                       </Select>
                     </Field>
                     <Field label="Indigenous Person">
-                      <Select value={form.indigenousPerson ? 'true' : 'false'} onValueChange={(v) => set('indigenousPerson')(v === 'true')}>
-                        <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                      <Select
+                        value={form.indigenousPerson ? 'true' : 'false'}
+                        onValueChange={v => set('indigenousPerson')(v === 'true')}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="true">Yes</SelectItem>
                           <SelectItem value="false">No</SelectItem>
@@ -730,7 +817,7 @@ export const PortalProfile: React.FC = () => {
                     <Field label="Region">
                       <Select
                         value={form.birthRegion || ''}
-                        onValueChange={(v) => {
+                        onValueChange={v => {
                           set('birthRegion')(v);
                           set('birthProvince')('');
                           set('birthMunicipality')('');
@@ -740,8 +827,10 @@ export const PortalProfile: React.FC = () => {
                           <SelectValue placeholder="Select region" />
                         </SelectTrigger>
                         <SelectContent>
-                          {getRegions().map((r) => (
-                            <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                          {getRegions().map(r => (
+                            <SelectItem key={r.value} value={r.value}>
+                              {r.label}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -751,7 +840,7 @@ export const PortalProfile: React.FC = () => {
                     <Field label="Province">
                       <Select
                         value={form.birthProvince || ''}
-                        onValueChange={(v) => {
+                        onValueChange={v => {
                           set('birthProvince')(v);
                           set('birthMunicipality')('');
                         }}
@@ -761,8 +850,10 @@ export const PortalProfile: React.FC = () => {
                           <SelectValue placeholder={form.birthRegion ? 'Select province' : 'Select region first'} />
                         </SelectTrigger>
                         <SelectContent>
-                          {getPHProvinces(form.birthRegion).map((p) => (
-                            <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                          {getPHProvinces(form.birthRegion).map(p => (
+                            <SelectItem key={p.value} value={p.value}>
+                              {p.label}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -772,15 +863,19 @@ export const PortalProfile: React.FC = () => {
                     <Field label="City / Municipality">
                       <Select
                         value={form.birthMunicipality || ''}
-                        onValueChange={(v) => set('birthMunicipality')(v)}
+                        onValueChange={v => set('birthMunicipality')(v)}
                         disabled={!form.birthRegion || !form.birthProvince}
                       >
                         <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder={!form.birthProvince ? 'Select province first' : 'Select city/municipality'} />
+                          <SelectValue
+                            placeholder={!form.birthProvince ? 'Select province first' : 'Select city/municipality'}
+                          />
                         </SelectTrigger>
                         <SelectContent>
-                          {getPHMunicipalities(form.birthRegion, form.birthProvince).map((m) => (
-                            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                          {getPHMunicipalities(form.birthRegion, form.birthProvince).map(m => (
+                            <SelectItem key={m.value} value={m.value}>
+                              {m.label}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -793,37 +888,72 @@ export const PortalProfile: React.FC = () => {
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Employment & Education</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Field label="Occupation">
-                      <Input value={form.occupation} onChange={(e) => set('occupation')(e.target.value)}
-                        placeholder="e.g. Teacher" className="h-9 text-sm" />
+                      <Input
+                        value={form.occupation}
+                        onChange={e => set('occupation')(e.target.value)}
+                        placeholder="e.g. Teacher"
+                        className="h-9 text-sm"
+                      />
                     </Field>
                     <Field label="Profession">
-                      <Input value={form.profession} onChange={(e) => set('profession')(e.target.value)}
-                        placeholder="e.g. Registered Nurse" className="h-9 text-sm" />
+                      <Input
+                        value={form.profession}
+                        onChange={e => set('profession')(e.target.value)}
+                        placeholder="e.g. Registered Nurse"
+                        className="h-9 text-sm"
+                      />
                     </Field>
-                    <SelectField label="Employment Status" value={form.employmentStatus}
-                      onChange={(v) => set('employmentStatus')(v)} options={EMPLOYMENT_STATUS_OPTIONS} />
+                    <SelectField
+                      label="Employment Status"
+                      value={form.employmentStatus}
+                      onChange={v => set('employmentStatus')(v)}
+                      options={EMPLOYMENT_STATUS_OPTIONS}
+                    />
                     <Field label="Employed">
-                      <Select value={form.isEmployed ? 'true' : 'false'} onValueChange={(v) => set('isEmployed')(v === 'true')}>
-                        <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                      <Select
+                        value={form.isEmployed ? 'true' : 'false'}
+                        onValueChange={v => set('isEmployed')(v === 'true')}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="true">Yes</SelectItem>
                           <SelectItem value="false">No</SelectItem>
                         </SelectContent>
                       </Select>
                     </Field>
-                    <SelectField label="Education Attainment" value={form.educationAttainment}
-                      onChange={(v) => set('educationAttainment')(v)} options={EDUCATION_OPTIONS} />
+                    <SelectField
+                      label="Education Attainment"
+                      value={form.educationAttainment}
+                      onChange={v => set('educationAttainment')(v)}
+                      options={EDUCATION_OPTIONS}
+                    />
                     <Field label="Monthly Income (₱)">
-                      <Input value={form.monthlyIncome} onChange={(e) => set('monthlyIncome')(e.target.value)}
-                        type="number" min="0" placeholder="0.00" className="h-9 text-sm" />
+                      <Input
+                        value={form.monthlyIncome}
+                        onChange={e => set('monthlyIncome')(e.target.value)}
+                        type="number"
+                        min="0"
+                        placeholder="0.00"
+                        className="h-9 text-sm"
+                      />
                     </Field>
                     <Field label="Height">
-                      <Input value={form.height} onChange={(e) => set('height')(e.target.value)}
-                        placeholder="e.g. 165cm" className="h-9 text-sm" />
+                      <Input
+                        value={form.height}
+                        onChange={e => set('height')(e.target.value)}
+                        placeholder="e.g. 165cm"
+                        className="h-9 text-sm"
+                      />
                     </Field>
                     <Field label="Weight">
-                      <Input value={form.weight} onChange={(e) => set('weight')(e.target.value)}
-                        placeholder="e.g. 60kg" className="h-9 text-sm" />
+                      <Input
+                        value={form.weight}
+                        onChange={e => set('weight')(e.target.value)}
+                        placeholder="e.g. 60kg"
+                        className="h-9 text-sm"
+                      />
                     </Field>
                   </div>
                 </div>
@@ -833,12 +963,20 @@ export const PortalProfile: React.FC = () => {
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Emergency Contact</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Field label="Name">
-                      <Input value={form.emergencyContactPerson} onChange={(e) => set('emergencyContactPerson')(e.target.value)}
-                        placeholder="Full name" className="h-9 text-sm" />
+                      <Input
+                        value={form.emergencyContactPerson}
+                        onChange={e => set('emergencyContactPerson')(e.target.value)}
+                        placeholder="Full name"
+                        className="h-9 text-sm"
+                      />
                     </Field>
                     <Field label="Contact Number">
-                      <Input value={form.emergencyContactNumber} onChange={(e) => set('emergencyContactNumber')(e.target.value)}
-                        placeholder="09XXXXXXXXX" className="h-9 text-sm" />
+                      <Input
+                        value={form.emergencyContactNumber}
+                        onChange={e => set('emergencyContactNumber')(e.target.value)}
+                        placeholder="09XXXXXXXXX"
+                        className="h-9 text-sm"
+                      />
                     </Field>
                   </div>
                 </div>
@@ -848,20 +986,31 @@ export const PortalProfile: React.FC = () => {
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Identification</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Field label="ID Type">
-                      <Input value={form.idType} onChange={(e) => set('idType')(e.target.value)}
-                        placeholder="e.g. PhilSys National ID" className="h-9 text-sm" />
+                      <Input
+                        value={form.idType}
+                        onChange={e => set('idType')(e.target.value)}
+                        placeholder="e.g. PhilSys National ID"
+                        className="h-9 text-sm"
+                      />
                     </Field>
                     <Field label="ID Number">
-                      <Input value={form.idDocumentNumber} onChange={(e) => set('idDocumentNumber')(e.target.value)}
-                        placeholder="ID number" className="h-9 text-sm" />
+                      <Input
+                        value={form.idDocumentNumber}
+                        onChange={e => set('idDocumentNumber')(e.target.value)}
+                        placeholder="ID number"
+                        className="h-9 text-sm"
+                      />
                     </Field>
                     <Field label="ACR No.">
-                      <Input value={form.acrNo} onChange={(e) => set('acrNo')(e.target.value)}
-                        placeholder="ACR number (if applicable)" className="h-9 text-sm" />
+                      <Input
+                        value={form.acrNo}
+                        onChange={e => set('acrNo')(e.target.value)}
+                        placeholder="ACR number (if applicable)"
+                        className="h-9 text-sm"
+                      />
                     </Field>
                   </div>
                 </div>
-
               </div>
 
               {/* Actions */}
