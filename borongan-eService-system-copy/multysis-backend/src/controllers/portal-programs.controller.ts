@@ -110,7 +110,12 @@ export const cancelApplicationController = async (
     res.status(200).json({ status: 'success', data });
   } catch (error: any) {
     const msg = toUserMessage(error);
-    const status = error instanceof Error && error.message === 'Unauthorized' ? 403 : 400;
+    const status =
+      error instanceof Error && error.message === 'Unauthorized'
+        ? 403
+        : error instanceof Error && error.message === 'Application not found'
+          ? 404
+          : 400;
     res.status(status).json({ status: 'error', message: msg });
   }
 };

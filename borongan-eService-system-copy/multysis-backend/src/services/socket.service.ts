@@ -660,8 +660,13 @@ export const emitProgramApplicationReview = async (
   payload: ProgramApplicationReviewPayload
 ): Promise<void> => {
   const io = getSocketInstance();
-  if (io) {
-    io.to(`user:${residentId}`).emit('program-application:review', payload);
-    await invalidateSubscriberNotificationCache(residentId);
+  if (!io) {
+    console.warn('[socket] emitProgramApplicationReview: socket instance not available');
+    return;
   }
+  const room = `user:${residentId}`;
+  const sockets = await io.in(room).fetchSockets();
+  console.log(`[socket] emitProgramApplicationReview → room=${room} connected_sockets=${sockets.length} status=${payload.status}`);
+  io.to(room).emit('program-application:review', payload);
+  await invalidateSubscriberNotificationCache(residentId);
 };

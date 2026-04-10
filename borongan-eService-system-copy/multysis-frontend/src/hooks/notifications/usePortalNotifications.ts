@@ -138,6 +138,7 @@ export const usePortalNotifications = ({
     };
 
     const handleProgramApplicationReview = (data: ProgramApplicationReviewPayload) => {
+      console.log('[socket] program-application:review received', data);
       const isApproved = data.status === 'approved';
       toast({
         title: isApproved

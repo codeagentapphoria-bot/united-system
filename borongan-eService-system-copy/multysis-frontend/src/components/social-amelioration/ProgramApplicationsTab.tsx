@@ -2,16 +2,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
 // Icons
-import {
-  FiBookOpen,
-  FiCheck,
-  FiChevronLeft,
-  FiClock,
-  FiEye,
-  FiSearch,
-  FiUser,
-  FiX,
-} from 'react-icons/fi';
+import { FiBookOpen, FiCheck, FiChevronLeft, FiClock, FiEye, FiSearch, FiUser, FiX } from 'react-icons/fi';
 
 // UI Components
 import { Badge } from '@/components/ui/badge';
@@ -69,8 +60,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: Re
   },
 };
 
-const fmt = (v?: string | null) =>
-  v ? v.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '—';
+const fmt = (v?: string | null) => (v ? v.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '—');
 
 // ---------------------------------------------------------------------------
 // Resident Preview Dialog
@@ -94,7 +84,7 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
     setDetail(null);
     portalProgramsService
       .getApplicationAdmin(appId)
-      .then((data) => {
+      .then(data => {
         if (!cancelled) setDetail(data);
       })
       .catch(() => {
@@ -109,17 +99,19 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
   }, [appId, open, toast]);
 
   const r = detail?.resident;
-  const fullName = r
-    ? [r.firstName, r.middleName, r.lastName, r.extensionName].filter(Boolean).join(' ')
-    : '';
+  const fullName = r ? [r.firstName, r.middleName, r.lastName, r.extensionName].filter(Boolean).join(' ') : '';
 
   const beneficiaries = r
     ? [
-        { label: 'Senior Citizen', data: r.seniorCitizenBeneficiary, idField: r.seniorCitizenBeneficiary?.seniorCitizenId },
+        {
+          label: 'Senior Citizen',
+          data: r.seniorCitizenBeneficiary,
+          idField: r.seniorCitizenBeneficiary?.seniorCitizenId,
+        },
         { label: 'PWD', data: r.pwdBeneficiary, idField: r.pwdBeneficiary?.pwdId },
         { label: 'Student', data: r.studentBeneficiary, idField: r.studentBeneficiary?.studentId },
         { label: 'Solo Parent', data: r.soloParentBeneficiary, idField: r.soloParentBeneficiary?.soloParentId },
-      ].filter((b) => b.data)
+      ].filter(b => b.data)
     : [];
 
   return (
@@ -139,15 +131,15 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
             {/* Identity */}
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                {r?.picturePath
-                  ? <img src={r.picturePath} alt={fullName} className="w-full h-full object-cover" />
-                  : <FiUser size={28} className="text-primary-500" />}
+                {r?.picturePath ? (
+                  <img src={r.picturePath} alt={fullName} className="w-full h-full object-cover" />
+                ) : (
+                  <FiUser size={28} className="text-primary-500" />
+                )}
               </div>
               <div>
                 <p className="font-semibold text-heading-700 text-base">{fullName}</p>
-                {r?.residentId && (
-                  <p className="text-xs font-mono text-primary-600">{r.residentId}</p>
-                )}
+                {r?.residentId && <p className="text-xs font-mono text-primary-600">{r.residentId}</p>}
                 <p className="text-xs text-gray-500">{r?.barangay?.barangayName || '—'}</p>
               </div>
             </div>
@@ -167,7 +159,9 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
                 <p className="font-medium">
                   {r?.birthdate
                     ? new Date(r.birthdate).toLocaleDateString('en-US', {
-                        year: 'numeric', month: 'short', day: 'numeric',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
                       })
                     : '—'}
                 </p>
@@ -196,7 +190,9 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
                 <span className="text-gray-500">Applied</span>
                 <span>
                   {new Date(detail.appliedAt).toLocaleDateString('en-US', {
-                    year: 'numeric', month: 'short', day: 'numeric',
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
                   })}
                 </span>
               </div>
@@ -224,17 +220,18 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Beneficiary Records</p>
                 <div className="space-y-1.5">
-                  {beneficiaries.map((b) => (
-                    <div key={b.label} className="flex items-center justify-between text-sm bg-gray-50 rounded px-3 py-2">
+                  {beneficiaries.map(b => (
+                    <div
+                      key={b.label}
+                      className="flex items-center justify-between text-sm bg-gray-50 rounded px-3 py-2"
+                    >
                       <span className="text-gray-700">{b.label}</span>
                       <div className="flex items-center gap-2">
                         {b.idField && <span className="text-xs font-mono text-gray-500">{b.idField}</span>}
                         <Badge
                           className={cn(
                             'text-xs',
-                            b.data?.status === 'ACTIVE'
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-gray-100 text-gray-500'
+                            b.data?.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                           )}
                         >
                           {b.data?.status}
@@ -591,6 +588,7 @@ export const ProgramApplicationsTab: React.FC = () => {
 
       {/* Review Dialog */}
       <ReviewDialog
+        key={selectedApp?.id}
         application={selectedApp}
         open={isReviewDialogOpen}
         onClose={() => {

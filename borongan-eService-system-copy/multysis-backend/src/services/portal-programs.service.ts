@@ -1,4 +1,4 @@
-import { GovernmentProgramType } from '@prisma/client';
+import { GovernmentProgramType, Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import { emitProgramApplicationReview } from './socket.service';
 
@@ -188,9 +188,17 @@ export const applyForProgram = async (residentId: string, programId: string) => 
     });
   }
 
-  return prisma.governmentProgramApplication.create({
-    data: { residentId, programId, status: 'pending' },
-  });
+  try {
+    return await prisma.governmentProgramApplication.create({
+      data: { residentId, programId, status: 'pending' },
+    });
+  } catch (err) {
+    // Concurrent insert (race between the check above and the insert)
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      throw new Error('You already have an active application for this program');
+    }
+    throw err;
+  }
 };
 
 // ---------------------------------------------------------------------------
