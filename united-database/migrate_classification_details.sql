@@ -8,6 +8,12 @@
 -- 2. Update classification_types details for the 4 social amelioration types
 --    so the BIMS classification dialog renders the correct dropdowns linked
 --    to social_amelioration_settings instead of plain text fields.
+--
+-- NOTE: The UPDATEs below intentionally target ALL municipalities.
+--   classification_types.details defines the *field structure* (which inputs
+--   to show), not resident data.  Every municipality must use the same
+--   structure so the shared BIMS classification form renders correctly.
+--   The WHERE clause explicitly joins municipalities to make this scope clear.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -17,45 +23,35 @@ ALTER TABLE registration_requests
   ADD COLUMN IF NOT EXISTS amelioration_data JSONB NULL;
 
 -- -----------------------------------------------------------------------------
--- 2. Update classification_types details for the 4 overlapping types
---    Uses ON CONFLICT to upsert so the migration is safe to re-run.
+-- 2. Update classification_types details for all municipalities
 -- -----------------------------------------------------------------------------
 
 -- Senior Citizen
-UPDATE classification_types
-SET details = '[
-  {"key":"pensionTypes","label":"Pension / Benefit Types","type":"amelioration_multiselect","settingType":"PENSION_TYPE"},
-  {"key":"remarks","label":"Remarks","type":"text"}
-]'::jsonb
-WHERE name = 'Senior Citizen';
+UPDATE classification_types ct
+SET details = '[{"key":"pensionTypes","label":"Pension / Benefit Types","type":"amelioration_multiselect","settingType":"PENSION_TYPE"},{"key":"remarks","label":"Remarks","type":"text"}]'::jsonb
+WHERE ct.name = 'Senior Citizen'
+  AND ct.municipality_id IN (SELECT id FROM municipalities);
 
 -- Person with Disability
-UPDATE classification_types
-SET details = '[
-  {"key":"disabilityType","label":"Type of Disability","type":"amelioration_select","settingType":"DISABILITY_TYPE"},
-  {"key":"disabilityLevel","label":"Disability Level","type":"select","options":["Mild","Moderate","Severe"]},
-  {"key":"remarks","label":"Remarks","type":"text"}
-]'::jsonb
-WHERE name = 'Person with Disability';
+UPDATE classification_types ct
+SET details = '[{"key":"disabilityType","label":"Type of Disability","type":"amelioration_select","settingType":"DISABILITY_TYPE"},{"key":"disabilityLevel","label":"Disability Level","type":"select","options":["Mild","Moderate","Severe"]},{"key":"remarks","label":"Remarks","type":"text"}]'::jsonb
+WHERE ct.name = 'Person with Disability'
+  AND ct.municipality_id IN (SELECT id FROM municipalities);
 
 -- Student
-UPDATE classification_types
-SET details = '[
-  {"key":"gradeLevel","label":"Grade / Education Level","type":"amelioration_select","settingType":"GRADE_LEVEL"},
-  {"key":"remarks","label":"Remarks","type":"text"}
-]'::jsonb
-WHERE name = 'Student';
+UPDATE classification_types ct
+SET details = '[{"key":"gradeLevel","label":"Grade / Education Level","type":"amelioration_select","settingType":"GRADE_LEVEL"},{"key":"remarks","label":"Remarks","type":"text"}]'::jsonb
+WHERE ct.name = 'Student'
+  AND ct.municipality_id IN (SELECT id FROM municipalities);
 
--- College Student (also maps to student_beneficiaries)
--- Course/field of study is more meaningful than grade level for college students
-UPDATE classification_types
+-- College Student
+UPDATE classification_types ct
 SET details = '[{"key":"courseField","label":"Course / Field of Study","type":"text"},{"key":"remarks","label":"Remarks","type":"text"}]'::jsonb
-WHERE name = 'College Student';
+WHERE ct.name = 'College Student'
+  AND ct.municipality_id IN (SELECT id FROM municipalities);
 
 -- Solo Parent
-UPDATE classification_types
-SET details = '[
-  {"key":"category","label":"Solo Parent Category","type":"amelioration_select","settingType":"SOLO_PARENT_CATEGORY"},
-  {"key":"remarks","label":"Remarks","type":"text"}
-]'::jsonb
-WHERE name = 'Solo Parent';
+UPDATE classification_types ct
+SET details = '[{"key":"category","label":"Solo Parent Category","type":"amelioration_select","settingType":"SOLO_PARENT_CATEGORY"},{"key":"remarks","label":"Remarks","type":"text"}]'::jsonb
+WHERE ct.name = 'Solo Parent'
+  AND ct.municipality_id IN (SELECT id FROM municipalities);

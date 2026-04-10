@@ -76,7 +76,8 @@ WHERE rc.resident_id = rr.resident_fk
 -- Voter
 UPDATE resident_classifications rc
 SET classification_details = jsonb_build_object(
-  'typeOfVoter', COALESCE(rr.amelioration_data->'voter'->>'voterType', 'Regular')
+  'typeOfVoter', COALESCE(rr.amelioration_data->'voter'->>'voterType', 'Regular'),
+  'remarks', ''
 )
 FROM registration_requests rr
 WHERE rc.resident_id = rr.resident_fk

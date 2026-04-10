@@ -236,15 +236,24 @@ export const ResidentRegister: React.FC = () => {
       types.map(type =>
         api
           .get(`/portal-registration/amelioration-settings?type=${type}`)
-          .then(res => ({ type, data: res.data.data || [] }))
-          .catch(() => ({ type, data: [] }))
+          .then(res => ({ type, data: res.data.data || [], failed: false }))
+          .catch(() => ({ type, data: [], failed: true }))
       )
     ).then(results => {
       const map: Record<string, any[]> = {};
-      results.forEach(({ type, data }) => {
+      let anyFailed = false;
+      results.forEach(({ type, data, failed }) => {
         map[type] = data;
+        if (failed) anyFailed = true;
       });
       setAmeliorationSettings(map);
+      if (anyFailed) {
+        toast({
+          variant: 'destructive',
+          title: 'Failed to load options',
+          description: 'Some dropdown options could not be loaded. Please refresh and try again.',
+        });
+      }
     });
   }, []);
 
@@ -376,6 +385,18 @@ export const ResidentRegister: React.FC = () => {
 
   // Step navigation
   const handleStep1 = (data: Step1Data) => {
+    // Validate conditionally-required amelioration sub-fields
+    let hasConditionalError = false;
+    if (isPWD && !data.disabilityTypeId) {
+      step1Form.setError('disabilityTypeId', { message: 'Please select your type of disability.' });
+      hasConditionalError = true;
+    }
+    if (isSoloParent && !data.soloParentCategoryId) {
+      step1Form.setError('soloParentCategoryId', { message: 'Please select your solo parent category.' });
+      hasConditionalError = true;
+    }
+    if (hasConditionalError) return;
+
     // Build ameliorationData from sub-fields matching each trigger
     const ameliorationData: Record<string, any> = {};
     if (isSeniorCitizen && data.pensionTypeIds?.length) {
