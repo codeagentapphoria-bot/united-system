@@ -29,21 +29,18 @@ import { usePortalNotifications } from '@/hooks/notifications/usePortalNotificat
 import { cn } from '@/lib/utils';
 import { FiBell, FiChevronDown, FiLogOut, FiMenu, FiUser, FiX } from 'react-icons/fi';
 
-interface PortalHeaderProps { }
+interface PortalHeaderProps {}
 
 export const PortalHeader: React.FC<PortalHeaderProps> = () => {
   const { user, logout, isLoading, isLoggingOut } = useAuth();
-  const {
-    isLoginOpen,
-    openLoginSheet,
-    setLoginSheetOpen,
-  } = useLoginSheet();
+  const { isLoginOpen, openLoginSheet, setLoginSheetOpen } = useLoginSheet();
   const { counts } = usePortalNotifications();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isSubscriber = user?.role === 'resident';
+  const isActiveResident = isSubscriber && user?.status === 'active';
   const hasNotifications = isSubscriber && counts.total > 0;
 
   const navigationItems = [
@@ -52,6 +49,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = () => {
     { path: '/portal/e-bills', label: 'E-Bills' },
     { path: '/portal/e-news', label: 'E-News' },
     { path: '/portal/external-websites', label: 'External' },
+    ...(isActiveResident ? [{ path: '/portal/programs', label: 'Programs' }] : []),
   ];
 
   const isActive = (path: string) => {
@@ -71,18 +69,13 @@ export const PortalHeader: React.FC<PortalHeaderProps> = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/portal" className="flex items-center space-x-3">
-            <img
-              src="/logo-colored.svg"
-              alt="City of Borongan Logo"
-              className="h-10 w-auto"
-            />
-            <div className="hidden sm:block">
-            </div>
+            <img src="/logo-colored.svg" alt="City of Borongan Logo" className="h-10 w-auto" />
+            <div className="hidden sm:block"></div>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-1">
-            {navigationItems.map((item) => (
+            {navigationItems.map(item => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -114,9 +107,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className={cn(
-                        'relative hover:bg-primary-50 text-heading-600 hover:text-primary-700'
-                      )}
+                      className={cn('relative hover:bg-primary-50 text-heading-600 hover:text-primary-700')}
                     >
                       <FiBell size={20} />
                       {hasNotifications && (
@@ -162,9 +153,25 @@ export const PortalHeader: React.FC<PortalHeaderProps> = () => {
                     {isLoggingOut ? (
                       <DropdownMenuItem disabled className="text-gray-400 cursor-wait">
                         <span className="flex items-center">
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          <svg
+                            className="animate-spin -ml-1 mr-2 h-4 w-4"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
                           </svg>
                           Logging out...
                         </span>
@@ -190,13 +197,8 @@ export const PortalHeader: React.FC<PortalHeaderProps> = () => {
                 >
                   Login
                 </Button>
-                <Button
-                  asChild
-                  className="bg-primary-600 hover:bg-primary-700 text-white"
-                >
-                  <Link to="/portal/register">
-                    Register
-                  </Link>
+                <Button asChild className="bg-primary-600 hover:bg-primary-700 text-white">
+                  <Link to="/portal/register">Register</Link>
                 </Button>
               </div>
             )}
@@ -217,7 +219,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = () => {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-gray-200 py-4">
             <nav className="flex flex-col space-y-1">
-              {navigationItems.map((item) => (
+              {navigationItems.map(item => (
                 <Link
                   key={item.path}
                   to={item.path}
@@ -238,15 +240,15 @@ export const PortalHeader: React.FC<PortalHeaderProps> = () => {
               <div className="px-4 py-4 flex flex-col space-y-3 border-t border-gray-200 mt-2">
                 <Button
                   variant="outline"
-                  onClick={() => { openLoginSheet(); setIsMobileMenuOpen(false); }}
+                  onClick={() => {
+                    openLoginSheet();
+                    setIsMobileMenuOpen(false);
+                  }}
                   className="w-full border-primary-600 text-primary-600"
                 >
                   Login
                 </Button>
-                <Button
-                  asChild
-                  className="w-full bg-primary-600 hover:bg-primary-700 text-white"
-                >
+                <Button asChild className="w-full bg-primary-600 hover:bg-primary-700 text-white">
                   <Link to="/portal/register" onClick={() => setIsMobileMenuOpen(false)}>
                     Register
                   </Link>
@@ -262,4 +264,3 @@ export const PortalHeader: React.FC<PortalHeaderProps> = () => {
     </header>
   );
 };
-

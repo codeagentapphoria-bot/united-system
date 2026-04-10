@@ -1,37 +1,40 @@
-import { Prisma } from '@prisma/client';
+import { GovernmentProgramType, Prisma } from '@prisma/client';
 import prisma from '../config/database';
+
+type ProgramTypeValue = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
 
 export interface CreateGovernmentProgramData {
   name: string;
   description?: string;
-  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+  requirements?: string;
+  types: ProgramTypeValue[];
   isActive?: boolean;
 }
 
 export interface UpdateGovernmentProgramData {
   name?: string;
   description?: string;
-  type?: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+  requirements?: string;
+  types?: ProgramTypeValue[];
   isActive?: boolean;
 }
 
 export interface GovernmentProgramFilters {
   search?: string;
-  type?: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+  type?: ProgramTypeValue; // filter: programs whose types array contains this value
   isActive?: boolean;
 }
 
 export const createGovernmentProgram = async (data: CreateGovernmentProgramData) => {
-  const governmentProgram = await prisma.governmentProgram.create({
+  return prisma.governmentProgram.create({
     data: {
       name: data.name,
       description: data.description || null,
-      type: data.type,
+      requirements: data.requirements || null,
+      types: data.types as GovernmentProgramType[],
       isActive: data.isActive !== undefined ? data.isActive : true,
     },
   });
-
-  return governmentProgram;
 };
 
 export const getGovernmentPrograms = async (filters: GovernmentProgramFilters) => {
@@ -39,7 +42,6 @@ export const getGovernmentPrograms = async (filters: GovernmentProgramFilters) =
 
   const where: Prisma.GovernmentProgramWhereInput = {};
 
-  // Search filter
   if (search) {
     where.OR = [
       { name: { contains: search, mode: 'insensitive' } },
@@ -47,40 +49,35 @@ export const getGovernmentPrograms = async (filters: GovernmentProgramFilters) =
     ];
   }
 
-  // Type filter
+  // Filter: programs whose `types` array contains the requested type
   if (type) {
-    where.type = type;
+    where.types = { has: type as GovernmentProgramType };
   }
 
-  // Active filter
   if (isActive !== undefined) {
     where.isActive = isActive;
   }
 
-  const governmentPrograms = await prisma.governmentProgram.findMany({
+  return prisma.governmentProgram.findMany({
     where,
     orderBy: [{ name: 'asc' }],
   });
-
-  return governmentPrograms;
 };
 
 export const getGovernmentProgram = async (id: string) => {
-  const governmentProgram = await prisma.governmentProgram.findUnique({
-    where: { id },
-  });
+  const program = await prisma.governmentProgram.findUnique({ where: { id } });
 
-  if (!governmentProgram) {
+  if (!program) {
     throw new Error('Government program not found');
   }
 
-  return governmentProgram;
+  return program;
 };
 
 export const updateGovernmentProgram = async (id: string, data: UpdateGovernmentProgramData) => {
-  const governmentProgram = await prisma.governmentProgram.findUnique({ where: { id } });
+  const program = await prisma.governmentProgram.findUnique({ where: { id } });
 
-  if (!governmentProgram) {
+  if (!program) {
     throw new Error('Government program not found');
   }
 
@@ -88,51 +85,39 @@ export const updateGovernmentProgram = async (id: string, data: UpdateGovernment
 
   if (data.name !== undefined) updateData.name = data.name;
   if (data.description !== undefined) updateData.description = data.description || null;
-  if (data.type !== undefined) updateData.type = data.type;
+  if (data.requirements !== undefined) updateData.requirements = data.requirements || null;
+  if (data.types !== undefined) updateData.types = data.types as GovernmentProgramType[];
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
 
-  return prisma.governmentProgram.update({
-    where: { id },
-    data: updateData,
-  });
+  return prisma.governmentProgram.update({ where: { id }, data: updateData });
 };
 
 export const deleteGovernmentProgram = async (id: string) => {
-  const governmentProgram = await prisma.governmentProgram.findUnique({
-    where: { id },
-  });
+  const program = await prisma.governmentProgram.findUnique({ where: { id } });
 
-  if (!governmentProgram) {
+  if (!program) {
     throw new Error('Government program not found');
   }
 
-  return prisma.governmentProgram.delete({
-    where: { id },
-  });
+  return prisma.governmentProgram.delete({ where: { id } });
 };
 
 export const activateGovernmentProgram = async (id: string) => {
-  const governmentProgram = await prisma.governmentProgram.findUnique({ where: { id } });
+  const program = await prisma.governmentProgram.findUnique({ where: { id } });
 
-  if (!governmentProgram) {
+  if (!program) {
     throw new Error('Government program not found');
   }
 
-  return prisma.governmentProgram.update({
-    where: { id },
-    data: { isActive: true },
-  });
+  return prisma.governmentProgram.update({ where: { id }, data: { isActive: true } });
 };
 
 export const deactivateGovernmentProgram = async (id: string) => {
-  const governmentProgram = await prisma.governmentProgram.findUnique({ where: { id } });
+  const program = await prisma.governmentProgram.findUnique({ where: { id } });
 
-  if (!governmentProgram) {
+  if (!program) {
     throw new Error('Government program not found');
   }
 
-  return prisma.governmentProgram.update({
-    where: { id },
-    data: { isActive: false },
-  });
+  return prisma.governmentProgram.update({ where: { id }, data: { isActive: false } });
 };

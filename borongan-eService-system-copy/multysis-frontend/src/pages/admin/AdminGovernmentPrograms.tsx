@@ -14,14 +14,18 @@ import { Separator } from '@/components/ui/separator';
 // Custom Components
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
-    ActivateGovernmentProgramModal,
-    AddGovernmentProgramModal,
-    DeleteGovernmentProgramModal,
-    EditGovernmentProgramModal,
+  ActivateGovernmentProgramModal,
+  AddGovernmentProgramModal,
+  DeleteGovernmentProgramModal,
+  EditGovernmentProgramModal,
 } from '@/components/modals/government-programs';
 
 // Hooks
-import { useGovernmentPrograms, type CreateGovernmentProgramInput, type UpdateGovernmentProgramInput } from '@/hooks/social-amelioration/useGovernmentPrograms';
+import {
+  useGovernmentPrograms,
+  type CreateGovernmentProgramInput,
+  type UpdateGovernmentProgramInput,
+} from '@/hooks/social-amelioration/useGovernmentPrograms';
 import { useDebounce } from '@/hooks/useDebounce';
 
 // Utils
@@ -60,21 +64,22 @@ export const AdminGovernmentPrograms: React.FC = () => {
     setSearchQuery(debouncedSearchQuery);
   }, [debouncedSearchQuery, setSearchQuery]);
 
+  const escapeCsv = (value: unknown): string => {
+    const s = value == null ? '' : String(value);
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+
   const handleDownload = () => {
-    // Create CSV content
-    const headers = ['Program Name', 'Description', 'Type', 'Status', 'Created Date'];
+    const headers = ['Program Name', 'Description', 'Types', 'Status', 'Created Date'];
     const rows = governmentPrograms.map(program => [
       program.name,
       program.description || 'N/A',
-      program.type,
+      getTypesLabel(program.types),
       program.isActive ? 'Active' : 'Inactive',
-      new Date(program.createdAt).toLocaleDateString()
+      new Date(program.createdAt).toLocaleDateString(),
     ]);
-    
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
+
+    const csvContent = [headers.map(escapeCsv).join(','), ...rows.map(row => row.map(escapeCsv).join(','))].join('\n');
 
     // Download file
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -147,11 +152,7 @@ export const AdminGovernmentPrograms: React.FC = () => {
       inactive: 'bg-red-100 text-red-700',
     };
 
-    return (
-      <Badge className={variants[isActive ? 'active' : 'inactive']}>
-        {isActive ? 'Active' : 'Inactive'}
-      </Badge>
-    );
+    return <Badge className={variants[isActive ? 'active' : 'inactive']}>{isActive ? 'Active' : 'Inactive'}</Badge>;
   };
 
   const getTypeLabel = (type: string) => {
@@ -160,10 +161,12 @@ export const AdminGovernmentPrograms: React.FC = () => {
       PWD: 'PWD',
       STUDENT: 'Student',
       SOLO_PARENT: 'Solo Parent',
-      ALL: 'All Beneficiaries',
+      ALL: 'All Residents',
     };
     return labels[type] || type;
   };
+
+  const getTypesLabel = (types: string[]) => types.map(getTypeLabel).join(', ');
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
@@ -177,19 +180,20 @@ export const AdminGovernmentPrograms: React.FC = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="text-primary-600 hover:text-primary-700 hover:bg-primary-50"
               onClick={handleDownload}
             >
-              <div className="mr-2"><FiDownload size={16} /></div>
+              <div className="mr-2">
+                <FiDownload size={16} />
+              </div>
               Download List
             </Button>
-            <Button 
-              className="bg-primary-600 hover:bg-primary-700"
-              onClick={() => setIsAddModalOpen(true)}
-            >
-              <div className="mr-2"><FiPlus size={16} /></div>
+            <Button className="bg-primary-600 hover:bg-primary-700" onClick={() => setIsAddModalOpen(true)}>
+              <div className="mr-2">
+                <FiPlus size={16} />
+              </div>
               Add Government Program
             </Button>
           </div>
@@ -211,7 +215,7 @@ export const AdminGovernmentPrograms: React.FC = () => {
                 <FiSettings size={20} />
                 Programs List
               </CardTitle>
-              
+
               {/* Search */}
               <div className="relative mt-4">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -220,7 +224,7 @@ export const AdminGovernmentPrograms: React.FC = () => {
                 <Input
                   placeholder="Search programs..."
                   value={localSearchQuery}
-                  onChange={(e) => setLocalSearchQuery(e.target.value)}
+                  onChange={e => setLocalSearchQuery(e.target.value)}
                   className="pl-10 h-10"
                 />
               </div>
@@ -235,7 +239,11 @@ export const AdminGovernmentPrograms: React.FC = () => {
                       size="sm"
                       variant={typeFilter === 'all' ? 'default' : 'outline'}
                       onClick={() => setTypeFilter('all')}
-                      className={typeFilter === 'all' ? 'bg-primary-600 hover:bg-primary-700' : 'text-primary-600 hover:bg-primary-50'}
+                      className={
+                        typeFilter === 'all'
+                          ? 'bg-primary-600 hover:bg-primary-700'
+                          : 'text-primary-600 hover:bg-primary-50'
+                      }
                     >
                       All
                     </Button>
@@ -243,7 +251,11 @@ export const AdminGovernmentPrograms: React.FC = () => {
                       size="sm"
                       variant={typeFilter === 'SENIOR_CITIZEN' ? 'default' : 'outline'}
                       onClick={() => setTypeFilter('SENIOR_CITIZEN')}
-                      className={typeFilter === 'SENIOR_CITIZEN' ? 'bg-primary-600 hover:bg-primary-700' : 'text-primary-600 hover:bg-primary-50'}
+                      className={
+                        typeFilter === 'SENIOR_CITIZEN'
+                          ? 'bg-primary-600 hover:bg-primary-700'
+                          : 'text-primary-600 hover:bg-primary-50'
+                      }
                     >
                       Senior Citizen
                     </Button>
@@ -251,7 +263,11 @@ export const AdminGovernmentPrograms: React.FC = () => {
                       size="sm"
                       variant={typeFilter === 'PWD' ? 'default' : 'outline'}
                       onClick={() => setTypeFilter('PWD')}
-                      className={typeFilter === 'PWD' ? 'bg-primary-600 hover:bg-primary-700' : 'text-primary-600 hover:bg-primary-50'}
+                      className={
+                        typeFilter === 'PWD'
+                          ? 'bg-primary-600 hover:bg-primary-700'
+                          : 'text-primary-600 hover:bg-primary-50'
+                      }
                     >
                       PWD
                     </Button>
@@ -259,7 +275,11 @@ export const AdminGovernmentPrograms: React.FC = () => {
                       size="sm"
                       variant={typeFilter === 'STUDENT' ? 'default' : 'outline'}
                       onClick={() => setTypeFilter('STUDENT')}
-                      className={typeFilter === 'STUDENT' ? 'bg-primary-600 hover:bg-primary-700' : 'text-primary-600 hover:bg-primary-50'}
+                      className={
+                        typeFilter === 'STUDENT'
+                          ? 'bg-primary-600 hover:bg-primary-700'
+                          : 'text-primary-600 hover:bg-primary-50'
+                      }
                     >
                       Student
                     </Button>
@@ -267,7 +287,11 @@ export const AdminGovernmentPrograms: React.FC = () => {
                       size="sm"
                       variant={typeFilter === 'SOLO_PARENT' ? 'default' : 'outline'}
                       onClick={() => setTypeFilter('SOLO_PARENT')}
-                      className={typeFilter === 'SOLO_PARENT' ? 'bg-primary-600 hover:bg-primary-700' : 'text-primary-600 hover:bg-primary-50'}
+                      className={
+                        typeFilter === 'SOLO_PARENT'
+                          ? 'bg-primary-600 hover:bg-primary-700'
+                          : 'text-primary-600 hover:bg-primary-50'
+                      }
                     >
                       Solo Parent
                     </Button>
@@ -275,7 +299,11 @@ export const AdminGovernmentPrograms: React.FC = () => {
                       size="sm"
                       variant={typeFilter === 'ALL' ? 'default' : 'outline'}
                       onClick={() => setTypeFilter('ALL')}
-                      className={typeFilter === 'ALL' ? 'bg-primary-600 hover:bg-primary-700' : 'text-primary-600 hover:bg-primary-50'}
+                      className={
+                        typeFilter === 'ALL'
+                          ? 'bg-primary-600 hover:bg-primary-700'
+                          : 'text-primary-600 hover:bg-primary-50'
+                      }
                     >
                       All Types
                     </Button>
@@ -290,7 +318,11 @@ export const AdminGovernmentPrograms: React.FC = () => {
                       size="sm"
                       variant={statusFilter === 'all' ? 'default' : 'outline'}
                       onClick={() => setStatusFilter('all')}
-                      className={statusFilter === 'all' ? 'bg-primary-600 hover:bg-primary-700' : 'text-primary-600 hover:bg-primary-50'}
+                      className={
+                        statusFilter === 'all'
+                          ? 'bg-primary-600 hover:bg-primary-700'
+                          : 'text-primary-600 hover:bg-primary-50'
+                      }
                     >
                       All
                     </Button>
@@ -298,7 +330,11 @@ export const AdminGovernmentPrograms: React.FC = () => {
                       size="sm"
                       variant={statusFilter === 'active' ? 'default' : 'outline'}
                       onClick={() => setStatusFilter('active')}
-                      className={statusFilter === 'active' ? 'bg-primary-600 hover:bg-primary-700' : 'text-primary-600 hover:bg-primary-50'}
+                      className={
+                        statusFilter === 'active'
+                          ? 'bg-primary-600 hover:bg-primary-700'
+                          : 'text-primary-600 hover:bg-primary-50'
+                      }
                     >
                       Active
                     </Button>
@@ -306,33 +342,33 @@ export const AdminGovernmentPrograms: React.FC = () => {
                       size="sm"
                       variant={statusFilter === 'inactive' ? 'default' : 'outline'}
                       onClick={() => setStatusFilter('inactive')}
-                      className={statusFilter === 'inactive' ? 'bg-primary-600 hover:bg-primary-700' : 'text-primary-600 hover:bg-primary-50'}
+                      className={
+                        statusFilter === 'inactive'
+                          ? 'bg-primary-600 hover:bg-primary-700'
+                          : 'text-primary-600 hover:bg-primary-50'
+                      }
                     >
                       Inactive
                     </Button>
                   </div>
                 </div>
               </div>
-              
+
               {/* Total count */}
               <div className="flex justify-between items-center mt-3 text-sm text-gray-600">
                 <span>Total: {governmentPrograms.length} programs</span>
               </div>
             </CardHeader>
-            
+
             <CardContent className="flex flex-col">
               {isLoading ? (
-                <div className="text-center py-8 text-gray-500">
-                  Loading programs...
-                </div>
+                <div className="text-center py-8 text-gray-500">Loading programs...</div>
               ) : (
                 <div className="space-y-2 max-h-[500px] overflow-y-auto overflow-x-visible pr-4">
                   {governmentPrograms.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      No programs found.
-                    </div>
+                    <div className="text-center py-8 text-gray-500">No programs found.</div>
                   ) : (
-                    governmentPrograms.map((program) => (
+                    governmentPrograms.map(program => (
                       <div key={program.id} className="relative">
                         <Card
                           className={cn(
@@ -352,7 +388,7 @@ export const AdminGovernmentPrograms: React.FC = () => {
                                 </p>
                                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                                   <span className="text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded">
-                                    {getTypeLabel(program.type)}
+                                    {getTypesLabel(program.types)}
                                   </span>
                                   {getStatusBadge(program.isActive)}
                                 </div>
@@ -360,7 +396,7 @@ export const AdminGovernmentPrograms: React.FC = () => {
                             </div>
                           </CardContent>
                         </Card>
-                        
+
                         {/* Pointing Arrow - Only on large screens */}
                         {selectedGovernmentProgram?.id === program.id && (
                           <div className="absolute -right-4 top-1/2 -translate-y-1/2 hidden lg:block z-20">
@@ -396,7 +432,11 @@ export const AdminGovernmentPrograms: React.FC = () => {
                       variant={selectedGovernmentProgram.isActive ? 'outline' : 'default'}
                       onClick={() => setIsActivateModalOpen(true)}
                       disabled={isActionLoading}
-                      className={selectedGovernmentProgram.isActive ? 'text-orange-600 hover:text-orange-700 hover:bg-orange-50' : 'bg-green-600 hover:bg-green-700'}
+                      className={
+                        selectedGovernmentProgram.isActive
+                          ? 'text-orange-600 hover:text-orange-700 hover:bg-orange-50'
+                          : 'bg-green-600 hover:bg-green-700'
+                      }
                     >
                       {selectedGovernmentProgram.isActive ? (
                         <>
@@ -428,20 +468,30 @@ export const AdminGovernmentPrograms: React.FC = () => {
                 <div className="space-y-6">
                   {/* Basic Information */}
                   <div className="bg-white p-6 rounded-lg border border-gray-200">
-                    <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Basic Information</h3>
+                    <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">
+                      Basic Information
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Program Name</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          Program Name
+                        </label>
                         <div className="min-h-[40px] flex items-center">
-                          <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{selectedGovernmentProgram.name}</p>
+                          <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">
+                            {selectedGovernmentProgram.name}
+                          </p>
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</label>
-                        <div className="min-h-[40px] flex items-center">
-                          <Badge className="bg-primary-100 text-primary-700 px-3 py-1">
-                            {getTypeLabel(selectedGovernmentProgram.type)}
-                          </Badge>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          Eligible Types
+                        </label>
+                        <div className="min-h-[40px] flex items-center flex-wrap gap-1">
+                          {selectedGovernmentProgram.types.map(t => (
+                            <Badge key={t} className="bg-primary-100 text-primary-700 px-3 py-1">
+                              {getTypeLabel(t)}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -452,9 +502,25 @@ export const AdminGovernmentPrograms: React.FC = () => {
                       </div>
                       {selectedGovernmentProgram.description && (
                         <div className="space-y-2 md:col-span-2">
-                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</label>
+                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Description
+                          </label>
                           <div className="min-h-[40px] flex items-center">
-                            <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{selectedGovernmentProgram.description}</p>
+                            <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">
+                              {selectedGovernmentProgram.description}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {selectedGovernmentProgram.requirements && (
+                        <div className="space-y-2 md:col-span-2">
+                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Requirements
+                          </label>
+                          <div className="min-h-[40px] flex items-start">
+                            <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full whitespace-pre-line">
+                              {selectedGovernmentProgram.requirements}
+                            </p>
                           </div>
                         </div>
                       )}
@@ -465,10 +531,14 @@ export const AdminGovernmentPrograms: React.FC = () => {
 
                   {/* Metadata */}
                   <div className="bg-white p-6 rounded-lg border border-gray-200">
-                    <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Metadata</h3>
+                    <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">
+                      Metadata
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Created Date</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          Created Date
+                        </label>
                         <div className="min-h-[40px] flex items-center">
                           <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">
                             {new Date(selectedGovernmentProgram.createdAt).toLocaleDateString('en-US', {
@@ -480,7 +550,9 @@ export const AdminGovernmentPrograms: React.FC = () => {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Last Updated</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          Last Updated
+                        </label>
                         <div className="min-h-[40px] flex items-center">
                           <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">
                             {new Date(selectedGovernmentProgram.updatedAt).toLocaleDateString('en-US', {
@@ -506,14 +578,14 @@ export const AdminGovernmentPrograms: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <AddGovernmentProgramModal 
+      <AddGovernmentProgramModal
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSubmit={handleCreateGovernmentProgram}
         isLoading={isActionLoading}
       />
-      
-      <EditGovernmentProgramModal 
+
+      <EditGovernmentProgramModal
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSubmit={handleUpdateGovernmentProgram}
@@ -521,7 +593,7 @@ export const AdminGovernmentPrograms: React.FC = () => {
         isLoading={isActionLoading}
       />
 
-      <DeleteGovernmentProgramModal 
+      <DeleteGovernmentProgramModal
         open={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteGovernmentProgram}
@@ -540,4 +612,3 @@ export const AdminGovernmentPrograms: React.FC = () => {
     </DashboardLayout>
   );
 };
-

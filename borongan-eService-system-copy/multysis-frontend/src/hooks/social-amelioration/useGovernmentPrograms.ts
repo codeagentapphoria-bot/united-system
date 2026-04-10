@@ -6,7 +6,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useGovernmentProgramSocket } from '@/hooks/useGovernmentProgramSocket';
 
 // Services
-import { governmentProgramService, type CreateGovernmentProgramInput, type GovernmentProgram, type UpdateGovernmentProgramInput } from '@/services/api/government-program.service';
+import {
+  governmentProgramService,
+  type CreateGovernmentProgramInput,
+  type GovernmentProgram,
+  type UpdateGovernmentProgramInput,
+} from '@/services/api/government-program.service';
 
 // Re-export types for external use
 export type { CreateGovernmentProgramInput, GovernmentProgram, UpdateGovernmentProgramInput };
@@ -17,20 +22,16 @@ export const useGovernmentPrograms = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL'>(
+    'all'
+  );
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   const { toast } = useToast();
 
   // Use socket hook for real-time updates
-  const {
-    newProgram,
-    programUpdate,
-    programDelete,
-    clearNewProgram,
-    clearProgramUpdate,
-    clearProgramDelete,
-  } = useGovernmentProgramSocket({ enabled: true });
+  const { newProgram, programUpdate, programDelete, clearNewProgram, clearProgramUpdate, clearProgramDelete } =
+    useGovernmentProgramSocket({ enabled: true });
 
   // Fetch government programs
   useEffect(() => {
@@ -38,18 +39,18 @@ export const useGovernmentPrograms = () => {
       try {
         setIsLoading(true);
         setError(null);
-        
+
         const type = typeFilter === 'all' ? undefined : typeFilter;
         const isActive = statusFilter === 'all' ? undefined : statusFilter === 'active';
-        
+
         const programs = await governmentProgramService.getAllGovernmentPrograms(
           searchQuery || undefined,
           type,
           isActive
         );
-        
+
         setGovernmentPrograms(programs);
-        
+
         // Set first program as selected if available
         if (programs.length > 0 && !selectedGovernmentProgram) {
           setSelectedGovernmentProgram(programs[0]);
@@ -75,9 +76,9 @@ export const useGovernmentPrograms = () => {
 
     const handleNewProgram = () => {
       // Add new program to the list
-      setGovernmentPrograms((prev) => {
+      setGovernmentPrograms(prev => {
         // Check if program already exists (avoid duplicates)
-        if (prev.find((p) => p.id === newProgram.id)) {
+        if (prev.find(p => p.id === newProgram.id)) {
           return prev;
         }
         return [newProgram as GovernmentProgram, ...prev];
@@ -99,8 +100,8 @@ export const useGovernmentPrograms = () => {
 
     const handleProgramUpdate = () => {
       // Update the program in the list incrementally
-      setGovernmentPrograms((prev) => {
-        const index = prev.findIndex((p) => p.id === programUpdate.programId);
+      setGovernmentPrograms(prev => {
+        const index = prev.findIndex(p => p.id === programUpdate.programId);
         if (index === -1) {
           // Program not in list, refresh to get it
           const fetchGovernmentPrograms = async () => {
@@ -129,8 +130,8 @@ export const useGovernmentPrograms = () => {
         if (programUpdate.description !== undefined) {
           updated[index] = { ...updated[index], description: programUpdate.description };
         }
-        if (programUpdate.type !== undefined) {
-          updated[index] = { ...updated[index], type: programUpdate.type };
+        if (programUpdate.types !== undefined) {
+          updated[index] = { ...updated[index], types: programUpdate.types };
         }
         if (programUpdate.isActive !== undefined) {
           updated[index] = { ...updated[index], isActive: programUpdate.isActive };
@@ -160,9 +161,9 @@ export const useGovernmentPrograms = () => {
 
     const handleProgramDelete = () => {
       // Remove the program from the list
-      setGovernmentPrograms((prev) => {
-        const filtered = prev.filter((p) => p.id !== programDelete.programId);
-        
+      setGovernmentPrograms(prev => {
+        const filtered = prev.filter(p => p.id !== programDelete.programId);
+
         // Clear selection if deleted program was selected
         if (selectedGovernmentProgram?.id === programDelete.programId) {
           setSelectedGovernmentProgram(filtered.length > 0 ? filtered[0] : null);
@@ -182,21 +183,23 @@ export const useGovernmentPrograms = () => {
   }, [programDelete, selectedGovernmentProgram, toast, clearProgramDelete]);
 
   // Filter government programs (client-side filtering for immediate UI feedback)
-  const filteredGovernmentPrograms = governmentPrograms.filter((program) => {
-    const matchesSearch = program.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (program.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
-    const matchesType = typeFilter === 'all' || program.type === typeFilter;
-    const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'active' && program.isActive) ||
-                         (statusFilter === 'inactive' && !program.isActive);
+  const filteredGovernmentPrograms = governmentPrograms.filter(program => {
+    const matchesSearch =
+      program.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (program.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+    const matchesType = typeFilter === 'all' || program.types.includes(typeFilter as any);
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'active' && program.isActive) ||
+      (statusFilter === 'inactive' && !program.isActive);
     return matchesSearch && matchesType && matchesStatus;
   });
 
   const createGovernmentProgram = async (data: CreateGovernmentProgramInput): Promise<GovernmentProgram> => {
     try {
       const newProgram = await governmentProgramService.createGovernmentProgram(data);
-      
-      setGovernmentPrograms((prev) => [newProgram, ...prev]);
+
+      setGovernmentPrograms(prev => [newProgram, ...prev]);
       toast({
         title: 'Success',
         description: 'Government program created successfully',
@@ -212,13 +215,14 @@ export const useGovernmentPrograms = () => {
     }
   };
 
-  const updateGovernmentProgram = async (id: string, data: UpdateGovernmentProgramInput): Promise<GovernmentProgram> => {
+  const updateGovernmentProgram = async (
+    id: string,
+    data: UpdateGovernmentProgramInput
+  ): Promise<GovernmentProgram> => {
     try {
       const updatedProgram = await governmentProgramService.updateGovernmentProgram(id, data);
-      
-      setGovernmentPrograms((prev) =>
-        prev.map((program) => (program.id === id ? updatedProgram : program))
-      );
+
+      setGovernmentPrograms(prev => prev.map(program => (program.id === id ? updatedProgram : program)));
       if (selectedGovernmentProgram?.id === id) {
         setSelectedGovernmentProgram(updatedProgram);
       }
@@ -240,8 +244,8 @@ export const useGovernmentPrograms = () => {
   const deleteGovernmentProgram = async (id: string): Promise<void> => {
     try {
       await governmentProgramService.deleteGovernmentProgram(id);
-      
-      setGovernmentPrograms((prev) => prev.filter((program) => program.id !== id));
+
+      setGovernmentPrograms(prev => prev.filter(program => program.id !== id));
       if (selectedGovernmentProgram?.id === id) {
         setSelectedGovernmentProgram(null);
       }
@@ -262,10 +266,8 @@ export const useGovernmentPrograms = () => {
   const activateGovernmentProgram = async (id: string): Promise<GovernmentProgram> => {
     try {
       const activatedProgram = await governmentProgramService.activateGovernmentProgram(id);
-      
-      setGovernmentPrograms((prev) =>
-        prev.map((program) => (program.id === id ? activatedProgram : program))
-      );
+
+      setGovernmentPrograms(prev => prev.map(program => (program.id === id ? activatedProgram : program)));
       if (selectedGovernmentProgram?.id === id) {
         setSelectedGovernmentProgram(activatedProgram);
       }
@@ -287,10 +289,8 @@ export const useGovernmentPrograms = () => {
   const deactivateGovernmentProgram = async (id: string): Promise<GovernmentProgram> => {
     try {
       const deactivatedProgram = await governmentProgramService.deactivateGovernmentProgram(id);
-      
-      setGovernmentPrograms((prev) =>
-        prev.map((program) => (program.id === id ? deactivatedProgram : program))
-      );
+
+      setGovernmentPrograms(prev => prev.map(program => (program.id === id ? deactivatedProgram : program)));
       if (selectedGovernmentProgram?.id === id) {
         setSelectedGovernmentProgram(deactivatedProgram);
       }
@@ -312,7 +312,7 @@ export const useGovernmentPrograms = () => {
   // Get active government programs filtered by type (for use in forms)
   const getActiveProgramsByType = (type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT'): GovernmentProgram[] => {
     return governmentPrograms.filter(
-      program => program.isActive && (program.type === type || program.type === 'ALL')
+      program => program.isActive && (program.types.includes(type) || program.types.includes('ALL'))
     );
   };
 
@@ -341,4 +341,3 @@ export const useGovernmentPrograms = () => {
     deactivateGovernmentProgram,
   };
 };
-

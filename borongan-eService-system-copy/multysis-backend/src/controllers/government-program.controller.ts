@@ -27,7 +27,7 @@ export const createGovernmentProgramController = async (
       id: governmentProgram.id,
       name: governmentProgram.name,
       description: governmentProgram.description || undefined,
-      type: governmentProgram.type,
+      types: governmentProgram.types,
       isActive: governmentProgram.isActive,
       createdAt: governmentProgram.createdAt,
     });
@@ -114,7 +114,7 @@ export const updateGovernmentProgramController = async (
     emitGovernmentProgramUpdate(id, {
       name: governmentProgram.name,
       description: governmentProgram.description || undefined,
-      type: governmentProgram.type,
+      types: governmentProgram.types,
       isActive: governmentProgram.isActive,
       oldIsActive,
       updatedAt: governmentProgram.updatedAt,
@@ -172,7 +172,7 @@ export const activateGovernmentProgramController = async (
     emitGovernmentProgramUpdate(id, {
       name: governmentProgram.name,
       description: governmentProgram.description || undefined,
-      type: governmentProgram.type,
+      types: governmentProgram.types,
       isActive: true,
       oldIsActive,
       updatedAt: governmentProgram.updatedAt,
@@ -207,7 +207,7 @@ export const deactivateGovernmentProgramController = async (
     emitGovernmentProgramUpdate(id, {
       name: governmentProgram.name,
       description: governmentProgram.description || undefined,
-      type: governmentProgram.type,
+      types: governmentProgram.types,
       isActive: false,
       oldIsActive,
       updatedAt: governmentProgram.updatedAt,

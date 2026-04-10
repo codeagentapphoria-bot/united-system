@@ -142,6 +142,7 @@ model Resident {
   pwdBeneficiary           PWDBeneficiary?
   studentBeneficiary       StudentBeneficiary?
   soloParentBeneficiary    SoloParentBeneficiary?
+  programApplications      GovernmentProgramApplication[]
 
   @@index([barangayId])
   @@index([residentId])
@@ -654,18 +655,39 @@ model SoloParentBeneficiary {
 }
 
 model GovernmentProgram {
-  id                  String                    @id @default(uuid())
+  id                  String                         @id @default(uuid())
   name                String
   description         String?
-  type                GovernmentProgramType
-  isActive            Boolean                   @map("is_active") @default(true)
-  createdAt           DateTime                  @map("created_at") @default(now())
-  updatedAt           DateTime                  @map("updated_at") @updatedAt
+  requirements        String?
+  types               GovernmentProgramType[]
+  isActive            Boolean                        @map("is_active") @default(true)
+  createdAt           DateTime                       @map("created_at") @default(now())
+  updatedAt           DateTime                       @map("updated_at") @updatedAt
   beneficiaryPrograms BeneficiaryProgramPivot[]
+  applications        GovernmentProgramApplication[]
 
-  @@index([type])
   @@index([isActive])
   @@map("government_programs")
+}
+
+model GovernmentProgramApplication {
+  id         String            @id @default(uuid())
+  residentId String            @map("resident_id")
+  programId  String            @map("program_id")
+  // pending | approved | rejected | cancelled
+  status     String            @default("pending")
+  adminNotes String?           @map("admin_notes")
+  appliedAt  DateTime          @map("applied_at") @default(now())
+  reviewedAt DateTime?         @map("reviewed_at")
+  reviewedBy Int?              @map("reviewed_by") // multysis users.id — cross-system ref
+
+  resident   Resident          @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  program    GovernmentProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([residentId, programId])
+  @@index([status])
+  @@index([programId])
+  @@map("government_program_applications")
 }
 
 model BeneficiaryProgramPivot {

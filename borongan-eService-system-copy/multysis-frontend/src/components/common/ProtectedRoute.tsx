@@ -5,12 +5,14 @@ import { useAuth } from '../../context/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'user' | 'developer';
+  requiredRole?: 'admin' | 'user' | 'developer' | 'resident';
+  requireActiveStatus?: boolean;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRole,
+  requireActiveStatus = false,
 }) => {
   const { user, isLoading, isAuthenticated } = useAuth();
 
@@ -35,6 +37,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (requiredRole && user?.role !== requiredRole) {
+    return <Navigate to="/portal" replace />;
+  }
+
+  if (requireActiveStatus && user?.status !== 'active') {
     return <Navigate to="/portal" replace />;
   }
 

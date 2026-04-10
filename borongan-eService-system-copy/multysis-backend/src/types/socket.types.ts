@@ -203,7 +203,7 @@ export interface GovernmentProgramNewPayload {
   id: string;
   name: string;
   description?: string;
-  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+  types: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL')[];
   isActive: boolean;
   createdAt: Date | string;
 }
@@ -212,7 +212,7 @@ export interface GovernmentProgramUpdatePayload {
   programId: string;
   name?: string;
   description?: string;
-  type?: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+  types?: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL')[];
   isActive?: boolean;
   oldIsActive?: boolean;
   updatedAt: Date | string;

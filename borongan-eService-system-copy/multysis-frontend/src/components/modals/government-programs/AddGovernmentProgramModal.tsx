@@ -9,37 +9,31 @@ import Select from 'react-select';
 // UI Components (shadcn/ui)
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 // Types
 import type { CreateGovernmentProgramInput } from '@/hooks/social-amelioration/useGovernmentPrograms';
+import type { GovernmentProgramType } from '@/services/api/government-program.service';
 
 // Utils
 import { createReactSelectStyles } from '@/components/social-amelioration/shared';
 import { cn } from '@/lib/utils';
 import { governmentProgramSchema, type GovernmentProgramInput } from '@/validations/government-program.schema';
 
-const typeOptions = [
+const typeOptions: { value: GovernmentProgramType; label: string }[] = [
   { value: 'SENIOR_CITIZEN', label: 'Senior Citizen' },
   { value: 'PWD', label: 'PWD' },
   { value: 'STUDENT', label: 'Student' },
   { value: 'SOLO_PARENT', label: 'Solo Parent' },
-  { value: 'ALL', label: 'All Beneficiaries' },
+  { value: 'ALL', label: 'All Residents' },
 ];
 
 interface AddGovernmentProgramModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateGovernmentProgramInput) => void;
+  onSubmit: (data: CreateGovernmentProgramInput) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -54,15 +48,20 @@ export const AddGovernmentProgramModal: React.FC<AddGovernmentProgramModalProps>
     defaultValues: {
       name: '',
       description: '',
-      type: 'SENIOR_CITIZEN',
+      requirements: '',
+      types: ['SENIOR_CITIZEN'],
       isActive: true,
     },
   });
 
-  const handleFormSubmit = (data: GovernmentProgramInput) => {
-    onSubmit(data);
-    form.reset();
-    onClose();
+  const handleFormSubmit = async (data: GovernmentProgramInput) => {
+    try {
+      await onSubmit(data);
+      form.reset();
+      onClose();
+    } catch {
+      // Parent handles the error toast; keep modal open so user can retry
+    }
   };
 
   const handleClose = () => {
@@ -74,9 +73,7 @@ export const AddGovernmentProgramModal: React.FC<AddGovernmentProgramModalProps>
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className={cn('max-w-2xl')}>
         <DialogHeader>
-          <DialogTitle className={cn('text-xl font-semibold text-primary-600')}>
-            Add Government Program
-          </DialogTitle>
+          <DialogTitle className={cn('text-xl font-semibold text-primary-600')}>Add Government Program</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -86,7 +83,9 @@ export const AddGovernmentProgramModal: React.FC<AddGovernmentProgramModalProps>
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Program Name <span className="text-red-500">required</span></FormLabel>
+                  <FormLabel>
+                    Program Name <span className="text-red-500">*</span>
+                  </FormLabel>
                   <FormControl>
                     <Input placeholder="Enter program name" {...field} />
                   </FormControl>
@@ -97,20 +96,22 @@ export const AddGovernmentProgramModal: React.FC<AddGovernmentProgramModalProps>
 
             <FormField
               control={form.control}
-              name="type"
+              name="types"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Beneficiary Type <span className="text-red-500">required</span></FormLabel>
+                  <FormLabel>
+                    Eligible Beneficiary Types <span className="text-red-500">*</span>
+                  </FormLabel>
                   <FormControl>
                     <Select
-                      value={typeOptions.find(option => option.value === field.value)}
-                      onChange={(selectedOption) => field.onChange(selectedOption?.value || 'SENIOR_CITIZEN')}
+                      isMulti
+                      value={typeOptions.filter(option => field.value?.includes(option.value))}
+                      onChange={selected => field.onChange(selected.map(s => s.value))}
                       options={typeOptions}
-                      placeholder="Select beneficiary type"
+                      placeholder="Select one or more types..."
                       className="mt-1"
                       classNamePrefix="react-select"
-                      isSearchable={false}
-                      styles={createReactSelectStyles(!!form.formState.errors.type)}
+                      styles={createReactSelectStyles(!!form.formState.errors.types)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -125,9 +126,23 @@ export const AddGovernmentProgramModal: React.FC<AddGovernmentProgramModalProps>
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
+                    <Textarea placeholder="Enter description (optional)" rows={3} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="requirements"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Requirements</FormLabel>
+                  <FormControl>
                     <Textarea
-                      placeholder="Enter description (optional)"
-                      rows={3}
+                      placeholder="List the requirements to qualify for this program (optional)"
+                      rows={4}
                       {...field}
                     />
                   </FormControl>
@@ -146,11 +161,7 @@ export const AddGovernmentProgramModal: React.FC<AddGovernmentProgramModalProps>
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="bg-primary-600 hover:bg-primary-700"
-                disabled={isLoading}
-              >
+              <Button type="submit" className="bg-primary-600 hover:bg-primary-700" disabled={isLoading}>
                 {isLoading ? 'Adding...' : 'Add Government Program'}
               </Button>
             </div>
@@ -160,4 +171,3 @@ export const AddGovernmentProgramModal: React.FC<AddGovernmentProgramModalProps>
     </Dialog>
   );
 };
-

@@ -448,7 +448,7 @@ export const emitGovernmentProgramNew = async (program: {
   id: string;
   name: string;
   description?: string;
-  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+  types: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL')[];
   isActive: boolean;
   createdAt: Date | string;
 }): Promise<void> => {
@@ -458,7 +458,7 @@ export const emitGovernmentProgramNew = async (program: {
       id: program.id,
       name: program.name,
       description: program.description,
-      type: program.type,
+      types: program.types,
       isActive: program.isActive,
       createdAt:
         program.createdAt instanceof Date ? program.createdAt.toISOString() : program.createdAt,
@@ -474,7 +474,7 @@ export const emitGovernmentProgramUpdate = async (
   update: {
     name?: string;
     description?: string;
-    type?: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+    types?: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL')[];
     isActive?: boolean;
     oldIsActive?: boolean;
     updatedAt: Date;
@@ -486,7 +486,7 @@ export const emitGovernmentProgramUpdate = async (
       programId,
       name: update.name,
       description: update.description,
-      type: update.type,
+      types: update.types,
       isActive: update.isActive,
       oldIsActive: update.oldIsActive,
       updatedAt: update.updatedAt.toISOString(),

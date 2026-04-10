@@ -1,10 +1,13 @@
 import api from './auth.service';
 
+export type GovernmentProgramType = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+
 export interface GovernmentProgram {
   id: string;
   name: string;
   description?: string;
-  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+  requirements?: string;
+  types: GovernmentProgramType[];
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -13,7 +16,8 @@ export interface GovernmentProgram {
 export interface CreateGovernmentProgramInput {
   name: string;
   description?: string;
-  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+  requirements?: string;
+  types: GovernmentProgramType[];
   isActive?: boolean;
 }
 
@@ -22,7 +26,7 @@ export interface UpdateGovernmentProgramInput extends Partial<CreateGovernmentPr
 export const governmentProgramService = {
   async getAllGovernmentPrograms(
     search?: string,
-    type?: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL',
+    type?: GovernmentProgramType,
     isActive?: boolean
   ): Promise<GovernmentProgram[]> {
     const params = new URLSearchParams();
@@ -66,4 +70,3 @@ export const governmentProgramService = {
     return response.data.data;
   },
 };
-

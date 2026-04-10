@@ -2,10 +2,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 
 // Services
-import {
-  notificationService,
-  type SubscriberNotificationCounts,
-} from '@/services/api/notification.service';
+import { notificationService, type SubscriberNotificationCounts } from '@/services/api/notification.service';
 
 // Hooks
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -77,63 +74,60 @@ export const usePortalNotifications = ({
     }
 
     const handleTransactionUpdate = (data: TransactionUpdatePayload) => {
-      queryClient.setQueryData<SubscriberNotificationCounts>(
-        queryKeys.notifications.all,
-        (old) => {
-          if (!old) return old;
-          const updated = { ...old };
-          
-          if (data.status !== undefined && data.oldStatus !== undefined && 
-              data.status !== data.oldStatus) {
-            updated.statusUpdates += 1;
-            updated.total += 1;
-          }
-          
-          if (data.paymentStatus !== undefined && data.oldPaymentStatus !== undefined && 
-              data.paymentStatus !== data.oldPaymentStatus) {
-            if (data.oldPaymentStatus === 'PAID' && data.paymentStatus !== 'PAID') {
-              updated.pendingUpdateRequests += 1;
-              updated.total += 1;
-            } else if (data.oldPaymentStatus !== 'PAID' && data.paymentStatus === 'PAID') {
-              updated.pendingUpdateRequests = Math.max(0, updated.pendingUpdateRequests - 1);
-              updated.total = Math.max(0, updated.total - 1);
-            }
-          }
-          
-          return updated;
+      queryClient.setQueryData<SubscriberNotificationCounts>(queryKeys.notifications.all, old => {
+        if (!old) return old;
+        const updated = { ...old };
+
+        if (data.status !== undefined && data.oldStatus !== undefined && data.status !== data.oldStatus) {
+          updated.statusUpdates += 1;
+          updated.total += 1;
         }
-      );
+
+        if (
+          data.paymentStatus !== undefined &&
+          data.oldPaymentStatus !== undefined &&
+          data.paymentStatus !== data.oldPaymentStatus
+        ) {
+          if (data.oldPaymentStatus === 'PAID' && data.paymentStatus !== 'PAID') {
+            updated.pendingUpdateRequests += 1;
+            updated.total += 1;
+          } else if (data.oldPaymentStatus !== 'PAID' && data.paymentStatus === 'PAID') {
+            updated.pendingUpdateRequests = Math.max(0, updated.pendingUpdateRequests - 1);
+            updated.total = Math.max(0, updated.total - 1);
+          }
+        }
+
+        return updated;
+      });
     };
 
     const handleNewTransactionNote = (data: TransactionNoteResponse) => {
       if (data.senderType === 'ADMIN' && !data.isRead) {
-        queryClient.setQueryData<SubscriberNotificationCounts>(
-          queryKeys.notifications.all,
-          (old) => {
-            if (!old) return old;
-            return {
-              ...old,
-              unreadMessages: old.unreadMessages + 1,
-              total: old.total + 1,
-            };
-          }
-        );
+        queryClient.setQueryData<SubscriberNotificationCounts>(queryKeys.notifications.all, old => {
+          if (!old) return old;
+          return {
+            ...old,
+            unreadMessages: old.unreadMessages + 1,
+            total: old.total + 1,
+          };
+        });
       }
     };
 
-    const handleTransactionNoteRead = (data: { transactionId: string; senderType: 'ADMIN' | 'SUBSCRIBER'; isRead: boolean }) => {
-      if (data.senderType === 'SUBSCRIBER' && data.isRead) {
-        queryClient.setQueryData<SubscriberNotificationCounts>(
-          queryKeys.notifications.all,
-          (old) => {
-            if (!old) return old;
-            return {
-              ...old,
-              unreadMessages: Math.max(0, old.unreadMessages - 1),
-              total: Math.max(0, old.total - 1),
-            };
-          }
-        );
+    const handleTransactionNoteRead = (data: {
+      transactionId: string;
+      senderType: 'ADMIN' | 'RESIDENT';
+      isRead: boolean;
+    }) => {
+      if (data.senderType === 'RESIDENT' && data.isRead) {
+        queryClient.setQueryData<SubscriberNotificationCounts>(queryKeys.notifications.all, old => {
+          if (!old) return old;
+          return {
+            ...old,
+            unreadMessages: Math.max(0, old.unreadMessages - 1),
+            total: Math.max(0, old.total - 1),
+          };
+        });
       }
     };
 
@@ -168,4 +162,3 @@ export const usePortalNotifications = ({
     isWebSocketConnected: isConnected,
   };
 };
-
