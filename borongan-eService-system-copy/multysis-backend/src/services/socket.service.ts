@@ -35,6 +35,7 @@ import type {
   NewServicePayload,
   NewSubscriberPayload,
   NewTransactionPayload,
+  ProgramApplicationReviewPayload,
   ServiceDeletePayload,
   ServiceUpdatePayload,
   SubscriberUpdatePayload,
@@ -651,5 +652,16 @@ export const emitDevLogUpdate = (log: {
       ...log,
       timestamp: new Date().toISOString(),
     } as DevLogPayload);
+  }
+};
+
+export const emitProgramApplicationReview = async (
+  residentId: string,
+  payload: ProgramApplicationReviewPayload
+): Promise<void> => {
+  const io = getSocketInstance();
+  if (io) {
+    io.to(`resident:${residentId}`).emit('program-application:review', payload);
+    await invalidateSubscriberNotificationCache(residentId);
   }
 };

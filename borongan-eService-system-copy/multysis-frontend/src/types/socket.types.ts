@@ -295,3 +295,13 @@ export interface DevLogPayload {
   timestamp: Date | string;
   metadata?: Record<string, any>;
 }
+
+// Program Application Review Events
+export interface ProgramApplicationReviewPayload {
+  applicationId: string;
+  programId: string;
+  programName: string;
+  status: 'approved' | 'rejected';
+  adminNotes?: string;
+  reviewedAt: string;
+}

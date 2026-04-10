@@ -12,6 +12,16 @@ export interface PortalProgram {
   applicationStatus: 'pending' | 'approved' | 'rejected' | 'cancelled' | null;
 }
 
+export interface PortalProgramsListResponse {
+  data: PortalProgram[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export interface ProgramApplication {
   id: string;
   residentId: string;
@@ -53,6 +63,44 @@ export interface AdminProgramApplication {
   };
 }
 
+export interface AdminProgramApplicationDetail {
+  id: string;
+  residentId: string;
+  programId: string;
+  status: string;
+  adminNotes?: string;
+  appliedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: number;
+  resident: {
+    id: string;
+    firstName: string;
+    middleName?: string;
+    lastName: string;
+    extensionName?: string;
+    picturePath?: string;
+    residentId?: string;
+    contactNumber?: string;
+    email?: string;
+    birthdate?: string;
+    sex?: string;
+    civilStatus?: string;
+    streetAddress?: string;
+    barangay?: { barangayName: string };
+    seniorCitizenBeneficiary?: { status: string; seniorCitizenId?: string } | null;
+    pwdBeneficiary?: { status: string; pwdId?: string } | null;
+    studentBeneficiary?: { status: string; studentId?: string } | null;
+    soloParentBeneficiary?: { status: string; soloParentId?: string } | null;
+  };
+  program: {
+    id: string;
+    name: string;
+    types: GovernmentProgramType[];
+    description?: string;
+    requirements?: string;
+  };
+}
+
 export interface AdminApplicationsResponse {
   data: AdminProgramApplication[];
   pagination: {
@@ -66,9 +114,20 @@ export interface AdminApplicationsResponse {
 export const portalProgramsService = {
   // --- Resident portal ---
 
-  async listPrograms(): Promise<PortalProgram[]> {
-    const response = await api.get('/portal/programs');
-    return response.data.data;
+  async listPrograms(params?: {
+    search?: string;
+    type?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<PortalProgramsListResponse> {
+    const query = new URLSearchParams();
+    if (params?.search) query.append('search', params.search);
+    if (params?.type && params.type !== 'all') query.append('type', params.type);
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.limit) query.append('limit', params.limit.toString());
+    const qs = query.toString();
+    const response = await api.get(`/portal/programs${qs ? `?${qs}` : ''}`);
+    return { data: response.data.data, pagination: response.data.pagination };
   },
 
   async getProgram(id: string): Promise<PortalProgram> {
@@ -111,7 +170,7 @@ export const portalProgramsService = {
     return { data: response.data.data, pagination: response.data.pagination };
   },
 
-  async getApplicationAdmin(appId: string): Promise<AdminProgramApplication> {
+  async getApplicationAdmin(appId: string): Promise<AdminProgramApplicationDetail> {
     const response = await api.get(`/portal/program-applications/${appId}`);
     return response.data.data;
   },

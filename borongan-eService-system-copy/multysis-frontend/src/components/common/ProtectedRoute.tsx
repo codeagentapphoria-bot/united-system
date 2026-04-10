@@ -26,8 +26,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (isLoading) {
     return (
-      <div className={cn("min-h-screen flex items-center justify-center")}>
-        <div className={cn("animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600")}></div>
+      <div className={cn('min-h-screen flex items-center justify-center')}>
+        <div className={cn('animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600')}></div>
       </div>
     );
   }
@@ -46,4 +46,3 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   return <>{children}</>;
 };
-

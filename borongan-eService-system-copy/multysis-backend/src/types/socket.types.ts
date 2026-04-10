@@ -253,6 +253,16 @@ export interface CitizenStatusChangePayload {
   updatedAt: Date | string;
 }
 
+// Program Application Review Events
+export interface ProgramApplicationReviewPayload {
+  applicationId: string;
+  programId: string;
+  programName: string;
+  status: 'approved' | 'rejected';
+  adminNotes?: string;
+  reviewedAt: string;
+}
+
 // Error Events
 export interface SocketErrorPayload {
   message: string;

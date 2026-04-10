@@ -1,11 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { FiBookOpen, FiCheck, FiClock, FiX, FiAlertCircle, FiRefreshCw } from 'react-icons/fi';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  FiAlertCircle,
+  FiBookOpen,
+  FiCheck,
+  FiChevronLeft,
+  FiClock,
+  FiRefreshCw,
+  FiSearch,
+  FiX,
+} from 'react-icons/fi';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PortalLayout } from '@/components/layout/PortalLayout';
 import { useToast } from '@/hooks/use-toast';
+import { useDebounce } from '@/hooks/useDebounce';
 import { cn } from '@/lib/utils';
 import {
   portalProgramsService,
@@ -197,8 +208,11 @@ export const PortalPrograms: React.FC = () => {
 
   // Browse tab state
   const [programs, setPrograms] = useState<PortalProgram[]>([]);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [isLoadingPrograms, setIsLoadingPrograms] = useState(true);
   const [typeFilter, setTypeFilter] = useState<GovernmentProgramType | 'all'>('all');
+  const [localSearch, setLocalSearch] = useState('');
+  const debouncedSearch = useDebounce(localSearch, 300);
   const [applyingId, setApplyingId] = useState<string | null>(null);
 
   // My applications tab state
@@ -206,25 +220,34 @@ export const PortalPrograms: React.FC = () => {
   const [isLoadingApps, setIsLoadingApps] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-  // Fetch programs
+  const fetchPrograms = useCallback(
+    async (page = 1) => {
+      setIsLoadingPrograms(true);
+      try {
+        const result = await portalProgramsService.listPrograms({
+          search: debouncedSearch || undefined,
+          type: typeFilter,
+          page,
+          limit: 12,
+        });
+        setPrograms(result.data);
+        setPagination({
+          page: result.pagination.page,
+          totalPages: result.pagination.totalPages,
+          total: result.pagination.total,
+        });
+      } catch {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load programs' });
+      } finally {
+        setIsLoadingPrograms(false);
+      }
+    },
+    [typeFilter, debouncedSearch, toast]
+  );
+
   useEffect(() => {
-    let cancelled = false;
-    setIsLoadingPrograms(true);
-    portalProgramsService
-      .listPrograms()
-      .then(data => {
-        if (!cancelled) setPrograms(data);
-      })
-      .catch(() => {
-        if (!cancelled) toast({ variant: 'destructive', title: 'Error', description: 'Failed to load programs' });
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoadingPrograms(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    fetchPrograms(1);
+  }, [fetchPrograms]);
 
   // Fetch my applications
   useEffect(() => {
@@ -250,11 +273,12 @@ export const PortalPrograms: React.FC = () => {
     setApplyingId(program.id);
     try {
       await portalProgramsService.applyForProgram(program.id);
-      const [updatedPrograms, updatedApps] = await Promise.all([
-        portalProgramsService.listPrograms(),
+      const [programsResult, updatedApps] = await Promise.all([
+        portalProgramsService.listPrograms({ search: debouncedSearch || undefined, type: typeFilter, page: pagination.page, limit: 12 }),
         portalProgramsService.getMyApplications(),
       ]);
-      setPrograms(updatedPrograms);
+      setPrograms(programsResult.data);
+      setPagination({ page: programsResult.pagination.page, totalPages: programsResult.pagination.totalPages, total: programsResult.pagination.total });
       setApplications(updatedApps);
       toast({ title: 'Application submitted', description: `You applied for ${program.name}.` });
     } catch (error: any) {
@@ -272,11 +296,12 @@ export const PortalPrograms: React.FC = () => {
     setCancellingId(appId);
     try {
       await portalProgramsService.cancelApplication(appId);
-      const [updatedPrograms, updatedApps] = await Promise.all([
-        portalProgramsService.listPrograms(),
+      const [programsResult, updatedApps] = await Promise.all([
+        portalProgramsService.listPrograms({ search: debouncedSearch || undefined, type: typeFilter, page: pagination.page, limit: 12 }),
         portalProgramsService.getMyApplications(),
       ]);
-      setPrograms(updatedPrograms);
+      setPrograms(programsResult.data);
+      setPagination({ page: programsResult.pagination.page, totalPages: programsResult.pagination.totalPages, total: programsResult.pagination.total });
       setApplications(updatedApps);
       toast({ title: 'Application cancelled' });
     } catch (error: any) {
@@ -290,16 +315,11 @@ export const PortalPrograms: React.FC = () => {
     }
   };
 
-  const filteredPrograms = programs.filter(p => {
-    if (typeFilter === 'all') return true;
-    return p.types.includes(typeFilter);
-  });
-
   return (
     <PortalLayout>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto space-y-6 px-4 py-12">
         {/* Page header */}
-        <div className="mb-6">
+        <div>
           <h1 className="text-2xl font-bold text-heading-800 flex items-center gap-2">
             <FiBookOpen className="text-primary-600" />
             Government Programs
@@ -310,17 +330,9 @@ export const PortalPrograms: React.FC = () => {
         </div>
 
         <Tabs defaultValue="browse">
-          <TabsList className="mb-6 bg-white border border-gray-200 rounded-lg p-1 h-auto">
-            <TabsTrigger
-              value="browse"
-              className="data-[state=active]:bg-primary-600 data-[state=active]:text-white rounded px-4 py-2 text-sm"
-            >
-              Browse Programs
-            </TabsTrigger>
-            <TabsTrigger
-              value="my-applications"
-              className="data-[state=active]:bg-primary-600 data-[state=active]:text-white rounded px-4 py-2 text-sm"
-            >
+          <TabsList>
+            <TabsTrigger value="browse">Browse Programs</TabsTrigger>
+            <TabsTrigger value="my-applications">
               My Applications
               {applications.filter(a => a.status === 'pending').length > 0 && (
                 <span className="ml-2 bg-yellow-500 text-white text-xs rounded-full px-1.5 py-0.5">
@@ -333,25 +345,44 @@ export const PortalPrograms: React.FC = () => {
           {/* ------------------------------------------------------------------ */}
           {/* Browse Programs Tab                                                 */}
           {/* ------------------------------------------------------------------ */}
-          <TabsContent value="browse">
-            {/* Type filter */}
-            <div className="flex flex-wrap gap-2 mb-6">
-              {TYPE_FILTER_OPTIONS.map(opt => (
-                <Button
-                  key={opt.value}
-                  size="sm"
-                  variant={typeFilter === opt.value ? 'default' : 'outline'}
-                  onClick={() => setTypeFilter(opt.value as any)}
-                  className={cn(
-                    typeFilter === opt.value
-                      ? 'bg-primary-600 hover:bg-primary-700 text-white'
-                      : 'text-primary-600 border-primary-200 hover:bg-primary-50'
-                  )}
-                >
-                  {opt.label}
-                </Button>
-              ))}
+          <TabsContent value="browse" className="space-y-4">
+            {/* Search + type filter row */}
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+              {/* Type filter */}
+              <div className="flex flex-wrap gap-2">
+                {TYPE_FILTER_OPTIONS.map(opt => (
+                  <Button
+                    key={opt.value}
+                    size="sm"
+                    variant={typeFilter === opt.value ? 'default' : 'outline'}
+                    onClick={() => setTypeFilter(opt.value as GovernmentProgramType | 'all')}
+                    className={cn(
+                      typeFilter === opt.value
+                        ? 'bg-primary-600 hover:bg-primary-700 text-white'
+                        : 'text-primary-600 border-primary-200 hover:bg-primary-50'
+                    )}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Search */}
+              <div className="relative w-full sm:w-64 shrink-0">
+                <FiSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Search programs..."
+                  value={localSearch}
+                  onChange={e => setLocalSearch(e.target.value)}
+                  className="pl-9 h-9 text-sm"
+                />
+              </div>
             </div>
+
+            {/* Result count */}
+            {!isLoadingPrograms && (
+              <p className="text-xs text-gray-500">{pagination.total} program{pagination.total !== 1 ? 's' : ''} found</p>
+            )}
 
             {isLoadingPrograms ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -359,14 +390,14 @@ export const PortalPrograms: React.FC = () => {
                   <div key={i} className="h-48 bg-gray-100 animate-pulse rounded-lg" />
                 ))}
               </div>
-            ) : filteredPrograms.length === 0 ? (
+            ) : programs.length === 0 ? (
               <div className="text-center py-16 text-gray-400">
                 <FiBookOpen size={40} className="mx-auto mb-3 opacity-50" />
-                <p>No programs found for the selected filter.</p>
+                <p>No programs found.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredPrograms.map(program => (
+                {programs.map(program => (
                   <ProgramCard
                     key={program.id}
                     program={program}
@@ -374,6 +405,31 @@ export const PortalPrograms: React.FC = () => {
                     isApplying={applyingId === program.id}
                   />
                 ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => fetchPrograms(pagination.page - 1)}
+                  disabled={pagination.page <= 1 || isLoadingPrograms}
+                >
+                  <FiChevronLeft size={16} />
+                </Button>
+                <span className="text-sm text-gray-600">
+                  Page {pagination.page} of {pagination.totalPages}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => fetchPrograms(pagination.page + 1)}
+                  disabled={pagination.page >= pagination.totalPages || isLoadingPrograms}
+                >
+                  <FiChevronLeft size={16} className="rotate-180" />
+                </Button>
               </div>
             )}
           </TabsContent>

@@ -2,7 +2,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
 // Icons
-import { FiBookOpen, FiCheck, FiChevronLeft, FiClock, FiSearch, FiX } from 'react-icons/fi';
+import {
+  FiBookOpen,
+  FiCheck,
+  FiChevronLeft,
+  FiClock,
+  FiEye,
+  FiSearch,
+  FiUser,
+  FiX,
+} from 'react-icons/fi';
 
 // UI Components
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +22,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Services
-import { portalProgramsService, type AdminProgramApplication } from '@/services/api/portal-programs.service';
+import {
+  portalProgramsService,
+  type AdminProgramApplication,
+  type AdminProgramApplicationDetail,
+} from '@/services/api/portal-programs.service';
 
 // Utils
 import { cn } from '@/lib/utils';
@@ -54,6 +67,189 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: Re
     className: 'bg-gray-100 text-gray-500',
     icon: <FiX size={12} />,
   },
+};
+
+const fmt = (v?: string | null) =>
+  v ? v.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '—';
+
+// ---------------------------------------------------------------------------
+// Resident Preview Dialog
+// ---------------------------------------------------------------------------
+
+interface ResidentPreviewDialogProps {
+  appId: string | null;
+  open: boolean;
+  onClose: () => void;
+}
+
+const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, open, onClose }) => {
+  const { toast } = useToast();
+  const [detail, setDetail] = useState<AdminProgramApplicationDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!appId || !open) return;
+    let cancelled = false;
+    setIsLoading(true);
+    setDetail(null);
+    portalProgramsService
+      .getApplicationAdmin(appId)
+      .then((data) => {
+        if (!cancelled) setDetail(data);
+      })
+      .catch(() => {
+        if (!cancelled) toast({ variant: 'destructive', title: 'Failed to load resident info' });
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [appId, open, toast]);
+
+  const r = detail?.resident;
+  const fullName = r
+    ? [r.firstName, r.middleName, r.lastName, r.extensionName].filter(Boolean).join(' ')
+    : '';
+
+  const beneficiaries = r
+    ? [
+        { label: 'Senior Citizen', data: r.seniorCitizenBeneficiary, idField: r.seniorCitizenBeneficiary?.seniorCitizenId },
+        { label: 'PWD', data: r.pwdBeneficiary, idField: r.pwdBeneficiary?.pwdId },
+        { label: 'Student', data: r.studentBeneficiary, idField: r.studentBeneficiary?.studentId },
+        { label: 'Solo Parent', data: r.soloParentBeneficiary, idField: r.soloParentBeneficiary?.soloParentId },
+      ].filter((b) => b.data)
+    : [];
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold text-heading-700">Resident Information</DialogTitle>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12 text-gray-400 text-sm gap-2">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600" />
+            Loading…
+          </div>
+        ) : !detail ? null : (
+          <div className="space-y-4">
+            {/* Identity */}
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {r?.picturePath
+                  ? <img src={r.picturePath} alt={fullName} className="w-full h-full object-cover" />
+                  : <FiUser size={28} className="text-primary-500" />}
+              </div>
+              <div>
+                <p className="font-semibold text-heading-700 text-base">{fullName}</p>
+                {r?.residentId && (
+                  <p className="text-xs font-mono text-primary-600">{r.residentId}</p>
+                )}
+                <p className="text-xs text-gray-500">{r?.barangay?.barangayName || '—'}</p>
+              </div>
+            </div>
+
+            {/* Personal details */}
+            <div className="bg-gray-50 rounded-lg p-4 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-gray-500">Sex</p>
+                <p className="font-medium">{fmt(r?.sex)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Civil Status</p>
+                <p className="font-medium">{fmt(r?.civilStatus)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Date of Birth</p>
+                <p className="font-medium">
+                  {r?.birthdate
+                    ? new Date(r.birthdate).toLocaleDateString('en-US', {
+                        year: 'numeric', month: 'short', day: 'numeric',
+                      })
+                    : '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Street Address</p>
+                <p className="font-medium">{r?.streetAddress || '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Contact Number</p>
+                <p className="font-medium">{r?.contactNumber || '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Email</p>
+                <p className="font-medium break-all">{r?.email || '—'}</p>
+              </div>
+            </div>
+
+            {/* Application details */}
+            <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Program</span>
+                <span className="font-medium text-heading-700">{detail.program.name}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Applied</span>
+                <span>
+                  {new Date(detail.appliedAt).toLocaleDateString('en-US', {
+                    year: 'numeric', month: 'short', day: 'numeric',
+                  })}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Status</span>
+                {STATUS_CONFIG[detail.status] ? (
+                  <Badge className={cn('flex items-center gap-1 text-xs', STATUS_CONFIG[detail.status].className)}>
+                    {STATUS_CONFIG[detail.status].icon}
+                    {STATUS_CONFIG[detail.status].label}
+                  </Badge>
+                ) : (
+                  <span className="font-medium">{detail.status}</span>
+                )}
+              </div>
+              {detail.adminNotes && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Admin Notes</p>
+                  <p className="text-xs bg-white border border-gray-200 rounded p-2">{detail.adminNotes}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Beneficiary statuses */}
+            {beneficiaries.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Beneficiary Records</p>
+                <div className="space-y-1.5">
+                  {beneficiaries.map((b) => (
+                    <div key={b.label} className="flex items-center justify-between text-sm bg-gray-50 rounded px-3 py-2">
+                      <span className="text-gray-700">{b.label}</span>
+                      <div className="flex items-center gap-2">
+                        {b.idField && <span className="text-xs font-mono text-gray-500">{b.idField}</span>}
+                        <Badge
+                          className={cn(
+                            'text-xs',
+                            b.data?.status === 'ACTIVE'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-gray-100 text-gray-500'
+                          )}
+                        >
+                          {b.data?.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 // ---------------------------------------------------------------------------
@@ -169,6 +365,9 @@ export const ProgramApplicationsTab: React.FC = () => {
   const [selectedApp, setSelectedApp] = useState<AdminProgramApplication | null>(null);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
+
+  const [previewAppId, setPreviewAppId] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const fetchApplications = useCallback(
     async (page = 1) => {
@@ -321,19 +520,33 @@ export const ProgramApplicationsTab: React.FC = () => {
                     </div>
                   </div>
 
-                  {app.status === 'pending' && (
+                  <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
                     <Button
                       size="sm"
-                      className="bg-primary-600 hover:bg-primary-700 text-white shrink-0"
-                      onClick={e => {
-                        e.stopPropagation();
-                        setSelectedApp(app);
-                        setIsReviewDialogOpen(true);
+                      variant="outline"
+                      className="text-gray-600 border-gray-200 hover:bg-gray-50"
+                      onClick={() => {
+                        setPreviewAppId(app.id);
+                        setIsPreviewOpen(true);
                       }}
                     >
-                      Review
+                      <FiEye size={14} className="mr-1" />
+                      Preview
                     </Button>
-                  )}
+
+                    {app.status === 'pending' && (
+                      <Button
+                        size="sm"
+                        className="bg-primary-600 hover:bg-primary-700 text-white"
+                        onClick={() => {
+                          setSelectedApp(app);
+                          setIsReviewDialogOpen(true);
+                        }}
+                      >
+                        Review
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -365,6 +578,16 @@ export const ProgramApplicationsTab: React.FC = () => {
           </Button>
         </div>
       )}
+
+      {/* Resident Preview Dialog */}
+      <ResidentPreviewDialog
+        appId={previewAppId}
+        open={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          setPreviewAppId(null);
+        }}
+      />
 
       {/* Review Dialog */}
       <ReviewDialog

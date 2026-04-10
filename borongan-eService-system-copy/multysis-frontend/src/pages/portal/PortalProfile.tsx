@@ -36,10 +36,15 @@ import { useNavigate } from 'react-router-dom';
 import { useMyProfile } from '@/hooks/residents/useMyProfile';
 import { useMyHousehold } from '@/hooks/portal/useMyHousehold';
 import { useMyClassifications } from '@/hooks/portal/useMyClassifications';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
+import { portalProgramsService, type ProgramApplication } from '@/services/api/portal-programs.service';
 import {
+  FiAlertCircle,
+  FiBookOpen,
   FiCalendar,
+  FiCheck,
+  FiClock,
   FiEdit2,
   FiFileText,
   FiHome,
@@ -206,6 +211,89 @@ interface Classification {
 const fmt = (v?: string | null) =>
   v ? v.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : undefined;
 
+// ── Program application status config ──────────────────────────────────────────
+const PROG_STATUS_CONFIG: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
+  pending: { label: 'Pending Review', className: 'bg-yellow-100 text-yellow-700', icon: <FiClock size={12} /> },
+  approved: { label: 'Enrolled', className: 'bg-purple-100 text-purple-700', icon: <FiCheck size={12} /> },
+  rejected: { label: 'Not Approved', className: 'bg-red-100 text-red-700', icon: <FiX size={12} /> },
+  cancelled: { label: 'Cancelled', className: 'bg-gray-100 text-gray-600', icon: <FiX size={12} /> },
+};
+
+// ── My Program Applications sub-component ──────────────────────────────────────
+const MyProgramApplications: React.FC = () => {
+  const { data: apps = [], isLoading } = useQuery<ProgramApplication[]>({
+    queryKey: queryKeys.portalPrograms.myApplications,
+    queryFn: () => portalProgramsService.getMyApplications(),
+    staleTime: 60_000,
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6 space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-14 bg-gray-100 animate-pulse rounded" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (apps.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center space-y-3">
+          <FiBookOpen size={40} className="mx-auto text-primary-300" />
+          <p className="font-medium text-heading-700">No program applications yet</p>
+          <p className="text-sm text-gray-500">Visit the Programs page to apply for available assistance programs.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <div className="px-6 py-2">
+          {apps.map((app) => {
+            const conf = PROG_STATUS_CONFIG[app.status];
+            return (
+              <div
+                key={app.id}
+                className="flex flex-col sm:flex-row sm:items-center gap-3 py-4 border-b border-gray-100 last:border-0"
+              >
+                <div className="flex-1">
+                  <p className="font-medium text-heading-700">{app.program.name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Applied{' '}
+                    {new Date(app.appliedAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </p>
+                  {app.adminNotes && app.status === 'rejected' && (
+                    <p className="text-xs text-red-600 mt-1 flex items-start gap-1">
+                      <FiAlertCircle size={12} className="mt-0.5 shrink-0" />
+                      {app.adminNotes}
+                    </p>
+                  )}
+                </div>
+                {conf && (
+                  <Badge className={cn('flex items-center gap-1 text-xs shrink-0', conf.className)}>
+                    {conf.icon}
+                    {conf.label}
+                  </Badge>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 export const PortalProfile: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -332,6 +420,7 @@ export const PortalProfile: React.FC = () => {
             <TabsTrigger value="contact"><FiPhone size={14} className="mr-1.5" /> Contact</TabsTrigger>
             <TabsTrigger value="household"><FiHome size={14} className="mr-1.5" /> Household</TabsTrigger>
             <TabsTrigger value="applications"><FiFileText size={14} className="mr-1.5" /> Applications</TabsTrigger>
+            <TabsTrigger value="programs"><FiBookOpen size={14} className="mr-1.5" /> Programs</TabsTrigger>
           </TabsList>
 
           {/* ── Personal Tab ── */}
@@ -563,6 +652,11 @@ export const PortalProfile: React.FC = () => {
           {/* ── Applications Tab ── */}
           <TabsContent value="applications">
             <MyApplications />
+          </TabsContent>
+
+          {/* ── Programs Tab ── */}
+          <TabsContent value="programs">
+            <MyProgramApplications />
           </TabsContent>
         </Tabs>
       </div>

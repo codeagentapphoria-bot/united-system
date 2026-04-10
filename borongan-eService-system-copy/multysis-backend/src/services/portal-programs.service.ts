@@ -1,5 +1,6 @@
 import { GovernmentProgramType } from '@prisma/client';
 import prisma from '../config/database';
+import { emitProgramApplicationReview } from './socket.service';
 
 type ProgramTypeValue = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
 
@@ -49,12 +50,35 @@ function isEligible(
 // ---------------------------------------------------------------------------
 // List programs with per-resident eligibility & application status
 // ---------------------------------------------------------------------------
-export const listProgramsForResident = async (residentId: string) => {
-  const [programs, applications, eligibleTypes] = await Promise.all([
+export const listProgramsForResident = async (
+  residentId: string,
+  params?: { search?: string; type?: string; page?: number; limit?: number }
+) => {
+  const page = params?.page && params.page > 0 ? params.page : 1;
+  const limit = Math.min(params?.limit && params.limit > 0 ? params.limit : 12, 50);
+  const skip = (page - 1) * limit;
+
+  const typeFilter =
+    params?.type && params.type !== 'all' ? (params.type as GovernmentProgramType) : undefined;
+  const searchFilter = params?.search?.trim() || undefined;
+
+  const where: any = { isActive: true };
+  if (typeFilter) where.types = { has: typeFilter };
+  if (searchFilter) {
+    where.OR = [
+      { name: { contains: searchFilter, mode: 'insensitive' } },
+      { description: { contains: searchFilter, mode: 'insensitive' } },
+    ];
+  }
+
+  const [programs, total, applications, eligibleTypes] = await Promise.all([
     prisma.governmentProgram.findMany({
-      where: { isActive: true },
+      where,
       orderBy: [{ name: 'asc' }],
+      skip,
+      take: limit,
     }),
+    prisma.governmentProgram.count({ where }),
     prisma.governmentProgramApplication.findMany({
       where: { residentId },
       select: { programId: true, status: true },
@@ -64,7 +88,7 @@ export const listProgramsForResident = async (residentId: string) => {
 
   const appMap = new Map(applications.map((a) => [a.programId, a.status]));
 
-  return programs.map((program) => {
+  const data = programs.map((program) => {
     const applicationStatus = appMap.get(program.id) ?? null;
     const eligible = isEligible(program.types, eligibleTypes);
 
@@ -79,6 +103,11 @@ export const listProgramsForResident = async (residentId: string) => {
       applicationStatus, // null | 'pending' | 'approved' | 'rejected' | 'cancelled'
     };
   });
+
+  return {
+    data,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
 };
 
 // ---------------------------------------------------------------------------
@@ -306,7 +335,7 @@ export const reviewApplicationAdmin = async (
 ) => {
   const application = await prisma.governmentProgramApplication.findUnique({
     where: { id: applicationId },
-    include: { program: { select: { types: true } } },
+    include: { program: { select: { types: true, name: true } } },
   });
 
   if (!application) {
@@ -345,7 +374,7 @@ export const reviewApplicationAdmin = async (
 
   // Wrap status update + pivot creation in a single transaction so partial
   // failure rolls back both — no "approved" application with missing pivots
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const updated = await tx.governmentProgramApplication.update({
       where: { id: applicationId },
       data: {
@@ -391,4 +420,16 @@ export const reviewApplicationAdmin = async (
 
     return updated;
   });
+
+  // Notify resident via socket after the transaction commits
+  await emitProgramApplicationReview(residentId, {
+    applicationId,
+    programId,
+    programName: application.program.name,
+    status: newStatus as 'approved' | 'rejected',
+    adminNotes: adminNotes || undefined,
+    reviewedAt: new Date().toISOString(),
+  });
+
+  return result;
 };

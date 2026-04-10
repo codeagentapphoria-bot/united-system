@@ -42,8 +42,13 @@ import {
 export const listProgramsController = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const residentId = req.user!.id;
-    const data = await listProgramsForResident(residentId);
-    res.status(200).json({ status: 'success', data });
+    const result = await listProgramsForResident(residentId, {
+      search: (req.query.search as string) || undefined,
+      type: (req.query.type as string) || undefined,
+      page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
+      limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
+    });
+    res.status(200).json({ status: 'success', data: result.data, pagination: result.pagination });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: toUserMessage(error) });
   }

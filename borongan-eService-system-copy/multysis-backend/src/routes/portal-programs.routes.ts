@@ -20,7 +20,17 @@ const router = Router();
 // =============================================================================
 
 // List all active programs with eligibility & application status for the resident
-router.get('/programs', verifyResident, listProgramsController);
+router.get(
+  '/programs',
+  verifyResident,
+  validate([
+    query('search').optional().trim().isLength({ max: 200 }),
+    query('type').optional().isIn(['all', 'SENIOR_CITIZEN', 'PWD', 'STUDENT', 'SOLO_PARENT', 'ALL']),
+    query('page').optional().isInt({ min: 1 }).toInt(),
+    query('limit').optional().isInt({ min: 1, max: 50 }).toInt(),
+  ]),
+  listProgramsController
+);
 
 // Resident's own applications (must be before /:id to avoid 'my' being captured as id param)
 router.get('/programs/my/applications', verifyResident, getMyApplicationsController);

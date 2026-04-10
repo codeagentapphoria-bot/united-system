@@ -6,6 +6,7 @@ import { notificationService, type SubscriberNotificationCounts } from '@/servic
 
 // Hooks
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 
 // Context
 import { useAuth } from '@/context/AuthContext';
@@ -15,7 +16,11 @@ import { useSocket } from '@/context/SocketContext';
 import { queryKeys } from '@/lib/query-keys';
 
 // Types
-import type { TransactionUpdatePayload, TransactionNoteResponse } from '@/types/socket.types';
+import type {
+  ProgramApplicationReviewPayload,
+  TransactionUpdatePayload,
+  TransactionNoteResponse,
+} from '@/types/socket.types';
 
 interface UsePortalNotificationsOptions {
   pollInterval?: number;
@@ -46,6 +51,7 @@ export const usePortalNotifications = ({
   const { user } = useAuth();
   const { socket, isConnected } = useSocket();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const isMountedRef = useRef(true);
 
   const fetchCounts = useCallback(async () => {
@@ -131,16 +137,31 @@ export const usePortalNotifications = ({
       }
     };
 
+    const handleProgramApplicationReview = (data: ProgramApplicationReviewPayload) => {
+      const isApproved = data.status === 'approved';
+      toast({
+        title: isApproved
+          ? `Application approved: ${data.programName}`
+          : `Application not approved: ${data.programName}`,
+        description: data.adminNotes || (isApproved ? 'You have been enrolled in this program.' : undefined),
+        variant: isApproved ? 'default' : 'destructive',
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.portalPrograms.myApplications });
+      queryClient.invalidateQueries({ queryKey: queryKeys.portalPrograms.all });
+    };
+
     socket.on('transaction:update', handleTransactionUpdate);
     socket.on('transaction:note:new', handleNewTransactionNote);
     socket.on('transaction:note:read', handleTransactionNoteRead);
+    socket.on('program-application:review', handleProgramApplicationReview);
 
     return () => {
       socket.off('transaction:update', handleTransactionUpdate);
       socket.off('transaction:note:new', handleNewTransactionNote);
       socket.off('transaction:note:read', handleTransactionNoteRead);
+      socket.off('program-application:review', handleProgramApplicationReview);
     };
-  }, [socket, isConnected, user, queryClient]);
+  }, [socket, isConnected, user, queryClient, toast]);
 
   // Cleanup on unmount
   useEffect(() => {
