@@ -181,10 +181,11 @@ model RegistrationRequest {
   residentFk  String   @map("resident_fk") @unique
   // pending | under_review | approved | rejected | requires_resubmission
   status      String   @default("pending")
-  selfieUrl   String?  @map("selfie_url")
-  adminNotes  String?  @map("admin_notes")
-  reviewedBy  Int?     @map("reviewed_by")   // bims_users.id (no Prisma FK — cross-system)
-  reviewedAt  DateTime? @map("reviewed_at")
+  selfieUrl       String?  @map("selfie_url")
+  adminNotes      String?  @map("admin_notes")
+  ameliorationData Json?   @map("amelioration_data")
+  reviewedBy      Int?     @map("reviewed_by")   // bims_users.id (no Prisma FK — cross-system)
+  reviewedAt      DateTime? @map("reviewed_at")
   createdAt   DateTime @map("created_at") @default(now())
   updatedAt   DateTime @map("updated_at") @updatedAt
 

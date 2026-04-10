@@ -110,14 +110,21 @@ export default function RegistrationApprovalsPage() {
         action,
         adminNotes: notes,
       }),
-    onSuccess: (response, { action }) => {
+    onSuccess: async (response, { action }) => {
       toast({ title: action === "approve" ? "Registration Approved" : "Registration Rejected" });
       queryClient.invalidateQueries({ queryKey: ["registrationRequests"] });
       if (action === "approve" && selectedRequest?.resident) {
-        // Pre-check classifications that were auto-created on approval
-        const autoClassified = response?.data?.data?.autoClassified || [];
-        const preChecked = autoClassified.map((type) => ({ classification_type: type }));
-        setClassifyResident({ ...selectedRequest.resident, classifications: preChecked });
+        // Fetch the full resident profile so classification_details are populated
+        // in the expanded sub-fields of the classification modal.
+        try {
+          const { data } = await apiClient.get(`/${selectedRequest.resident.id}/resident`);
+          setClassifyResident(data?.data || data);
+        } catch {
+          // Fallback: pre-check stubs (no sub-field pre-fill, but at least types are checked)
+          const autoClassified = response?.data?.data?.autoClassified || [];
+          const preChecked = autoClassified.map((type) => ({ classification_type: type }));
+          setClassifyResident({ ...selectedRequest.resident, classifications: preChecked });
+        }
       }
       setSelectedRequest(null);
       setAdminNotes("");

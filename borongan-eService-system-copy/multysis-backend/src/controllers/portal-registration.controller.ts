@@ -18,48 +18,116 @@ import {
   reviewRegistrationRequest,
   submitRegistration,
 } from '../services/portal-registration.service';
+import { socialAmeliorationSettingService } from '../services/social-amelioration-setting.service';
+
+// =============================================================================
+// PUBLIC: Get active social amelioration settings by type
+// GET /api/portal-registration/amelioration-settings?type=PENSION_TYPE
+// =============================================================================
+export const getPublicAmeliorationSettingsController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { type } = req.query;
+    const settings = await socialAmeliorationSettingService.getSettings({
+      type: type as any,
+      isActive: true,
+    });
+    res.status(200).json({ status: 'success', data: settings });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
 
 // =============================================================================
 // PUBLIC: Submit registration
 // POST /api/portal-registration/register
 // =============================================================================
-export const submitRegistrationController = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+export const submitRegistrationController = async (req: Request, res: Response): Promise<void> => {
   try {
     const {
-      firstName, middleName, lastName, extensionName,
-      birthdate, sex, civilStatus,
-      birthRegion, birthProvince, birthMunicipality, citizenship,
-      contactNumber, email,
-      barangayId, streetAddress,
-      occupation, profession, employmentStatus, educationAttainment,
-      monthlyIncome, height, weight,
-      isVoter, isEmployed, indigenousPerson,
-      idType, idDocumentNumber, idDocumentUrl, selfieUrl,
+      firstName,
+      middleName,
+      lastName,
+      extensionName,
+      birthdate,
+      sex,
+      civilStatus,
+      birthRegion,
+      birthProvince,
+      birthMunicipality,
+      citizenship,
+      contactNumber,
+      email,
+      barangayId,
+      streetAddress,
+      occupation,
+      profession,
+      employmentStatus,
+      educationAttainment,
+      monthlyIncome,
+      height,
+      weight,
+      isVoter,
+      isEmployed,
+      indigenousPerson,
+      hasDisability,
+      hasChildren,
+      idType,
+      idDocumentNumber,
+      idDocumentUrl,
+      selfieUrl,
       picturePath,
-      username, password,
-      emergencyContactPerson, emergencyContactNumber, spouseName, acrNo,
+      username,
+      password,
+      emergencyContactPerson,
+      emergencyContactNumber,
+      spouseName,
+      acrNo,
+      ameliorationData,
     } = req.body;
 
     const result = await submitRegistration({
-      firstName, middleName, lastName, extensionName,
-      birthdate, sex, civilStatus,
-      birthRegion, birthProvince, birthMunicipality, citizenship,
-      contactNumber, email,
+      firstName,
+      middleName,
+      lastName,
+      extensionName,
+      birthdate,
+      sex,
+      civilStatus,
+      birthRegion,
+      birthProvince,
+      birthMunicipality,
+      citizenship,
+      contactNumber,
+      email,
       barangayId: Number(barangayId),
       streetAddress,
-      occupation, profession, employmentStatus, educationAttainment,
+      occupation,
+      profession,
+      employmentStatus,
+      educationAttainment,
       monthlyIncome: monthlyIncome ? Number(monthlyIncome) : undefined,
-      height, weight,
+      height,
+      weight,
       isVoter: Boolean(isVoter),
       isEmployed: Boolean(isEmployed),
       indigenousPerson: Boolean(indigenousPerson),
-      idType, idDocumentNumber, idDocumentUrl, selfieUrl,
+      hasDisability: Boolean(hasDisability),
+      hasChildren: Boolean(hasChildren),
+      idType,
+      idDocumentNumber,
+      idDocumentUrl,
+      selfieUrl,
       picturePath,
-      username, password,
-      emergencyContactPerson, emergencyContactNumber, spouseName, acrNo,
+      username,
+      password,
+      emergencyContactPerson,
+      emergencyContactNumber,
+      spouseName,
+      acrNo,
+      ameliorationData: ameliorationData || null,
     });
 
     res.status(201).json({
@@ -99,9 +167,7 @@ export const listRegistrationRequestsController = async (
   res: Response
 ): Promise<void> => {
   try {
-    const {
-      status, search, barangayId, page, limit,
-    } = req.query;
+    const { status, search, barangayId, page, limit } = req.query;
 
     const result = await listRegistrationRequests({
       status: status as string,
@@ -138,10 +204,7 @@ export const getRegistrationRequestController = async (
 // BIMS ADMIN: Mark as under review
 // PATCH /api/portal-registration/requests/:id/under-review
 // =============================================================================
-export const markUnderReviewController = async (
-  req: AuthRequest,
-  res: Response
-): Promise<void> => {
+export const markUnderReviewController = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const reviewerId = (req as any).bimsUserId; // set by BIMS auth middleware
@@ -213,18 +276,20 @@ export const requestResubmissionController = async (
 // POST /api/portal-registration/resubmit
 // Body: { username, selfieUrl, idDocumentUrl }
 // =============================================================================
-export const resubmitHandler = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+export const resubmitHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, selfieUrl, idDocumentUrl } = req.body;
     if (!username || !selfieUrl || !idDocumentUrl) {
-      res.status(400).json({ status: 'error', message: 'username, selfieUrl, and idDocumentUrl are required' });
+      res
+        .status(400)
+        .json({ status: 'error', message: 'username, selfieUrl, and idDocumentUrl are required' });
       return;
     }
     await resubmitDocuments(username, selfieUrl, idDocumentUrl);
-    res.json({ status: 'success', message: 'Resubmission received. Your application is under review again.' });
+    res.json({
+      status: 'success',
+      message: 'Resubmission received. Your application is under review again.',
+    });
   } catch (err: any) {
     res.status(400).json({ status: 'error', message: err.message });
   }
@@ -234,10 +299,7 @@ export const resubmitHandler = async (
 // BIMS ADMIN: Delete old rejected registrations
 // DELETE /api/portal-registration/requests/rejected
 // =============================================================================
-export const deleteRejectedController = async (
-  req: AuthRequest,
-  res: Response
-): Promise<void> => {
+export const deleteRejectedController = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const olderThanDays = req.query.days ? Number(req.query.days) : 30;
     const result = await deleteRejectedRegistrations(olderThanDays);

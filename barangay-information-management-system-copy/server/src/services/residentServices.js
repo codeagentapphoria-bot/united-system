@@ -31,6 +31,44 @@ import {
   DELETE_CLASSIFICATION,
 } from "../queries/resident.queries.js";
 
+/**
+ * Normalize classification detail keys coming from the BIMS form
+ * (which uses the field descriptor key names) to the DB column key names
+ * expected by _syncBeneficiaryOnInsert and _syncBeneficiaryDetails.
+ *
+ * The BIMS classification form stores values under the "key" from the
+ * classification_types.details descriptor, e.g. "disabilityType", "gradeLevel".
+ * The beneficiary sync functions expect "disabilityTypeId", "gradeLevelId", etc.
+ */
+function normalizeDetails(classificationType, raw = {}) {
+  switch (classificationType) {
+    case 'Person with Disability':
+      return {
+        disabilityTypeId: raw.disabilityType || raw.disabilityTypeId || null,
+        disabilityLevel:  raw.disabilityLevel || null,
+      };
+    case 'Student':
+    case 'College Student':
+      return {
+        gradeLevelId: raw.gradeLevel || raw.gradeLevelId || null,
+      };
+    case 'Solo Parent':
+      return {
+        categoryId: raw.category || raw.categoryId || null,
+      };
+    case 'Senior Citizen':
+      return {
+        pensionTypeIds: Array.isArray(raw.pensionTypes)
+          ? raw.pensionTypes
+          : Array.isArray(raw.pensionTypeIds)
+          ? raw.pensionTypeIds
+          : [],
+      };
+    default:
+      return raw;
+  }
+}
+
 class Resident {
   // ==========================================================================
   // LIST RESIDENTS
@@ -176,8 +214,10 @@ class Resident {
       JSON.stringify(classificationDetails || []),
     ]);
 
-    // Sync to eService beneficiary table (same DB — no HTTP call needed)
-    await Resident._syncBeneficiaryOnInsert(residentId, classificationType, classificationDetails);
+    // Normalize keys before syncing so BIMS form output keys (e.g. "disabilityType")
+    // map correctly to beneficiary table columns (e.g. "disabilityTypeId")
+    const normalized = normalizeDetails(classificationType, classificationDetails || {});
+    await Resident._syncBeneficiaryOnInsert(residentId, classificationType, normalized);
 
     return result.rows[0];
   }
@@ -342,7 +382,18 @@ class Resident {
       classificationType,
       JSON.stringify(classificationDetails || []),
     ]);
-    return result.rows[0];
+    const updated = result.rows[0];
+
+    // Sync updated detail values to the beneficiary table for the 4 special types
+    if (updated) {
+      const mapping = Resident.BENEFICIARY_SYNC_MAP[classificationType];
+      if (mapping) {
+        const normalized = normalizeDetails(classificationType, classificationDetails || {});
+        await Resident._syncBeneficiaryDetails(mapping.table, updated.resident_id, normalized);
+      }
+    }
+
+    return updated;
   }
 
   static async deleteClassification({ classificationId }) {
