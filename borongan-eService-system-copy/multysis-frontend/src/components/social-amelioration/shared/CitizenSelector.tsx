@@ -31,7 +31,6 @@ export const CitizenSelector: React.FC<CitizenSelectorProps> = ({
   filteredCitizens,
   isLoading = false,
 }) => {
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -47,7 +46,7 @@ export const CitizenSelector: React.FC<CitizenSelectorProps> = ({
           Add New Citizen
         </Button>
       </div>
-      
+
       <div className="space-y-2">
         <label className="text-sm font-medium text-gray-700">Search Resident</label>
         <div className="relative">
@@ -55,7 +54,7 @@ export const CitizenSelector: React.FC<CitizenSelectorProps> = ({
           <Input
             placeholder="Search by name, resident ID, or phone number..."
             value={localSearchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={e => onSearchChange(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -69,14 +68,12 @@ export const CitizenSelector: React.FC<CitizenSelectorProps> = ({
         </div>
       ) : (
         <div className="space-y-2 max-h-[200px] overflow-y-auto">
-          {filteredCitizens.map((citizen) => (
+          {filteredCitizens.map(citizen => (
             <Card
               key={citizen.id}
               className={cn(
                 'cursor-pointer transition-all hover:shadow-md',
-                selectedCitizen?.id === citizen.id
-                  ? 'border-primary-600 bg-primary-50'
-                  : 'hover:border-primary-300'
+                selectedCitizen?.id === citizen.id ? 'border-primary-600 bg-primary-50' : 'hover:border-primary-300'
               )}
               onClick={() => onCitizenSelect(citizen)}
             >
@@ -89,7 +86,8 @@ export const CitizenSelector: React.FC<CitizenSelectorProps> = ({
                     </h4>
                     <p className="text-sm text-gray-500 mt-1">
                       {citizen.residentId && `ID: ${citizen.residentId}`}
-                      {(citizen.contactNumber ?? (citizen as any).phoneNumber) && ` • ${citizen.contactNumber ?? (citizen as any).phoneNumber}`}
+                      {(citizen.contactNumber ?? (citizen as any).phoneNumber) &&
+                        ` • ${citizen.contactNumber ?? (citizen as any).phoneNumber}`}
                     </p>
                   </div>
                   {selectedCitizen?.id === citizen.id && (
@@ -106,4 +104,3 @@ export const CitizenSelector: React.FC<CitizenSelectorProps> = ({
     </div>
   );
 };
-

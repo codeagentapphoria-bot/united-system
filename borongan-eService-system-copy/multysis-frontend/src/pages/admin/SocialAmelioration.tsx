@@ -45,70 +45,70 @@ export const SocialAmelioration: React.FC = () => {
         <Card>
           <CardContent className={cn('p-0')}>
             <Tabs value={activeTab} onValueChange={val => setActiveTab(val)} className={cn('w-full')}>
-              <div className={cn('border-b border-gray-200')}>
-                <TabsList className={cn('h-auto bg-transparent p-0 w-full justify-start')}>
+              <div className={cn('border-b border-gray-200 overflow-x-auto')}>
+                <TabsList className={cn('h-auto bg-transparent p-0 w-max min-w-full justify-start')}>
                   <TabsTrigger
                     value="dashboard"
                     className={cn(
-                      'flex items-center gap-2 px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
+                      'flex items-center gap-2 px-3 sm:px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
                     )}
                   >
                     <FiUsers size={18} />
-                    Dashboard
+                    <span className="hidden sm:inline">Dashboard</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="senior-citizen"
                     className={cn(
-                      'flex items-center gap-2 px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
+                      'flex items-center gap-2 px-3 sm:px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
                     )}
                   >
                     <FiUserCheck size={18} />
-                    Senior Citizen
+                    <span className="hidden sm:inline">Senior Citizen</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="pwd"
                     className={cn(
-                      'flex items-center gap-2 px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
+                      'flex items-center gap-2 px-3 sm:px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
                     )}
                   >
                     <FiHeart size={18} />
-                    PWD
+                    <span className="hidden sm:inline">PWD</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="students"
                     className={cn(
-                      'flex items-center gap-2 px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
+                      'flex items-center gap-2 px-3 sm:px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
                     )}
                   >
                     <FiBookOpen size={18} />
-                    Students
+                    <span className="hidden sm:inline">Students</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="solo-parents"
                     className={cn(
-                      'flex items-center gap-2 px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
+                      'flex items-center gap-2 px-3 sm:px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
                     )}
                   >
                     <FiHeart size={18} />
-                    Solo Parents
+                    <span className="hidden sm:inline">Solo Parents</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="program-applications"
                     className={cn(
-                      'flex items-center gap-2 px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
+                      'flex items-center gap-2 px-3 sm:px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
                     )}
                   >
                     <FiClipboard size={18} />
-                    Program Applications
+                    <span className="hidden sm:inline">Program Applications</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="settings"
                     className={cn(
-                      'flex items-center gap-2 px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
+                      'flex items-center gap-2 px-3 sm:px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
                     )}
                   >
                     <FiSettings size={18} />
-                    Settings
+                    <span className="hidden sm:inline">Settings</span>
                   </TabsTrigger>
                 </TabsList>
               </div>

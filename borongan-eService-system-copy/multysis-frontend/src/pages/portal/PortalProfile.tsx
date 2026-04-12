@@ -502,23 +502,30 @@ export const PortalProfile: React.FC = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="personal">
-          <TabsList>
-            <TabsTrigger value="personal">
-              <FiUser size={14} className="mr-1.5" /> Personal
-            </TabsTrigger>
-            <TabsTrigger value="contact">
-              <FiPhone size={14} className="mr-1.5" /> Contact
-            </TabsTrigger>
-            <TabsTrigger value="household">
-              <FiHome size={14} className="mr-1.5" /> Household
-            </TabsTrigger>
-            <TabsTrigger value="applications">
-              <FiFileText size={14} className="mr-1.5" /> Applications
-            </TabsTrigger>
-            <TabsTrigger value="programs">
-              <FiBookOpen size={14} className="mr-1.5" /> Programs
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList className="w-max min-w-full">
+              <TabsTrigger value="personal">
+                <FiUser size={14} className="mr-1.5" />
+                <span className="hidden sm:inline">Personal</span>
+              </TabsTrigger>
+              <TabsTrigger value="contact">
+                <FiPhone size={14} className="mr-1.5" />
+                <span className="hidden sm:inline">Contact</span>
+              </TabsTrigger>
+              <TabsTrigger value="household">
+                <FiHome size={14} className="mr-1.5" />
+                <span className="hidden sm:inline">Household</span>
+              </TabsTrigger>
+              <TabsTrigger value="applications">
+                <FiFileText size={14} className="mr-1.5" />
+                <span className="hidden sm:inline">Applications</span>
+              </TabsTrigger>
+              <TabsTrigger value="programs">
+                <FiBookOpen size={14} className="mr-1.5" />
+                <span className="hidden sm:inline">Programs</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* ── Personal Tab ── */}
           <TabsContent value="personal" className="space-y-4">

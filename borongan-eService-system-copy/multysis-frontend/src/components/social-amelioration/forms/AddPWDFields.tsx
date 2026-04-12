@@ -6,11 +6,7 @@ import { useFormContext } from 'react-hook-form';
 import Select from 'react-select';
 
 // UI Components (shadcn/ui)
-import {
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form';
+import { FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
 
 // Custom Components
@@ -80,7 +76,7 @@ export const AddPWDFields: React.FC<AddPWDFieldsProps> = ({
       {/* 2. Disability Information */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-primary-600">Disability Information</h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -90,18 +86,16 @@ export const AddPWDFields: React.FC<AddPWDFieldsProps> = ({
                 <CustomFormLabel required>Disability Type</CustomFormLabel>
                 <Select
                   value={disabilityTypeOptions.find(option => option.value === field.value)}
-                  onChange={(selectedOption) => field.onChange(selectedOption?.value || '')}
+                  onChange={selectedOption => field.onChange(selectedOption?.value || '')}
                   options={disabilityTypeOptions}
                   placeholder="Select Disability Type"
                   className="mt-1"
                   classNamePrefix="react-select"
                   isSearchable={true}
-                  formatOptionLabel={(option) => (
+                  formatOptionLabel={option => (
                     <div className="flex flex-col">
                       <span className="font-medium">{option.label}</span>
-                      {option.description && (
-                        <span className="text-xs text-gray-500 mt-1">{option.description}</span>
-                      )}
+                      {option.description && <span className="text-xs text-gray-500 mt-1">{option.description}</span>}
                     </div>
                   )}
                   styles={createReactSelectStyles(!!form.formState.errors.disabilityType)}
@@ -119,7 +113,7 @@ export const AddPWDFields: React.FC<AddPWDFieldsProps> = ({
                 <CustomFormLabel required>Disability Level</CustomFormLabel>
                 <Select
                   value={disabilityLevelOptions.find(option => option.value === field.value)}
-                  onChange={(selectedOption) => field.onChange(selectedOption?.value || '')}
+                  onChange={selectedOption => field.onChange(selectedOption?.value || '')}
                   options={disabilityLevelOptions}
                   placeholder="Select Disability Level"
                   className="mt-1"
@@ -139,7 +133,7 @@ export const AddPWDFields: React.FC<AddPWDFieldsProps> = ({
       {/* 3. Government Programs */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-primary-600">Government Programs</h3>
-        
+
         <FormField
           control={form.control}
           name="governmentPrograms"
@@ -149,7 +143,7 @@ export const AddPWDFields: React.FC<AddPWDFieldsProps> = ({
               <Select
                 isMulti
                 value={programOptions.filter(option => field.value?.includes(option.value))}
-                onChange={(selectedOptions) => {
+                onChange={selectedOptions => {
                   field.onChange(selectedOptions ? selectedOptions.map(option => option.value) : []);
                 }}
                 options={programOptions}
@@ -167,4 +161,3 @@ export const AddPWDFields: React.FC<AddPWDFieldsProps> = ({
     </div>
   );
 };
-

@@ -6,11 +6,7 @@ import { useFormContext } from 'react-hook-form';
 import Select from 'react-select';
 
 // UI Components (shadcn/ui)
-import {
-    FormField,
-    FormItem,
-    FormMessage
-} from '@/components/ui/form';
+import { FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
 
 // Custom Components
@@ -72,7 +68,7 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
       {/* 2. Grade Level */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-primary-600">Student Information</h3>
-        
+
         <FormField
           control={form.control}
           name="gradeLevel"
@@ -81,18 +77,16 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
               <CustomFormLabel required>Grade Level</CustomFormLabel>
               <Select
                 value={gradeLevelOptions.find(option => option.value === field.value)}
-                onChange={(selectedOption) => field.onChange(selectedOption?.value || '')}
+                onChange={selectedOption => field.onChange(selectedOption?.value || '')}
                 options={gradeLevelOptions}
                 placeholder="Select Grade Level"
                 className="mt-1"
                 classNamePrefix="react-select"
                 isSearchable={true}
-                formatOptionLabel={(option) => (
+                formatOptionLabel={option => (
                   <div className="flex flex-col">
                     <span className="font-medium">{option.label}</span>
-                    {option.description && (
-                      <span className="text-xs text-gray-500 mt-1">{option.description}</span>
-                    )}
+                    {option.description && <span className="text-xs text-gray-500 mt-1">{option.description}</span>}
                   </div>
                 )}
                 styles={reactSelectStyles}
@@ -108,7 +102,7 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
       {/* 3. Programs */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-primary-600">Programs</h3>
-        
+
         <FormField
           control={form.control}
           name="programs"
@@ -118,7 +112,7 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
               <Select
                 isMulti
                 value={programOptions.filter(option => field.value?.includes(option.value))}
-                onChange={(selectedOptions) => {
+                onChange={selectedOptions => {
                   field.onChange(selectedOptions ? selectedOptions.map(option => option.value) : []);
                 }}
                 options={programOptions}
@@ -136,4 +130,3 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
     </div>
   );
 };
-
