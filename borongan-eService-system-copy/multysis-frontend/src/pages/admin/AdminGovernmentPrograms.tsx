@@ -512,18 +512,59 @@ export const AdminGovernmentPrograms: React.FC = () => {
                           </div>
                         </div>
                       )}
-                      {selectedGovernmentProgram.requirements && (
-                        <div className="space-y-2 md:col-span-2">
-                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                            Requirements
-                          </label>
-                          <div className="min-h-[40px] flex items-start">
-                            <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full whitespace-pre-line">
-                              {selectedGovernmentProgram.requirements}
-                            </p>
-                          </div>
-                        </div>
-                      )}
+                      {selectedGovernmentProgram.requirements &&
+                        (() => {
+                          let items: { type: string; label: string; required?: boolean }[] = [];
+                          try {
+                            const parsed = JSON.parse(selectedGovernmentProgram.requirements!);
+                            if (Array.isArray(parsed)) items = parsed;
+                          } catch {
+                            items = [{ type: 'text', label: selectedGovernmentProgram.requirements! }];
+                          }
+                          const REQ_STYLES: Record<string, string> = {
+                            file: 'bg-blue-100 text-blue-700',
+                            text: 'bg-gray-100 text-gray-600',
+                            textarea: 'bg-gray-100 text-gray-600',
+                            number: 'bg-amber-100 text-amber-700',
+                            email: 'bg-emerald-100 text-emerald-700',
+                            tel: 'bg-teal-100 text-teal-700',
+                            url: 'bg-indigo-100 text-indigo-700',
+                            date: 'bg-purple-100 text-purple-700',
+                            time: 'bg-purple-100 text-purple-700',
+                            'datetime-local': 'bg-purple-100 text-purple-700',
+                          };
+                          return items.length > 0 ? (
+                            <div className="space-y-2 md:col-span-2">
+                              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Requirements
+                              </label>
+                              <div className="rounded-lg border border-gray-200 overflow-hidden w-full">
+                                <ul className="divide-y divide-gray-100">
+                                  {items.map((req, i) => (
+                                    <li key={i} className="flex items-center gap-2.5 px-3 py-2.5 bg-white">
+                                      <span
+                                        className={cn(
+                                          'shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase',
+                                          REQ_STYLES[req.type] ?? 'bg-gray-100 text-gray-600'
+                                        )}
+                                      >
+                                        {req.type}
+                                      </span>
+                                      <span className="text-sm text-heading-700 font-medium flex-1">{req.label}</span>
+                                      {req.required ? (
+                                        <span className="shrink-0 text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">
+                                          Required
+                                        </span>
+                                      ) : (
+                                        <span className="shrink-0 text-[10px] text-gray-400">Optional</span>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          ) : null;
+                        })()}
                     </div>
                   </div>
 

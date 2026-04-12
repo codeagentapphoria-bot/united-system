@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 
@@ -23,7 +24,6 @@ function toUserMessage(err: unknown): string {
   if (msg) console.error('[portal-programs] Unexpected error:', msg);
   return 'An unexpected error occurred';
 }
-
 import {
   applyForProgram,
   cancelApplication,
@@ -34,6 +34,16 @@ import {
   listProgramsForResident,
   reviewApplicationAdmin,
 } from '../services/portal-programs.service';
+import { getFileUrl, validateFileContent } from '../middleware/upload';
+
+const ALLOWED_APPLICATION_MIMES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+];
 
 // =============================================================================
 // PORTAL (resident-facing)
@@ -71,7 +81,47 @@ export const applyForProgramController = async (req: AuthRequest, res: Response)
   try {
     const residentId = req.user!.id;
     const { id } = req.params;
-    const application = await applyForProgram(residentId, id);
+
+    // Parse submitted text/non-file values — return 400 on malformed JSON
+    let submittedData: Record<string, string> = {};
+    if (req.body?.submittedData) {
+      try {
+        const parsed = JSON.parse(req.body.submittedData);
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+          res.status(400).json({ status: 'error', message: 'Invalid submittedData format' });
+          return;
+        }
+        submittedData = parsed as Record<string, string>;
+      } catch {
+        res.status(400).json({ status: 'error', message: 'Invalid submittedData JSON' });
+        return;
+      }
+    }
+
+    // Validate uploaded files with magic-byte check; reject and clean up on failure
+    const uploadedFiles = (req.files as Express.Multer.File[]) ?? [];
+    for (const f of uploadedFiles) {
+      const valid = await validateFileContent(f.path, ALLOWED_APPLICATION_MIMES);
+      if (!valid) {
+        // Clean up all files from this request before rejecting
+        for (const file of uploadedFiles) {
+          try { fs.unlinkSync(file.path); } catch { /* best effort */ }
+        }
+        res.status(400).json({ status: 'error', message: `File "${f.originalname}" has an invalid or unsupported format` });
+        return;
+      }
+    }
+
+    // Build attachments from uploaded files (fieldname = requirement label)
+    const attachments = uploadedFiles.map((f) => ({
+      label: f.fieldname,
+      filename: f.originalname,
+      url: getFileUrl(f.path),
+      mimetype: f.mimetype,
+      size: f.size,
+    }));
+
+    const application = await applyForProgram(residentId, id, { submittedData, attachments });
     res.status(201).json({ status: 'success', data: application });
   } catch (error: any) {
     const msg = toUserMessage(error);

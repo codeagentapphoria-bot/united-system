@@ -139,7 +139,11 @@ export const getProgramForResident = async (programId: string, residentId: strin
 // ---------------------------------------------------------------------------
 // Apply for a program
 // ---------------------------------------------------------------------------
-export const applyForProgram = async (residentId: string, programId: string) => {
+export const applyForProgram = async (
+  residentId: string,
+  programId: string,
+  submission: { submittedData?: Record<string, string>; attachments?: object[] } = {}
+) => {
   // Verify resident is active
   const resident = await prisma.resident.findUnique({
     where: { id: residentId },
@@ -181,6 +185,8 @@ export const applyForProgram = async (residentId: string, programId: string) => 
       data: {
         status: 'pending',
         adminNotes: null,
+        submittedData: submission.submittedData ?? {},
+        attachments: submission.attachments ?? [],
         appliedAt: new Date(),
         reviewedAt: null,
         reviewedBy: null,
@@ -198,7 +204,13 @@ export const applyForProgram = async (residentId: string, programId: string) => 
 
   try {
     const result = await prisma.governmentProgramApplication.create({
-      data: { residentId, programId, status: 'pending' },
+      data: {
+        residentId,
+        programId,
+        status: 'pending',
+        submittedData: submission.submittedData ?? {},
+        attachments: submission.attachments ?? [],
+      },
     });
     await emitProgramApplicationNew({
       applicationId: result.id,

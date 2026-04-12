@@ -17,7 +17,7 @@ export const createGovernmentProgramValidation: ValidationChain[] = [
 ];
 
 export const updateGovernmentProgramValidation: ValidationChain[] = [
-  param('id').isUUID().withMessage('Invalid government program ID'),
+  param('id').notEmpty().withMessage('Invalid government program ID'),
   body('name')
     .optional()
     .trim()
@@ -43,13 +43,13 @@ export const getGovernmentProgramsValidation: ValidationChain[] = [
 ];
 
 export const getGovernmentProgramValidation: ValidationChain[] = [
-  param('id').isUUID().withMessage('Invalid government program ID'),
+  param('id').notEmpty().withMessage('Invalid government program ID'),
 ];
 
 export const activateGovernmentProgramValidation: ValidationChain[] = [
-  param('id').isUUID().withMessage('Invalid government program ID'),
+  param('id').notEmpty().withMessage('Invalid government program ID'),
 ];
 
 export const deactivateGovernmentProgramValidation: ValidationChain[] = [
-  param('id').isUUID().withMessage('Invalid government program ID'),
+  param('id').notEmpty().withMessage('Invalid government program ID'),
 ];

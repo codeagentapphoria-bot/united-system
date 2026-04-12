@@ -671,15 +671,17 @@ model GovernmentProgram {
 }
 
 model GovernmentProgramApplication {
-  id         String            @id @default(uuid())
-  residentId String            @map("resident_id")
-  programId  String            @map("program_id")
+  id            String            @id @default(uuid())
+  residentId    String            @map("resident_id")
+  programId     String            @map("program_id")
   // pending | approved | rejected | cancelled
-  status     String            @default("pending")
-  adminNotes String?           @map("admin_notes")
-  appliedAt  DateTime          @map("applied_at") @default(now())
-  reviewedAt DateTime?         @map("reviewed_at")
-  reviewedBy Int?              @map("reviewed_by") // multysis users.id — cross-system ref
+  status        String            @default("pending")
+  adminNotes    String?           @map("admin_notes")
+  submittedData Json?             @map("submitted_data")
+  attachments   Json?
+  appliedAt     DateTime          @map("applied_at") @default(now())
+  reviewedAt    DateTime?         @map("reviewed_at")
+  reviewedBy    Int?              @map("reviewed_by") // multysis users.id — cross-system ref
 
   resident   Resident          @relation(fields: [residentId], references: [id], onDelete: Cascade)
   program    GovernmentProgram @relation(fields: [programId], references: [id], onDelete: Cascade)

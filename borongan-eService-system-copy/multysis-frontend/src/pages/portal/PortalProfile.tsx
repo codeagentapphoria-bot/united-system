@@ -33,6 +33,8 @@ import { useMyClassifications } from '@/hooks/portal/useMyClassifications';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import { portalProgramsService, type ProgramApplication } from '@/services/api/portal-programs.service';
+import type { GovernmentProgramType } from '@/services/api/government-program.service';
+import { AttachmentGrid } from '@/components/common/AttachmentPreview';
 import {
   FiAlertCircle,
   FiBookOpen,
@@ -212,6 +214,15 @@ interface Classification {
 const fmt = (v?: string | null) =>
   v ? v.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : undefined;
 
+// ── Program helpers ────────────────────────────────────────────────────────────
+const PROG_TYPE_LABELS: Record<GovernmentProgramType, string> = {
+  SENIOR_CITIZEN: 'Senior Citizen',
+  PWD: 'PWD',
+  STUDENT: 'Student',
+  SOLO_PARENT: 'Solo Parent',
+  ALL: 'All Residents',
+};
+
 // ── Program application status config ──────────────────────────────────────────
 const PROG_STATUS_CONFIG: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   pending: { label: 'Pending Review', className: 'bg-yellow-100 text-yellow-700', icon: <FiClock size={12} /> },
@@ -253,45 +264,111 @@ const MyProgramApplications: React.FC = () => {
   }
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        <div className="px-6 py-2">
-          {apps.map(app => {
-            const conf = PROG_STATUS_CONFIG[app.status];
-            return (
-              <div
-                key={app.id}
-                className="flex flex-col sm:flex-row sm:items-center gap-3 py-4 border-b border-gray-100 last:border-0"
-              >
-                <div className="flex-1">
-                  <p className="font-medium text-heading-700">{app.program.name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Applied{' '}
-                    {new Date(app.appliedAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </p>
-                  {app.adminNotes && app.status === 'rejected' && (
-                    <p className="text-xs text-red-600 mt-1 flex items-start gap-1">
-                      <FiAlertCircle size={12} className="mt-0.5 shrink-0" />
-                      {app.adminNotes}
-                    </p>
+    <div className="space-y-3">
+      {apps.map(app => {
+        const conf = PROG_STATUS_CONFIG[app.status];
+        const hasSubmittedData = app.submittedData && Object.keys(app.submittedData).length > 0;
+        const hasAttachments = app.attachments && app.attachments.length > 0;
+        const showAdminNote = app.adminNotes && (app.status === 'approved' || app.status === 'rejected');
+        return (
+          <Card key={app.id} className="border border-gray-100 shadow-sm">
+            <CardContent className="p-4 space-y-3">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-heading-700 text-base leading-snug">{app.program.name}</p>
+                  {app.program.description && (
+                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{app.program.description}</p>
                   )}
                 </div>
                 {conf && (
-                  <Badge className={cn('flex items-center gap-1 text-xs shrink-0', conf.className)}>
+                  <Badge className={cn('flex items-center gap-1 text-xs shrink-0 mt-0.5', conf.className)}>
                     {conf.icon}
                     {conf.label}
                   </Badge>
                 )}
               </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+
+              {/* Type badges */}
+              {app.program.types?.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {app.program.types.map(t => (
+                    <span
+                      key={t}
+                      className="text-[10px] font-medium bg-primary-50 text-primary-700 border border-primary-100 px-2 py-0.5 rounded-full"
+                    >
+                      {PROG_TYPE_LABELS[t]}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Dates */}
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                <span>
+                  Applied{' '}
+                  {new Date(app.appliedAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </span>
+                {app.reviewedAt && (
+                  <span>
+                    Reviewed{' '}
+                    {new Date(app.reviewedAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </span>
+                )}
+              </div>
+
+              {/* Admin note */}
+              {showAdminNote && (
+                <div
+                  className={cn(
+                    'rounded-md px-3 py-2 text-xs flex items-start gap-2',
+                    app.status === 'rejected' ? 'bg-red-50 text-red-700' : 'bg-purple-50 text-purple-700'
+                  )}
+                >
+                  <FiAlertCircle size={12} className="mt-0.5 shrink-0" />
+                  <span>{app.adminNotes}</span>
+                </div>
+              )}
+
+              {/* Submitted text data */}
+              {hasSubmittedData && (
+                <div className="rounded-lg border border-gray-100 overflow-hidden text-xs">
+                  <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-100">
+                    <p className="font-semibold text-gray-500 uppercase tracking-wide text-[11px]">
+                      Submitted Information
+                    </p>
+                  </div>
+                  <ul className="divide-y divide-gray-50">
+                    {Object.entries(app.submittedData!).map(([label, value]) => (
+                      <li key={label} className="flex gap-3 px-3 py-2 bg-white">
+                        <span className="text-gray-500 shrink-0 w-28">{label}</span>
+                        <span className="font-medium text-gray-700 flex-1">{value || '—'}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Attachments */}
+              {hasAttachments && (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Attachments</p>
+                  <AttachmentGrid attachments={app.attachments!} />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
   );
 };
 

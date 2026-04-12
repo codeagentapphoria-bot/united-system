@@ -18,6 +18,7 @@ import {
   type AdminProgramApplication,
   type AdminProgramApplicationDetail,
 } from '@/services/api/portal-programs.service';
+import { AttachmentGrid, fixAttachmentUrl } from '@/components/common/AttachmentPreview';
 
 // Utils
 import { cn } from '@/lib/utils';
@@ -116,9 +117,9 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-heading-700">Resident Information</DialogTitle>
+          <DialogTitle className="text-xl font-semibold text-primary-600">Resident Application Preview</DialogTitle>
         </DialogHeader>
 
         {isLoading ? (
@@ -127,105 +128,139 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
             Loading…
           </div>
         ) : !detail ? null : (
-          <div className="space-y-4">
-            {/* Identity */}
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="space-y-5">
+            {/* Identity header */}
+            <div className="flex items-center gap-4 p-4 bg-primary-50 rounded-lg border border-primary-100">
+              <div className="w-16 h-16 rounded-full bg-white border-2 border-primary-200 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm">
                 {r?.picturePath ? (
-                  <img src={r.picturePath} alt={fullName} className="w-full h-full object-cover" />
+                  <img src={fixAttachmentUrl(r.picturePath)} alt={fullName} className="w-full h-full object-cover" />
                 ) : (
-                  <FiUser size={28} className="text-primary-500" />
+                  <FiUser size={28} className="text-primary-400" />
                 )}
               </div>
-              <div>
-                <p className="font-semibold text-heading-700 text-base">{fullName}</p>
-                {r?.residentId && <p className="text-xs font-mono text-primary-600">{r.residentId}</p>}
-                <p className="text-xs text-gray-500">{r?.barangay?.barangayName || '—'}</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-heading-700 text-base truncate">{fullName}</p>
+                {r?.residentId && <p className="text-xs font-mono text-primary-600 mt-0.5">{r.residentId}</p>}
+                <p className="text-xs text-gray-500 mt-0.5">{r?.barangay?.barangayName || '—'}</p>
               </div>
             </div>
 
             {/* Personal details */}
-            <div className="bg-gray-50 rounded-lg p-4 grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-xs text-gray-500">Sex</p>
-                <p className="font-medium">{fmt(r?.sex)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Civil Status</p>
-                <p className="font-medium">{fmt(r?.civilStatus)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Date of Birth</p>
-                <p className="font-medium">
-                  {r?.birthdate
-                    ? new Date(r.birthdate).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })
-                    : '—'}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Street Address</p>
-                <p className="font-medium">{r?.streetAddress || '—'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Contact Number</p>
-                <p className="font-medium">{r?.contactNumber || '—'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Email</p>
-                <p className="font-medium break-all">{r?.email || '—'}</p>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Personal Information</p>
+              <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100 text-sm">
+                <div className="grid grid-cols-2">
+                  <div className="flex flex-col px-4 py-3 border-r border-gray-100">
+                    <span className="text-xs text-gray-500">Sex</span>
+                    <span className="font-medium text-heading-700 mt-0.5">{fmt(r?.sex)}</span>
+                  </div>
+                  <div className="flex flex-col px-4 py-3">
+                    <span className="text-xs text-gray-500">Civil Status</span>
+                    <span className="font-medium text-heading-700 mt-0.5">{fmt(r?.civilStatus)}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2">
+                  <div className="flex flex-col px-4 py-3 border-r border-gray-100">
+                    <span className="text-xs text-gray-500">Date of Birth</span>
+                    <span className="font-medium text-heading-700 mt-0.5">
+                      {r?.birthdate
+                        ? new Date(r.birthdate).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })
+                        : '—'}
+                    </span>
+                  </div>
+                  <div className="flex flex-col px-4 py-3">
+                    <span className="text-xs text-gray-500">Contact Number</span>
+                    <span className="font-medium text-heading-700 mt-0.5">{r?.contactNumber || '—'}</span>
+                  </div>
+                </div>
+                <div className="flex flex-col px-4 py-3">
+                  <span className="text-xs text-gray-500">Street Address</span>
+                  <span className="font-medium text-heading-700 mt-0.5">{r?.streetAddress || '—'}</span>
+                </div>
+                <div className="flex flex-col px-4 py-3">
+                  <span className="text-xs text-gray-500">Email</span>
+                  <span className="font-medium text-heading-700 mt-0.5 break-all">{r?.email || '—'}</span>
+                </div>
               </div>
             </div>
 
             {/* Application details */}
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-500">Program</span>
-                <span className="font-medium text-heading-700">{detail.program.name}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-500">Applied</span>
-                <span>
-                  {new Date(detail.appliedAt).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-500">Status</span>
-                {STATUS_CONFIG[detail.status] ? (
-                  <Badge className={cn('flex items-center gap-1 text-xs', STATUS_CONFIG[detail.status].className)}>
-                    {STATUS_CONFIG[detail.status].icon}
-                    {STATUS_CONFIG[detail.status].label}
-                  </Badge>
-                ) : (
-                  <span className="font-medium">{detail.status}</span>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Application Details</p>
+              <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100 text-sm">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="text-gray-500">Program</span>
+                  <span className="font-medium text-heading-700">{detail.program.name}</span>
+                </div>
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="text-gray-500">Applied</span>
+                  <span className="font-medium text-heading-700">
+                    {new Date(detail.appliedAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="text-gray-500">Status</span>
+                  {STATUS_CONFIG[detail.status] ? (
+                    <Badge className={cn('flex items-center gap-1 text-xs', STATUS_CONFIG[detail.status].className)}>
+                      {STATUS_CONFIG[detail.status].icon}
+                      {STATUS_CONFIG[detail.status].label}
+                    </Badge>
+                  ) : (
+                    <span className="font-medium">{detail.status}</span>
+                  )}
+                </div>
+                {detail.adminNotes && (
+                  <div className="flex flex-col px-4 py-3">
+                    <span className="text-xs text-gray-500 mb-1">Admin Notes</span>
+                    <p className="text-sm text-heading-700 bg-gray-50 rounded p-2.5 border border-gray-100">
+                      {detail.adminNotes}
+                    </p>
+                  </div>
                 )}
               </div>
-              {detail.adminNotes && (
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Admin Notes</p>
-                  <p className="text-xs bg-white border border-gray-200 rounded p-2">{detail.adminNotes}</p>
-                </div>
-              )}
             </div>
+
+            {/* Submitted text data */}
+            {detail.submittedData && Object.keys(detail.submittedData).length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Submitted Information
+                </p>
+                <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100">
+                  {Object.entries(detail.submittedData).map(([label, value]) => (
+                    <div key={label} className="flex items-start gap-3 px-4 py-3 text-sm">
+                      <span className="text-gray-500 shrink-0 w-40 leading-tight">{label}</span>
+                      <span className="font-medium text-heading-700 flex-1 leading-tight">{value || '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Attachments */}
+            {detail.attachments && detail.attachments.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Attachments</p>
+                <AttachmentGrid attachments={detail.attachments} />
+              </div>
+            )}
 
             {/* Beneficiary statuses */}
             {beneficiaries.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Beneficiary Records</p>
-                <div className="space-y-1.5">
+                <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100">
                   {beneficiaries.map(b => (
-                    <div
-                      key={b.label}
-                      className="flex items-center justify-between text-sm bg-gray-50 rounded px-3 py-2"
-                    >
-                      <span className="text-gray-700">{b.label}</span>
+                    <div key={b.label} className="flex items-center justify-between px-4 py-3 text-sm">
+                      <span className="text-gray-700 font-medium">{b.label}</span>
                       <div className="flex items-center gap-2">
                         {b.idField && <span className="text-xs font-mono text-gray-500">{b.idField}</span>}
                         <Badge
@@ -242,6 +277,13 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
                 </div>
               </div>
             )}
+
+            {/* Footer */}
+            <div className="flex justify-end pt-2 border-t border-gray-100">
+              <Button variant="outline" onClick={onClose}>
+                Close
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>

@@ -11,6 +11,7 @@ import {
   reviewApplicationAdminController,
 } from '../controllers/portal-programs.controller';
 import { verifyAdmin, verifyResident } from '../middleware/auth';
+import { uploadProgramApplicationFiles } from '../middleware/upload';
 import { validate } from '../middleware/validation';
 
 const router = Router();
@@ -40,8 +41,13 @@ router.get('/programs/my/applications', verifyResident, getMyApplicationsControl
 // Get single program detail
 router.get('/programs/:id', verifyResident, getProgramController);
 
-// Apply for a program
-router.post('/programs/:id/apply', verifyResident, applyForProgramController);
+// Apply for a program (multipart: submittedData JSON + optional file uploads)
+router.post(
+  '/programs/:id/apply',
+  verifyResident,
+  uploadProgramApplicationFiles,
+  applyForProgramController
+);
 
 // Cancel a pending application
 router.delete('/programs/my/applications/:appId', verifyResident, cancelApplicationController);

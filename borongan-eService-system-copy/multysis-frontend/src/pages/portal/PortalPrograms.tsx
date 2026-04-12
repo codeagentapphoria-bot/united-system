@@ -6,6 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PortalLayout } from '@/components/layout/PortalLayout';
+import { ApplyForProgramModal } from '@/components/modals/government-programs';
+import { AttachmentGrid } from '@/components/common/AttachmentPreview';
 import { useToast } from '@/hooks/use-toast';
 import { useDebounce } from '@/hooks/useDebounce';
 import { cn } from '@/lib/utils';
@@ -19,6 +21,21 @@ import type { GovernmentProgramType } from '@/services/api/government-program.se
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+const REQ_TYPE_STYLES: Record<string, string> = {
+  file: 'bg-blue-100 text-blue-700',
+  text: 'bg-gray-100 text-gray-600',
+  textarea: 'bg-gray-100 text-gray-600',
+  number: 'bg-amber-100 text-amber-700',
+  email: 'bg-emerald-100 text-emerald-700',
+  tel: 'bg-teal-100 text-teal-700',
+  url: 'bg-indigo-100 text-indigo-700',
+  date: 'bg-purple-100 text-purple-700',
+  time: 'bg-purple-100 text-purple-700',
+  'datetime-local': 'bg-purple-100 text-purple-700',
+  month: 'bg-purple-100 text-purple-700',
+  week: 'bg-purple-100 text-purple-700',
+};
 
 const TYPE_LABELS: Record<GovernmentProgramType, string> = {
   SENIOR_CITIZEN: 'Senior Citizen',
@@ -67,10 +84,9 @@ const APPLICATION_STATUS_CONFIG: Record<string, { label: string; className: stri
 interface ProgramCardProps {
   program: PortalProgram;
   onApply: (program: PortalProgram) => void;
-  isApplying: boolean;
 }
 
-const ProgramCard: React.FC<ProgramCardProps> = ({ program, onApply, isApplying }) => {
+const ProgramCard: React.FC<ProgramCardProps> = ({ program, onApply }) => {
   const appStatus = program.applicationStatus;
   const statusConfig = appStatus ? APPLICATION_STATUS_CONFIG[appStatus] : null;
 
@@ -96,12 +112,45 @@ const ProgramCard: React.FC<ProgramCardProps> = ({ program, onApply, isApplying 
         </div>
 
         {/* Requirements */}
-        {program.requirements && (
-          <div className="bg-gray-50 rounded-md p-3 text-xs text-gray-600 whitespace-pre-line">
-            <p className="font-semibold text-gray-700 mb-1">Requirements:</p>
-            {program.requirements}
-          </div>
-        )}
+        {program.requirements &&
+          (() => {
+            let items: { type: string; label: string; required?: boolean }[] = [];
+            try {
+              const parsed = JSON.parse(program.requirements);
+              if (Array.isArray(parsed)) items = parsed;
+            } catch {
+              items = [{ type: 'text', label: program.requirements }];
+            }
+            return items.length > 0 ? (
+              <div className="rounded-lg border border-gray-100 overflow-hidden">
+                <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-100">
+                  <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Requirements</p>
+                </div>
+                <ul className="divide-y divide-gray-50">
+                  {items.map((req, i) => (
+                    <li key={i} className="flex items-center gap-2.5 px-3 py-2 bg-white">
+                      <span
+                        className={cn(
+                          'shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase',
+                          REQ_TYPE_STYLES[req.type] ?? 'bg-gray-100 text-gray-600'
+                        )}
+                      >
+                        {req.type}
+                      </span>
+                      <span className="text-sm text-gray-700 flex-1 leading-tight">{req.label}</span>
+                      {req.required ? (
+                        <span className="shrink-0 text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">
+                          Required
+                        </span>
+                      ) : (
+                        <span className="shrink-0 text-[10px] text-gray-400">Optional</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null;
+          })()}
 
         <div className="mt-auto pt-2 flex items-center justify-between gap-2">
           {/* Eligibility / application status pill */}
@@ -122,9 +171,8 @@ const ProgramCard: React.FC<ProgramCardProps> = ({ program, onApply, isApplying 
               size="sm"
               className="bg-primary-600 hover:bg-primary-700 text-white text-xs"
               onClick={() => onApply(program)}
-              disabled={isApplying}
             >
-              {isApplying ? 'Applying...' : 'Apply Now'}
+              Apply Now
             </Button>
           )}
         </div>
@@ -145,48 +193,120 @@ interface MyApplicationRowProps {
 
 const MyApplicationRow: React.FC<MyApplicationRowProps> = ({ application, onCancel, isCancelling }) => {
   const statusConfig = APPLICATION_STATUS_CONFIG[application.status];
+  const hasSubmittedData = application.submittedData && Object.keys(application.submittedData).length > 0;
+  const hasAttachments = application.attachments && application.attachments.length > 0;
+  const showAdminNote =
+    application.adminNotes && (application.status === 'approved' || application.status === 'rejected');
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-4 border-b border-gray-100 last:border-0">
-      <div className="flex-1">
-        <p className="font-medium text-heading-700">{application.program.name}</p>
-        <p className="text-xs text-gray-500 mt-0.5">
-          Applied{' '}
-          {new Date(application.appliedAt).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          })}
-        </p>
-        {application.adminNotes && application.status === 'rejected' && (
-          <p className="text-xs text-red-600 mt-1 flex items-start gap-1">
-            <FiAlertCircle size={12} className="mt-0.5 shrink-0" />
-            {application.adminNotes}
-          </p>
-        )}
-      </div>
+    <Card className="border border-gray-100 shadow-sm">
+      <CardContent className="p-4 space-y-3">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-heading-700 text-base leading-snug">{application.program.name}</p>
+            {application.program.description && (
+              <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{application.program.description}</p>
+            )}
+          </div>
+          {statusConfig && (
+            <Badge className={cn('flex items-center gap-1 text-xs shrink-0 mt-0.5', statusConfig.className)}>
+              {statusConfig.icon}
+              {statusConfig.label}
+            </Badge>
+          )}
+        </div>
 
-      <div className="flex items-center gap-2">
-        {statusConfig && (
-          <Badge className={cn('flex items-center gap-1 text-xs shrink-0', statusConfig.className)}>
-            {statusConfig.icon}
-            {statusConfig.label}
-          </Badge>
+        {/* Type badges */}
+        {application.program.types?.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {application.program.types.map(t => (
+              <span
+                key={t}
+                className="text-[10px] font-medium bg-primary-50 text-primary-700 border border-primary-100 px-2 py-0.5 rounded-full"
+              >
+                {TYPE_LABELS[t]}
+              </span>
+            ))}
+          </div>
         )}
 
-        {application.status === 'pending' && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onCancel(application.id)}
-            disabled={isCancelling}
-            className="text-red-600 border-red-200 hover:bg-red-50 text-xs"
+        {/* Dates */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+          <span>
+            Applied{' '}
+            {new Date(application.appliedAt).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            })}
+          </span>
+          {application.reviewedAt && (
+            <span>
+              Reviewed{' '}
+              {new Date(application.reviewedAt).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              })}
+            </span>
+          )}
+        </div>
+
+        {/* Admin note */}
+        {showAdminNote && (
+          <div
+            className={cn(
+              'rounded-md px-3 py-2 text-xs flex items-start gap-2',
+              application.status === 'rejected' ? 'bg-red-50 text-red-700' : 'bg-purple-50 text-purple-700'
+            )}
           >
-            Cancel
-          </Button>
+            <FiAlertCircle size={12} className="mt-0.5 shrink-0" />
+            <span>{application.adminNotes}</span>
+          </div>
         )}
-      </div>
-    </div>
+
+        {/* Submitted text data */}
+        {hasSubmittedData && (
+          <div className="rounded-lg border border-gray-100 overflow-hidden text-xs">
+            <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-100">
+              <p className="font-semibold text-gray-500 uppercase tracking-wide text-[11px]">Submitted Information</p>
+            </div>
+            <ul className="divide-y divide-gray-50">
+              {Object.entries(application.submittedData!).map(([label, value]) => (
+                <li key={label} className="flex gap-3 px-3 py-2 bg-white">
+                  <span className="text-gray-500 shrink-0 w-28">{label}</span>
+                  <span className="font-medium text-gray-700 flex-1">{value || '—'}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Attachments */}
+        {hasAttachments && (
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Attachments</p>
+            <AttachmentGrid attachments={application.attachments!} />
+          </div>
+        )}
+
+        {/* Cancel */}
+        {application.status === 'pending' && (
+          <div className="flex justify-end pt-1">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onCancel(application.id)}
+              disabled={isCancelling}
+              className="text-red-600 border-red-200 hover:bg-red-50 text-xs"
+            >
+              Cancel Application
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
@@ -204,7 +324,7 @@ export const PortalPrograms: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<GovernmentProgramType | 'all'>('all');
   const [localSearch, setLocalSearch] = useState('');
   const debouncedSearch = useDebounce(localSearch, 300);
-  const [applyingId, setApplyingId] = useState<string | null>(null);
+  const [applyModalProgram, setApplyModalProgram] = useState<PortalProgram | null>(null);
 
   // My applications tab state
   const [applications, setApplications] = useState<ProgramApplication[]>([]);
@@ -260,36 +380,27 @@ export const PortalPrograms: React.FC = () => {
     };
   }, []);
 
-  const handleApply = async (program: PortalProgram) => {
-    setApplyingId(program.id);
-    try {
-      await portalProgramsService.applyForProgram(program.id);
-      const [programsResult, updatedApps] = await Promise.all([
-        portalProgramsService.listPrograms({
-          search: debouncedSearch || undefined,
-          type: typeFilter,
-          page: pagination.page,
-          limit: 12,
-        }),
-        portalProgramsService.getMyApplications(),
-      ]);
-      setPrograms(programsResult.data);
-      setPagination({
-        page: programsResult.pagination.page,
-        totalPages: programsResult.pagination.totalPages,
-        total: programsResult.pagination.total,
-      });
-      setApplications(updatedApps);
-      toast({ title: 'Application submitted', description: `You applied for ${program.name}.` });
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Failed to apply',
-        description: error?.response?.data?.message || error.message || 'Something went wrong',
-      });
-    } finally {
-      setApplyingId(null);
-    }
+  const handleApply = (program: PortalProgram) => {
+    setApplyModalProgram(program);
+  };
+
+  const handleApplySuccess = async () => {
+    const [programsResult, updatedApps] = await Promise.all([
+      portalProgramsService.listPrograms({
+        search: debouncedSearch || undefined,
+        type: typeFilter,
+        page: pagination.page,
+        limit: 12,
+      }),
+      portalProgramsService.getMyApplications(),
+    ]);
+    setPrograms(programsResult.data);
+    setPagination({
+      page: programsResult.pagination.page,
+      totalPages: programsResult.pagination.totalPages,
+      total: programsResult.pagination.total,
+    });
+    setApplications(updatedApps);
   };
 
   const handleCancel = async (appId: string) => {
@@ -406,12 +517,7 @@ export const PortalPrograms: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {programs.map(program => (
-                  <ProgramCard
-                    key={program.id}
-                    program={program}
-                    onApply={handleApply}
-                    isApplying={applyingId === program.id}
-                  />
+                  <ProgramCard key={program.id} program={program} onApply={handleApply} />
                 ))}
               </div>
             )}
@@ -446,36 +552,39 @@ export const PortalPrograms: React.FC = () => {
           {/* My Applications Tab                                                 */}
           {/* ------------------------------------------------------------------ */}
           <TabsContent value="my-applications">
-            <Card>
-              <CardContent className="p-0">
-                {isLoadingApps ? (
-                  <div className="p-6 space-y-4">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="h-16 bg-gray-100 animate-pulse rounded" />
-                    ))}
-                  </div>
-                ) : applications.length === 0 ? (
-                  <div className="text-center py-16 text-gray-400">
-                    <FiRefreshCw size={40} className="mx-auto mb-3 opacity-50" />
-                    <p>You have not applied for any programs yet.</p>
-                  </div>
-                ) : (
-                  <div className="px-6 py-2">
-                    {applications.map(app => (
-                      <MyApplicationRow
-                        key={app.id}
-                        application={app}
-                        onCancel={handleCancel}
-                        isCancelling={cancellingId === app.id}
-                      />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {isLoadingApps ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-28 bg-gray-100 animate-pulse rounded-lg" />
+                ))}
+              </div>
+            ) : applications.length === 0 ? (
+              <div className="text-center py-16 text-gray-400">
+                <FiRefreshCw size={40} className="mx-auto mb-3 opacity-50" />
+                <p>You have not applied for any programs yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {applications.map(app => (
+                  <MyApplicationRow
+                    key={app.id}
+                    application={app}
+                    onCancel={handleCancel}
+                    isCancelling={cancellingId === app.id}
+                  />
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
+
+      <ApplyForProgramModal
+        open={!!applyModalProgram}
+        onClose={() => setApplyModalProgram(null)}
+        program={applyModalProgram}
+        onSuccess={handleApplySuccess}
+      />
     </PortalLayout>
   );
 };

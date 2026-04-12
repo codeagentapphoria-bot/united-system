@@ -22,12 +22,22 @@ export interface PortalProgramsListResponse {
   };
 }
 
+export interface ApplicationAttachment {
+  label: string;
+  filename: string;
+  url: string;
+  mimetype: string;
+  size: number;
+}
+
 export interface ProgramApplication {
   id: string;
   residentId: string;
   programId: string;
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   adminNotes?: string;
+  submittedData?: Record<string, string>;
+  attachments?: ApplicationAttachment[];
   appliedAt: string;
   reviewedAt?: string;
   program: {
@@ -69,6 +79,8 @@ export interface AdminProgramApplicationDetail {
   programId: string;
   status: string;
   adminNotes?: string;
+  submittedData?: Record<string, string>;
+  attachments?: ApplicationAttachment[];
   appliedAt: string;
   reviewedAt?: string;
   reviewedBy?: number;
@@ -135,8 +147,12 @@ export const portalProgramsService = {
     return response.data.data;
   },
 
-  async applyForProgram(id: string): Promise<ProgramApplication> {
-    const response = await api.post(`/portal/programs/${id}/apply`);
+  async applyForProgram(id: string, formData?: FormData): Promise<ProgramApplication> {
+    const response = await api.post(
+      `/portal/programs/${id}/apply`,
+      formData ?? {},
+      formData ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined
+    );
     return response.data.data;
   },
 
