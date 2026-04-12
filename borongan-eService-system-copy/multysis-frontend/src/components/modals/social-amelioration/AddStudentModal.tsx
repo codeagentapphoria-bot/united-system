@@ -46,6 +46,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
   const { activeGradeLevels } = useGradeLevels();
   const { getActiveProgramsByType } = useGovernmentPrograms();
   const {
+    filteredCitizens,
     isLoadingCitizens,
     localSearchQuery,
     setLocalSearchQuery,
@@ -164,6 +165,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
                 onSearchChange={setLocalSearchQuery}
                 selectedCitizen={selectedCitizen}
                 onCitizenSelect={setSelectedCitizen}
+                filteredCitizens={filteredCitizens}
                 gradeLevelOptions={gradeLevelOptions}
                 programOptions={programOptions}
                 reactSelectStyles={reactSelectStyles}

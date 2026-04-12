@@ -44,6 +44,7 @@ export const AddSeniorCitizenModal: React.FC<AddSeniorCitizenModalProps> = ({
   const navigate = useNavigate();
   const { getActiveProgramsByType } = useGovernmentPrograms();
   const {
+    filteredCitizens,
     isLoadingCitizens,
     localSearchQuery,
     setLocalSearchQuery,
@@ -176,6 +177,7 @@ export const AddSeniorCitizenModal: React.FC<AddSeniorCitizenModalProps> = ({
                 onSearchChange={setLocalSearchQuery}
                 selectedCitizen={selectedCitizen}
                 onCitizenSelect={setSelectedCitizen}
+                filteredCitizens={filteredCitizens}
                 existingBeneficiaries={existingBeneficiaries}
                 programOptions={programOptions}
                 reactSelectStyles={reactSelectStyles}

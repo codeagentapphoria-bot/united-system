@@ -44,6 +44,7 @@ export const AddSoloParentModal: React.FC<AddSoloParentModalProps> = ({
   const navigate = useNavigate();
   const { getActiveProgramsByType } = useGovernmentPrograms();
   const {
+    filteredCitizens,
     isLoadingCitizens,
     localSearchQuery,
     setLocalSearchQuery,
@@ -165,6 +166,7 @@ export const AddSoloParentModal: React.FC<AddSoloParentModalProps> = ({
                 onSearchChange={setLocalSearchQuery}
                 selectedCitizen={selectedCitizen}
                 onCitizenSelect={setSelectedCitizen}
+                filteredCitizens={filteredCitizens}
                 programOptions={programOptions}
                 reactSelectStyles={reactSelectStyles}
               />

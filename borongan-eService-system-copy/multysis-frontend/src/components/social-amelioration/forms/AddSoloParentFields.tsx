@@ -31,6 +31,7 @@ interface AddSoloParentFieldsProps {
   onSearchChange: (value: string) => void;
   selectedCitizen: any;
   onCitizenSelect: (citizen: any) => void;
+  filteredCitizens: any[];
   programOptions: Array<{ value: string; label: string }>;
   reactSelectStyles: any;
 }
@@ -42,6 +43,7 @@ export const AddSoloParentFields: React.FC<AddSoloParentFieldsProps> = ({
   onSearchChange,
   selectedCitizen,
   onCitizenSelect,
+  filteredCitizens,
   programOptions,
   reactSelectStyles,
 }) => {
@@ -65,6 +67,7 @@ export const AddSoloParentFields: React.FC<AddSoloParentFieldsProps> = ({
         selectedCitizen={selectedCitizen}
         onCitizenSelect={onCitizenSelect}
         onAddNewCitizen={onAddNewCitizen}
+        filteredCitizens={filteredCitizens}
         isLoading={isLoadingCitizens}
       />
 

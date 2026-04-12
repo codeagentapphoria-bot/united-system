@@ -30,6 +30,7 @@ interface AddPWDFieldsProps {
   onSearchChange: (value: string) => void;
   selectedCitizen: any;
   onCitizenSelect: (citizen: any) => void;
+  filteredCitizens: any[];
   programOptions: Array<{ value: string; label: string }>;
   reactSelectStyles: any;
 }
@@ -41,6 +42,7 @@ export const AddPWDFields: React.FC<AddPWDFieldsProps> = ({
   onSearchChange,
   selectedCitizen,
   onCitizenSelect,
+  filteredCitizens,
   programOptions,
   reactSelectStyles,
 }) => {
@@ -69,6 +71,7 @@ export const AddPWDFields: React.FC<AddPWDFieldsProps> = ({
         selectedCitizen={selectedCitizen}
         onCitizenSelect={onCitizenSelect}
         onAddNewCitizen={onAddNewCitizen}
+        filteredCitizens={filteredCitizens}
         isLoading={isLoadingCitizens}
       />
 

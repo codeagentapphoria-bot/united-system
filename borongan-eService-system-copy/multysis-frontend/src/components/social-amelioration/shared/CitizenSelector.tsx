@@ -6,9 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
-// Hooks
-import { useCitizenSearch } from './useCitizenSearch';
-
 // Utils
 import { cn } from '@/lib/utils';
 
@@ -21,6 +18,7 @@ interface CitizenSelectorProps {
   selectedCitizen: any;
   onCitizenSelect: (citizen: any) => void;
   onAddNewCitizen: () => void;
+  filteredCitizens: any[];
   isLoading?: boolean;
 }
 
@@ -30,9 +28,9 @@ export const CitizenSelector: React.FC<CitizenSelectorProps> = ({
   selectedCitizen,
   onCitizenSelect,
   onAddNewCitizen,
+  filteredCitizens,
   isLoading = false,
 }) => {
-  const { filteredCitizens, isLoadingCitizens } = useCitizenSearch();
 
   return (
     <div className="space-y-4">
@@ -63,7 +61,7 @@ export const CitizenSelector: React.FC<CitizenSelectorProps> = ({
         </div>
       </div>
 
-      {(isLoading || isLoadingCitizens) ? (
+      {isLoading ? (
         <div className="text-center py-4 text-gray-500">Loading citizens...</div>
       ) : filteredCitizens.length === 0 ? (
         <div className="text-center py-4 text-gray-500">

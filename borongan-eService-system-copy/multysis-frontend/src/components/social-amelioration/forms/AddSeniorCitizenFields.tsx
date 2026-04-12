@@ -26,6 +26,7 @@ interface AddSeniorCitizenFieldsProps {
   onSearchChange: (value: string) => void;
   selectedCitizen: any;
   onCitizenSelect: (citizen: any) => void;
+  filteredCitizens: any[];
   existingBeneficiaries?: any[];
   programOptions: Array<{ value: string; label: string }>;
   reactSelectStyles: any;
@@ -38,6 +39,7 @@ export const AddSeniorCitizenFields: React.FC<AddSeniorCitizenFieldsProps> = ({
   onSearchChange,
   selectedCitizen,
   onCitizenSelect,
+  filteredCitizens,
   existingBeneficiaries = [],
   programOptions,
   reactSelectStyles: _reactSelectStyles,
@@ -74,6 +76,7 @@ export const AddSeniorCitizenFields: React.FC<AddSeniorCitizenFieldsProps> = ({
         selectedCitizen={selectedCitizen}
         onCitizenSelect={onCitizenSelect}
         onAddNewCitizen={onAddNewCitizen}
+        filteredCitizens={filteredCitizens}
         isLoading={isLoadingCitizens}
       />
 

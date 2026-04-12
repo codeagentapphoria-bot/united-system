@@ -27,6 +27,7 @@ interface AddStudentFieldsProps {
   onSearchChange: (query: string) => void;
   selectedCitizen: any | null;
   onCitizenSelect: (citizen: any | null) => void;
+  filteredCitizens: any[];
   gradeLevelOptions: Array<{ value: string; label: string; description?: string }>;
   programOptions: Array<{ value: string; label: string }>;
   reactSelectStyles: any;
@@ -39,6 +40,7 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
   onSearchChange,
   selectedCitizen,
   onCitizenSelect,
+  filteredCitizens,
   gradeLevelOptions,
   programOptions,
   reactSelectStyles,
@@ -61,6 +63,7 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
         selectedCitizen={selectedCitizen}
         onCitizenSelect={onCitizenSelect}
         onAddNewCitizen={onAddNewCitizen}
+        filteredCitizens={filteredCitizens}
         isLoading={isLoadingCitizens}
       />
 
