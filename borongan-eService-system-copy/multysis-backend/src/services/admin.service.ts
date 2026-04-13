@@ -30,8 +30,9 @@ export const getAdminNotificationCounts = async (): Promise<AdminNotificationCou
 
   // HYPER-OPTIMIZATION: Fetch ALL counts in a single round-trip using raw SQL.
   // This avoids parallel independent count queries that each overhead the DB.
+  // Uses Promise.allSettled so one failing query doesn't crash the entire endpoint.
 
-  const [countsRaw, pendingAppsByServiceRaw] = await Promise.all([
+  const [countsResult, pendingAppsResult] = await Promise.allSettled([
     prisma.$queryRaw<
       {
         pending_citizens: number;
@@ -42,24 +43,34 @@ export const getAdminNotificationCounts = async (): Promise<AdminNotificationCou
     >`
       SELECT
         (SELECT CAST(COUNT(*) AS INTEGER) FROM residents WHERE status = 'pending') as pending_citizens,
-        (SELECT CAST(COUNT(*) AS INTEGER) FROM transactions WHERE update_request_status = 'PENDING_ADMIN') as pending_update_requests,
-        (SELECT CAST(COUNT(*) AS INTEGER) FROM transaction_notes WHERE is_read = false AND sender_type = 'RESIDENT') as unread_messages,
+        (SELECT CAST(COUNT(*) AS INTEGER) FROM transactions WHERE update_request_status = 'PENDING_ADMIN'::update_request_status) as pending_update_requests,
+        (SELECT CAST(COUNT(*) AS INTEGER) FROM transaction_notes WHERE is_read = false AND sender_type = 'RESIDENT'::transaction_note_sender_type) as unread_messages,
         (SELECT CAST(COUNT(*) AS INTEGER) FROM government_program_applications WHERE status = 'pending') as pending_program_applications
     `,
     // Get pending applications per service code
     prisma.$queryRaw<{ code: string; count: number }[]>`
       SELECT s.code, CAST(COUNT(t.id) AS INTEGER) as count
       FROM services s
-      LEFT JOIN transactions t ON s.id = t.service_id 
-      AND t.payment_status = (CASE 
-        WHEN s.payment_statuses->>0 IS NOT NULL THEN s.payment_statuses->>0 
-        ELSE 'PENDING' 
+      LEFT JOIN transactions t ON s.id = t.service_id
+      AND t.payment_status = (CASE
+        WHEN s.payment_statuses->>0 IS NOT NULL THEN s.payment_statuses->>0
+        ELSE 'PENDING'
       END)
       WHERE s.is_active = true
       GROUP BY s.code
       HAVING COUNT(t.id) > 0
     `,
   ]);
+
+  const countsRaw = countsResult.status === 'fulfilled' ? countsResult.value : [];
+  const pendingAppsByServiceRaw = pendingAppsResult.status === 'fulfilled' ? pendingAppsResult.value : [];
+
+  if (countsResult.status === 'rejected') {
+    console.error('[ADMIN] Notification counts query failed:', countsResult.reason);
+  }
+  if (pendingAppsResult.status === 'rejected') {
+    console.error('[ADMIN] Pending apps by service query failed:', pendingAppsResult.reason);
+  }
 
   const {
     pending_citizens,

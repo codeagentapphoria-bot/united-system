@@ -5,6 +5,7 @@ import {
   getSubscriberNotificationCounts,
   getDashboardStatistics,
 } from '../services/admin.service';
+import { addDevLog } from '../services/dev.service';
 
 export const getAdminNotificationCountsController = async (
   req: AuthRequest,
@@ -26,6 +27,11 @@ export const getAdminNotificationCountsController = async (
       data: counts,
     });
   } catch (error: any) {
+    console.error('[ADMIN] getAdminNotificationCounts error:', error);
+    addDevLog('error', 'Failed to get admin notification counts', {
+      error: error.message,
+      stack: error.stack,
+    });
     res.status(500).json({
       status: 'error',
       message: error.message || 'Failed to get notification counts',
@@ -54,6 +60,11 @@ export const getSubscriberNotificationCountsController = async (
       data: counts,
     });
   } catch (error: any) {
+    console.error('[ADMIN] getSubscriberNotificationCounts error:', error);
+    addDevLog('error', 'Failed to get subscriber notification counts', {
+      error: error.message,
+      stack: error.stack,
+    });
     res.status(500).json({
       status: 'error',
       message: error.message || 'Failed to get subscriber notification counts',
@@ -81,6 +92,11 @@ export const getDashboardStatisticsController = async (
       data: statistics,
     });
   } catch (error: any) {
+    console.error('[ADMIN] getDashboardStatistics error:', error);
+    addDevLog('error', 'Failed to get dashboard statistics', {
+      error: error.message,
+      stack: error.stack,
+    });
     res.status(500).json({
       status: 'error',
       message: error.message || 'Failed to get dashboard statistics',
