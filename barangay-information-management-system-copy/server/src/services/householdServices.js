@@ -1,8 +1,7 @@
 import logger from "../utils/logger.js";
 import { pool } from "../config/db.js";
 import { ApiError } from "../utils/apiError.js";
-import fs from "fs/promises";
-import path from "path";
+import { deleteFromSupabase, deleteMultipleFromSupabase } from "../utils/supabaseStorage.js";
 import {
   INSERT_HOUSEHOLD,
   UPDATE_HOUSEHOLD,
@@ -393,17 +392,12 @@ class Household {
             logger.debug(`  New images: ${JSON.stringify(newImages)}`);
             logger.debug(`  Images to delete: ${JSON.stringify(imagesToDelete)}`);
             
-            // Delete orphaned image files from uploads folder
-            for (const imagePath of imagesToDelete) {
-              try {
-                const fullPath = path.resolve(imagePath);
-                await fs.unlink(fullPath);
-                logger.info(`✅ Deleted orphaned household image: ${imagePath}`);
-              } catch (error) {
-                if (error.code !== "ENOENT") {
-                  logger.warn(`Failed to delete household image ${imagePath}:`, error);
-                }
-              }
+            // Delete orphaned image files from Supabase
+            try {
+              await deleteMultipleFromSupabase(imagesToDelete);
+              logger.info(`Deleted ${imagesToDelete.length} orphaned household images`);
+            } catch (error) {
+              logger.warn("Failed to delete household images from storage:", error);
             }
           } else {
             logger.debug(`No household images to clean up`);
@@ -448,17 +442,15 @@ class Household {
         [householdId]
       );
 
-      // Clean up household image files
+      // Clean up household image files from Supabase
       if (householdImages.rows.length > 0) {
         const images = householdImages.rows[0].household_image_path || [];
-        for (const imagePath of images) {
+        if (images.length > 0) {
           try {
-            await fs.unlink(path.resolve(imagePath));
-            logger.debug(`Deleted household image: ${imagePath}`);
+            await deleteMultipleFromSupabase(images);
+            logger.debug(`Deleted ${images.length} household images from storage`);
           } catch (error) {
-            if (error.code !== "ENOENT") {
-              logger.warn(`Failed to delete household image ${imagePath}:`, error);
-            }
+            logger.warn("Failed to delete household images from storage:", error);
           }
         }
       }

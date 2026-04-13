@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { getFileUrl } from '@/utils/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -170,7 +171,7 @@ const ArchivesForm = ({
         relateResident: archive.relate_resident || '',
       });
       if (archive.file_path) {
-        setFilePreview(`${import.meta.env.VITE_API_BASE_URL || '/api'}/${archive.file_path}`);
+        setFilePreview(getFileUrl(archive.file_path));
       }
     } else {
       resetForm();

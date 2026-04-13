@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (
     credentials:
-      | { username: string; password: string }    // portal resident
+      | { credential: string; password: string }   // portal resident
       | { email: string; password: string },       // admin
     isAdmin = false,
     isDev = false
@@ -92,7 +92,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         userData = user;
       } else {
         const { resident } = await authService.portalLogin(
-          credentials as { username: string; password: string }
+          credentials as { credential: string; password: string }
         );
 
         const firstName = resident.firstName || '';

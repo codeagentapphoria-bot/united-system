@@ -69,6 +69,47 @@ export const registerHousehold = async (
   }
 };
 
+// PUT /api/portal/household/:householdId
+export const editHousehold = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const residentId = req.user!.id;
+    const householdId = Number(req.params.householdId);
+    const {
+      houseNumber,
+      street,
+      housingType,
+      structureType,
+      electricity,
+      waterSource,
+      toiletFacility,
+      geom,
+      area,
+      householdImagePath,
+    } = req.body;
+
+    const data = await householdService.updateHousehold(residentId, householdId, {
+      houseNumber,
+      street,
+      housingType,
+      structureType,
+      electricity: electricity === true || electricity === 'true' || electricity === 'Yes',
+      waterSource,
+      toiletFacility,
+      geom: geom ?? null,
+      area: area != null ? Number(area) : null,
+      householdImagePath: householdImagePath ?? null,
+    });
+
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // POST /api/portal/household/:householdId/members
 export const addMember = async (
   req: AuthRequest,

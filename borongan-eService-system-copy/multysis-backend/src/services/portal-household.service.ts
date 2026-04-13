@@ -314,6 +314,99 @@ export async function registerHousehold(
   });
 }
 
+// ---------------------------------------------------------------------------
+// Input type for updating household info
+// ---------------------------------------------------------------------------
+export interface UpdateHouseholdInput {
+  houseNumber?: string | null;
+  street?: string | null;
+  housingType?: string | null;
+  structureType?: string | null;
+  electricity?: boolean;
+  waterSource?: string | null;
+  toiletFacility?: string | null;
+  geom?: { lat: number; lng: number } | null;
+  area?: number | null;
+  householdImagePath?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// PUT /:householdId — update household info (house head only)
+// ---------------------------------------------------------------------------
+export async function updateHousehold(
+  residentId: string,
+  householdId: number,
+  input: UpdateHouseholdInput
+) {
+  // Requester must be the house head
+  const householdRows = await prisma.$queryRaw<{ id: number; house_head: string }[]>`
+    SELECT id, house_head FROM households WHERE id = ${householdId}
+  `;
+  if (householdRows.length === 0) {
+    throw new CustomError('Household not found', 404);
+  }
+  if (householdRows[0].house_head !== residentId) {
+    throw new CustomError('Only the house head can edit the household', 403);
+  }
+
+  const {
+    houseNumber,
+    street,
+    housingType,
+    structureType,
+    electricity = false,
+    waterSource,
+    toiletFacility,
+    geom,
+    area,
+    householdImagePath,
+  } = input;
+
+  const geomSql = geom
+    ? Prisma.sql`ST_SetSRID(ST_MakePoint(${geom.lng}, ${geom.lat}), 4326)`
+    : Prisma.sql`NULL::geometry`;
+
+  const rows = await prisma.$queryRaw<any[]>`
+    UPDATE households SET
+      house_number          = ${houseNumber ?? null},
+      street                = ${street ?? null},
+      housing_type          = ${housingType ?? null},
+      structure_type        = ${structureType ?? null},
+      electricity           = ${electricity},
+      water_source          = ${waterSource ?? null},
+      toilet_facility       = ${toiletFacility ?? null},
+      geom                  = ${geomSql},
+      area                  = ${area ?? null},
+      household_image_path  = ${householdImagePath ? JSON.stringify([householdImagePath]) : '[]'}
+    WHERE id = ${householdId} AND house_head = ${residentId}
+    RETURNING
+      id, house_number, street, barangay_id, house_head,
+      housing_type, structure_type, electricity,
+      water_source, toilet_facility, area, household_image_path,
+      ST_Y(geom) AS geom_lat, ST_X(geom) AS geom_lng
+  `;
+
+  if (rows.length === 0) {
+    throw new CustomError('Failed to update household', 500);
+  }
+
+  // Invalidate cache for house head and all family members
+  await invalidateHouseholdCache(residentId);
+  const memberRows = await prisma.$queryRaw<{ family_member: string }[]>`
+    SELECT DISTINCT fm.family_member
+    FROM family_members fm
+    JOIN families f ON f.id = fm.family_id
+    WHERE f.household_id = ${householdId}
+  `;
+  for (const row of memberRows) {
+    if (row.family_member !== residentId) {
+      await invalidateHouseholdCache(row.family_member);
+    }
+  }
+
+  return rows[0];
+}
+
 /**
  * Invalidate household cache for a resident.
  * Call this when household data is modified.

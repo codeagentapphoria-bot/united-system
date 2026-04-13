@@ -67,7 +67,7 @@ router.put(
   "/:barangayId/barangay",
   ...allUsers,
   createUploader(
-    () => "uploads/barangays",
+    "barangays",
     [
       { name: "barangayLogoPath", maxCount: 1 },
       { name: "certificateBackgroundPath", maxCount: 1 },

@@ -70,6 +70,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import BulkIDPage from "@/pages/admin/municipality/BulkIDPage";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "";
+const resolveUrl = (p) => p?.startsWith("http") ? p : `${SERVER_URL}/${p}`;
 
 const SettingsPage = () => {
   const { user } = useAuth();
@@ -291,19 +292,19 @@ const SettingsPage = () => {
         if (municipalityData?.municipality_logo_path) {
           setImagePreviews((prev) => ({
             ...prev,
-            municipalityLogoPath: `${SERVER_URL}/${municipalityData.municipality_logo_path}`,
+            municipalityLogoPath: resolveUrl(municipalityData.municipality_logo_path),
           }));
         }
         if (municipalityData?.id_background_front_path) {
           setImagePreviews((prev) => ({
             ...prev,
-            idBackgroundFrontPath: `${SERVER_URL}/${municipalityData.id_background_front_path}`,
+            idBackgroundFrontPath: resolveUrl(municipalityData.id_background_front_path),
           }));
         }
         if (municipalityData?.id_background_back_path) {
           setImagePreviews((prev) => ({
             ...prev,
-            idBackgroundBackPath: `${SERVER_URL}/${municipalityData.id_background_back_path}`,
+            idBackgroundBackPath: resolveUrl(municipalityData.id_background_back_path),
           }));
         }
 
@@ -374,19 +375,19 @@ const SettingsPage = () => {
         if (barangay.barangay_logo_path) {
           setImagePreviews((prev) => ({
             ...prev,
-            logo: `${SERVER_URL}/${barangay.barangay_logo_path}`,
+            logo: resolveUrl(barangay.barangay_logo_path),
           }));
         }
         if (barangay.certificate_background_path) {
           setImagePreviews((prev) => ({
             ...prev,
-            certificate: `${SERVER_URL}/${barangay.certificate_background_path}`,
+            certificate: resolveUrl(barangay.certificate_background_path),
           }));
         }
         if (barangay.organizational_chart_path) {
           setImagePreviews((prev) => ({
             ...prev,
-            orgChart: `${SERVER_URL}/${barangay.organizational_chart_path}`,
+            orgChart: resolveUrl(barangay.organizational_chart_path),
           }));
         }
       }

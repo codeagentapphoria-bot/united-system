@@ -27,7 +27,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { PortalHeader } from '@/components/layout/PortalHeader';
 import api from '@/services/api/auth.service';
-import { Camera, Shield, Phone, Mail, Briefcase, GraduationCap, ChevronRight, Check } from 'lucide-react';
+import { Camera, UserRound, FileText, Shield, Phone, Mail, Briefcase, GraduationCap, ChevronRight, Check } from 'lucide-react';
 
 // =============================================================================
 // SCHEMAS
@@ -581,7 +581,7 @@ export const ResidentRegister: React.FC = () => {
                               <img src={photoPreview} alt="Profile" className="w-full h-full object-cover" />
                             ) : (
                               <div className="text-center p-2 group-hover:text-primary-500 transition-colors">
-                                <Camera className="w-8 h-8 text-gray-300 group-hover:text-primary-500" />
+                                <UserRound className="w-8 h-8 text-gray-300 group-hover:text-primary-500" />
                               </div>
                             )}
                           </div>
@@ -1534,7 +1534,7 @@ export const ResidentRegister: React.FC = () => {
                           </FormLabel>
                           {!idDocPreview ? (
                             <div
-                              className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-all"
+                              className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-all group"
                               onClick={() => document.getElementById('id-doc-upload')?.click()}
                             >
                               <Input
@@ -1554,6 +1554,7 @@ export const ResidentRegister: React.FC = () => {
                                   setIdDocPreview(base64);
                                 }}
                               />
+                              <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2 group-hover:text-primary-500 transition-colors" />
                               <p className="text-sm text-gray-500">Click to upload ID document</p>
                             </div>
                           ) : (
@@ -1590,7 +1591,7 @@ export const ResidentRegister: React.FC = () => {
                           </FormLabel>
                           {!selfiePreview ? (
                             <div
-                              className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-all"
+                              className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-all group"
                               onClick={() => document.getElementById('selfie-upload')?.click()}
                             >
                               <Input
@@ -1606,6 +1607,7 @@ export const ResidentRegister: React.FC = () => {
                                   setSelfiePreview(base64);
                                 }}
                               />
+                              <Camera className="w-8 h-8 text-gray-300 mx-auto mb-2 group-hover:text-primary-500 transition-colors" />
                               <p className="text-sm text-gray-500">Click to upload selfie with ID</p>
                             </div>
                           ) : (

@@ -1,3 +1,4 @@
 united-database/.env
 
 .claude/
+./logs/

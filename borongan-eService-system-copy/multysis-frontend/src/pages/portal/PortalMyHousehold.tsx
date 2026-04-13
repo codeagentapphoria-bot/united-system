@@ -11,7 +11,7 @@
  * VITE_API_BASE_URL) so the resident's auth cookie is always in scope.
  */
 
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -51,6 +51,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api/auth.service';
 import { PortalHeader } from '@/components/layout/PortalHeader';
+import { Home } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -139,6 +140,7 @@ export const PortalMyHousehold: React.FC = () => {
   const [householdImagePath, setHouseholdImagePath] = useState<string | null>(null);
   const [householdImagePreview, setHouseholdImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const householdImageRef = useRef<HTMLInputElement>(null);
 
   // Post-registration state
   const [household, setHousehold]           = useState<any>(null);
@@ -146,6 +148,13 @@ export const PortalMyHousehold: React.FC = () => {
   const [isSubmitting, setIsSubmitting]     = useState(false);
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [addMemberOpen, setAddMemberOpen]   = useState(false);
+  const [editOpen, setEditOpen]             = useState(false);
+  const [isEditing, setIsEditing]           = useState(false);
+  const [editLocation, setEditLocation]     = useState<HouseholdLocation | null>(null);
+  const [editImagePath, setEditImagePath]   = useState<string | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+  const [isUploadingEditImage, setIsUploadingEditImage] = useState(false);
+  const editImageRef = useRef<HTMLInputElement>(null);
 
   const residentId = (user as any)?.id;
   const isActive   = (user as any)?.status === 'active';
@@ -166,6 +175,11 @@ export const PortalMyHousehold: React.FC = () => {
   const postRegForm = useForm<PostRegAddMemberData>({
     resolver: zodResolver(postRegAddMemberSchema),
     defaultValues: { memberResidentId: '', relationshipToHead: '', familyGroup: 'Main Family' },
+  });
+
+  // Edit household form (reuses same schema as registration Step 1)
+  const editForm = useForm<HouseholdInfoData>({
+    resolver: zodResolver(householdInfoSchema),
   });
 
   useEffect(() => {
@@ -326,6 +340,93 @@ export const PortalMyHousehold: React.FC = () => {
   };
 
   // -------------------------------------------------------------------------
+  // Edit household
+  // -------------------------------------------------------------------------
+  const openEditDialog = () => {
+    if (!household) return;
+    editForm.reset({
+      houseNumber:    household.house_number ?? '',
+      street:         household.street ?? '',
+      housingType:    household.housing_type ?? '',
+      structureType:  household.structure_type ?? '',
+      electricity:    household.electricity === true ? 'Yes' : household.electricity === false ? 'No' : '',
+      waterSource:    household.water_source ?? '',
+      toiletFacility: household.toilet_facility ?? '',
+      area:           household.area != null ? String(household.area) : '',
+    });
+    if (household.geom_lat != null && household.geom_lng != null) {
+      setEditLocation({ lat: Number(household.geom_lat), lng: Number(household.geom_lng) });
+    } else {
+      setEditLocation(null);
+    }
+    // Pre-fill existing image
+    try {
+      const images = typeof household.household_image_path === 'string'
+        ? JSON.parse(household.household_image_path)
+        : household.household_image_path;
+      if (Array.isArray(images) && images.length > 0) {
+        const url = images[0].startsWith('http') ? images[0] : `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') ?? ''}${images[0]}`;
+        setEditImagePreview(url);
+        setEditImagePath(images[0]);
+      } else {
+        setEditImagePreview(null);
+        setEditImagePath(null);
+      }
+    } catch {
+      setEditImagePreview(null);
+      setEditImagePath(null);
+    }
+    setEditOpen(true);
+  };
+
+  const handleEditImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setEditImagePreview(URL.createObjectURL(file));
+    setIsUploadingEditImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post('/upload/households/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setEditImagePath(res.data.data.path);
+    } catch {
+      toast({ variant: 'destructive', title: 'Image upload failed' });
+      setEditImagePath(null);
+    } finally {
+      setIsUploadingEditImage(false);
+    }
+  };
+
+  const handleEditSubmit = async (data: HouseholdInfoData) => {
+    if (!household?.id) return;
+    setIsEditing(true);
+    try {
+      await api.put(`/portal/household/${household.id}`, {
+        houseNumber:        data.houseNumber || null,
+        street:             data.street || null,
+        housingType:        data.housingType || null,
+        structureType:      data.structureType || null,
+        electricity:        data.electricity === 'Yes',
+        waterSource:        data.waterSource || null,
+        toiletFacility:     data.toiletFacility || null,
+        area:               data.area ? parseFloat(data.area) : null,
+        geom:               editLocation ?? null,
+        householdImagePath: editImagePath ?? null,
+      });
+      toast({ title: 'Household updated successfully!' });
+      setEditOpen(false);
+      loadHousehold();
+    } catch (error: any) {
+      const message = error.response?.data?.message ?? error.message;
+      toast({ variant: 'destructive', title: 'Update failed', description: message });
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  // -------------------------------------------------------------------------
   // Guards
   // -------------------------------------------------------------------------
   if (!isActive) {
@@ -434,8 +535,13 @@ export const PortalMyHousehold: React.FC = () => {
 
         {/* Household Information */}
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base">Household Information</CardTitle>
+            {isHead && (
+              <Button size="sm" variant="outline" onClick={openEditDialog}>
+                Edit
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
@@ -478,7 +584,7 @@ export const PortalMyHousehold: React.FC = () => {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Photo</p>
                       <img
-                        src={`${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') ?? ''}${images[0]}`}
+                        src={images[0].startsWith('http') ? images[0] : `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') ?? ''}${images[0]}`}
                         alt="Household"
                         className="h-48 w-full rounded-md object-cover border"
                       />
@@ -627,6 +733,213 @@ export const PortalMyHousehold: React.FC = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Edit Household Dialog */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Household Information</DialogTitle>
+            </DialogHeader>
+            <Form {...editForm}>
+              <form className="space-y-4" onSubmit={editForm.handleSubmit(handleEditSubmit)}>
+                {/* Address */}
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Address</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={editForm.control}
+                    name="houseNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>House / Lot No.</FormLabel>
+                        <FormControl><Input {...field} placeholder="e.g. 12" /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="street"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Street</FormLabel>
+                        <FormControl><Input {...field} placeholder="e.g. Rizal St." /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <Separator />
+
+                {/* Housing Details */}
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Housing Details</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={editForm.control}
+                    name="area"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Area (sqm)</FormLabel>
+                        <FormControl><Input {...field} type="number" min="0" placeholder="e.g. 60" /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={editForm.control}
+                    name="housingType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Housing Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            {HOUSING_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="structureType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Structure Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            {STRUCTURE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <Separator />
+
+                {/* Utilities */}
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Utilities</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={editForm.control}
+                    name="electricity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Electricity</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="Yes">Yes</SelectItem>
+                            <SelectItem value="No">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="waterSource"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Water Source</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            {WATER_SOURCES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={editForm.control}
+                  name="toiletFacility"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Toilet Facility</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {TOILET_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+
+                <Separator />
+
+                {/* Location */}
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Household Location</p>
+                <Suspense fallback={<div className="h-72 rounded-md border bg-muted flex items-center justify-center text-sm text-muted-foreground">Loading map…</div>}>
+                  <HouseholdMapPicker
+                    barangayId={household.barangay_id}
+                    value={editLocation}
+                    onChange={setEditLocation}
+                  />
+                </Suspense>
+
+                <Separator />
+
+                {/* Household Photo */}
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Household Photo</p>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Photo of Household (optional)</label>
+                  {!editImagePreview ? (
+                    <div
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-all group"
+                      onClick={() => editImageRef.current?.click()}
+                    >
+                      <input
+                        ref={editImageRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEditImageChange}
+                        disabled={isUploadingEditImage}
+                        className="hidden"
+                      />
+                      <Home className="w-8 h-8 text-gray-300 mx-auto mb-2 group-hover:text-primary-500 transition-colors" />
+                      <p className="text-sm text-gray-500">
+                        {isUploadingEditImage ? 'Uploading...' : 'Click to upload household photo'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="relative border rounded-lg p-2">
+                      <img
+                        src={editImagePreview}
+                        alt="Household preview"
+                        className="h-40 w-full rounded-md object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditImagePreview(null);
+                          setEditImagePath(null);
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button type="button" variant="outline" className="flex-1" onClick={() => setEditOpen(false)} disabled={isEditing}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="flex-1" disabled={isEditing || isUploadingEditImage}>
+                    {isEditing ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
             </div>
           </main>
         </div>
@@ -901,22 +1214,44 @@ export const PortalMyHousehold: React.FC = () => {
                 </p>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Photo of Household (optional)</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    disabled={isUploadingImage}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 disabled:opacity-50"
-                  />
-                  {isUploadingImage && (
-                    <p className="text-xs text-muted-foreground">Uploading image...</p>
-                  )}
-                  {householdImagePreview && (
-                    <img
-                      src={householdImagePreview}
-                      alt="Household preview"
-                      className="h-40 w-full rounded-md object-cover border"
-                    />
+                  {!householdImagePreview ? (
+                    <div
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-all group"
+                      onClick={() => householdImageRef.current?.click()}
+                    >
+                      <input
+                        ref={householdImageRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        disabled={isUploadingImage}
+                        className="hidden"
+                      />
+                      <Home className="w-8 h-8 text-gray-300 mx-auto mb-2 group-hover:text-primary-500 transition-colors" />
+                      <p className="text-sm text-gray-500">
+                        {isUploadingImage ? 'Uploading...' : 'Click to upload household photo'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="relative border rounded-lg p-2">
+                      <img
+                        src={householdImagePreview}
+                        alt="Household preview"
+                        className="h-40 w-full rounded-md object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHouseholdImagePreview(null);
+                          setHouseholdImagePath(null);
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                   )}
                 </div>
 

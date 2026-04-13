@@ -588,18 +588,7 @@ const PetQRScanner = () => {
 
   const handleSelectPet = (pet) => {
     // Convert API pet data to QR code format with UUID
-    // Ensure picture_path is a relative path (API returns relative paths)
-    let picturePath = pet.picture_path;
-    // If the API returns a full URL, extract just the path part
-    if (picturePath && (picturePath.startsWith('http://') || picturePath.startsWith('https://'))) {
-      try {
-        const url = new URL(picturePath);
-        picturePath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
-      } catch (e) {
-        // If URL parsing fails, keep original
-        console.warn('Failed to parse picture_path URL:', picturePath);
-      }
-    }
+    const picturePath = pet.picture_path;
     
     const petData = {
       uuid: pet.uuid, // Primary identifier for security
@@ -783,7 +772,7 @@ const PetQRScanner = () => {
                               <div className="flex items-center gap-3">
                                 {pet.picture_path ? (
                                   <img
-                                    src={`${import.meta.env.VITE_SERVER_URL || ""}/${pet.picture_path}`}
+                                    src={pet.picture_path.startsWith('http') ? pet.picture_path : `${import.meta.env.VITE_SERVER_URL || ""}/${pet.picture_path}`}
                                     alt={pet.pet_name}
                                     className="w-12 h-12 rounded-full object-cover"
                                     onError={(e) => {

@@ -1,8 +1,7 @@
 import { pool } from "../config/db.js";
 import logger from "../utils/logger.js";
 import { ApiError } from "../utils/apiError.js";
-import fs from "fs/promises";
-import path from "path";
+import { deleteFromSupabase } from "../utils/supabaseStorage.js";
 import {
   INSERT_PET,
   UPDATE_PET,
@@ -120,10 +119,9 @@ class Pet {
         currentPet.picture_path !== picturePath
       ) {
         try {
-          await fs.unlink(path.resolve(currentPet.picture_path));
+          await deleteFromSupabase(currentPet.picture_path);
         } catch (error) {
-          if (error.code !== "ENOENT")
-            logger.warn("Failed to delete pet picture", error);
+          logger.warn("Failed to delete pet picture from storage", error);
         }
       }
 
@@ -152,10 +150,9 @@ class Pet {
       // Remove picture file
       if (picturePath) {
         try {
-          await fs.unlink(path.resolve(picturePath));
+          await deleteFromSupabase(picturePath);
         } catch (error) {
-          if (error.code !== "ENOENT")
-            logger.warn("Failed to delete pet picture", error);
+          logger.warn("Failed to delete pet picture from storage", error);
         }
       }
       await client.query("COMMIT");
@@ -190,9 +187,7 @@ class Pet {
                    CONCAT(r.first_name, ' ', r.last_name) AS owner_name,
                    r.contact_number AS owner_contact,
                    b.barangay_name,
-                   CASE WHEN p.picture_path IS NOT NULL THEN CONCAT('${
-                     process.env.BASE_URL || "http://localhost:5000"
-                   }/', p.picture_path) ELSE NULL END AS picture_path
+                   p.picture_path
                    FROM pets p
                    LEFT JOIN residents r ON p.owner_id = r.id
                    LEFT JOIN barangays b ON r.barangay_id = b.id`;
@@ -309,14 +304,7 @@ class Pet {
       const result = await client.query(PET_INFO, [petId]);
       const pet = result.rows[0];
 
-      // Add full URL to picture_path if it exists
-      if (pet && pet.picture_path) {
-        pet.picture_path = `${
-          process.env.BASE_URL || "http://localhost:5000"
-        }/${pet.picture_path}`;
-      }
-
-      return pet;
+      return result.rows[0];
     } catch (error) {
       logger.error("Error fetching pet info:", error);
       throw new ApiError(500, "Failed to fetch pet info");
@@ -330,13 +318,6 @@ class Pet {
     try {
       const result = await client.query(PET_INFO_BY_UUID, [petUuid]);
       const pet = result.rows[0];
-
-      // Add full URL to picture_path if it exists
-      if (pet && pet.picture_path) {
-        pet.picture_path = `${
-          process.env.BASE_URL || "http://localhost:5000"
-        }/${pet.picture_path}`;
-      }
 
       return pet;
     } catch (error) {
@@ -364,9 +345,7 @@ class Pet {
           p.description,
           CONCAT(r.first_name, ' ', r.last_name) AS owner_name,
           r.id AS owner_id,
-          CASE WHEN p.picture_path IS NOT NULL THEN CONCAT('${
-            process.env.BASE_URL || "http://localhost:5000"
-          }/', p.picture_path) ELSE NULL END AS picture_path
+          p.picture_path
         FROM pets p
         LEFT JOIN residents r ON p.owner_id = r.id
         WHERE r.id IN (
@@ -412,9 +391,7 @@ class Pet {
           CONCAT(r.first_name, ' ', r.last_name) AS owner_name,
           r.contact_number AS owner_contact,
           r.id AS owner_id,
-          CASE WHEN p.picture_path IS NOT NULL THEN CONCAT('${
-            process.env.BASE_URL || "http://localhost:5000"
-          }/', p.picture_path) ELSE NULL END AS picture_path
+          p.picture_path
         FROM pets p
         LEFT JOIN residents r ON p.owner_id = r.id
         WHERE p.owner_id = $1

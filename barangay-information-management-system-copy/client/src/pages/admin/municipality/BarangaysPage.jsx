@@ -376,11 +376,12 @@ const BarangaysPage = () => {
       const response = await api.get(`/public/${barangayId}/barangay`);
       const barangay = response.data.data;
       if (barangay.organizational_chart_path) {
-        const SERVER_URL = import.meta.env.VITE_SERVER_URL || "";
-        setOrgChartPaths(prev => ({
-          ...prev,
-          [barangayId]: `${SERVER_URL}/${barangay.organizational_chart_path}`
-        }));
+        if (barangay.organizational_chart_path.startsWith('http')) {
+          setOrgChartPaths(prev => ({ ...prev, [barangayId]: barangay.organizational_chart_path }));
+        } else {
+          const SERVER_URL = import.meta.env.VITE_SERVER_URL || "";
+          setOrgChartPaths(prev => ({ ...prev, [barangayId]: `${SERVER_URL}/${barangay.organizational_chart_path}` }));
+        }
       } else {
         setOrgChartPaths(prev => ({ ...prev, [barangayId]: null }));
       }

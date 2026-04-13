@@ -1,8 +1,7 @@
 import { pool } from '../config/db.js';
 import logger from '../utils/logger.js';
 import { ApiError } from '../utils/apiError.js';
-import fs from 'fs/promises';
-import path from 'path';
+import { deleteFromSupabase } from '../utils/supabaseStorage.js';
 import {
   INSERT_ARCHIVE,
   UPDATE_ARCHIVE,
@@ -82,9 +81,9 @@ class Archive {
       // Remove old file if changed
       if (oldFile && oldFile !== filePath) {
         try {
-          await fs.unlink(path.resolve(oldFile));
+          await deleteFromSupabase(oldFile);
         } catch (error) {
-          if (error.code !== 'ENOENT') logger.warn('Failed to delete archive file', error);
+          logger.warn('Failed to delete archive file from storage', error);
         }
       }
       await client.query('COMMIT');
@@ -110,9 +109,9 @@ class Archive {
       // Remove file
       if (filePath) {
         try {
-          await fs.unlink(path.resolve(filePath));
+          await deleteFromSupabase(filePath);
         } catch (error) {
-          if (error.code !== 'ENOENT') logger.warn('Failed to delete archive file', error);
+          logger.warn('Failed to delete archive file from storage', error);
         }
       }
       await client.query('COMMIT');

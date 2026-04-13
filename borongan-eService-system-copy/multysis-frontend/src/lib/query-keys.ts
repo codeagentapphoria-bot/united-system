@@ -73,11 +73,6 @@ export const queryKeys = {
     admin: ['notifications', 'admin'] as const,
   },
 
-  portalPrograms: {
-    all: ['portalPrograms'] as const,
-    list: (params?: Record<string, unknown>) => ['portalPrograms', 'list', params] as const,
-    myApplications: ['portalPrograms', 'myApplications'] as const,
-  },
 };
 
 export default queryKeys;
