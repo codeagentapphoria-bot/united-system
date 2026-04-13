@@ -106,7 +106,7 @@ export const authService = {
   // ---------------------------------------------------------------------------
   // Portal login (username + password)
   // ---------------------------------------------------------------------------
-  async portalLogin(credentials: { username: string; password: string }): Promise<{ resident: any; token: string }> {
+  async portalLogin(credentials: { credential: string; password: string }): Promise<{ resident: any; token: string }> {
     if (IS_MOCK) {
       const mockResident = {
         id: 'mock-resident-1',
