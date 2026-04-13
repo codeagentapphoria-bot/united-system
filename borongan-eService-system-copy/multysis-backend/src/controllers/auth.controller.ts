@@ -98,15 +98,15 @@ export const adminLoginController = async (req: Request, res: Response): Promise
 };
 
 // =============================================================================
-// PORTAL LOGIN  (username + password)
+// PORTAL LOGIN  (username or email + password)
 // =============================================================================
 
 export const portalLoginController = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username, password } = req.body;
+    const { credential, password } = req.body;
     const device = getDeviceInfo(req);
 
-    const result = await portalLogin({ username, password, ...device });
+    const result = await portalLogin({ credential, password, ...device });
 
     setAccessTokenCookie(res, result.token);
     setRefreshTokenCookie(res, result.refreshToken);
@@ -125,7 +125,7 @@ export const portalLoginController = async (req: Request, res: Response): Promis
 
     res.status(200).json({ status: 'success', data: { resident: result.resident } });
   } catch (error: any) {
-    logFailedLogin(req.body?.username || 'unknown', req, error.message || 'Invalid credentials');
+    logFailedLogin(req.body?.credential || 'unknown', req, error.message || 'Invalid credentials');
     res.status(401).json({ status: 'error', message: error.message || 'Invalid credentials' });
   }
 };

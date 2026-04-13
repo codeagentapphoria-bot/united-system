@@ -55,22 +55,22 @@ const HouseholdImagesForm = ({
       }
 
       // Transform existing images to the format expected by the form
-      const transformedImages = householdImages.map((image, index) => ({
-        id: `existing-${index}`,
-        filename:
-          typeof image === "string"
-            ? image
-            : image.filename || image.path || image,
-        preview: `${
-          import.meta.env.VITE_SERVER_URL || ""
-        }/uploads/households/${
-          typeof image === "string"
-            ? image
-            : image.filename || image.path || image
-        }`,
-        isNew: false,
-        isExisting: true,
-      }));
+      const transformedImages = householdImages.map((image, index) => {
+        const raw = typeof image === "string" ? image : image.filename || image.path || image;
+        let preview;
+        if (typeof raw === "string" && raw.startsWith("http")) {
+          preview = raw;
+        } else {
+          preview = `${import.meta.env.VITE_SERVER_URL || ""}/uploads/households/${raw}`;
+        }
+        return {
+          id: `existing-${index}`,
+          filename: raw,
+          preview,
+          isNew: false,
+          isExisting: true,
+        };
+      });
 
       setImages(transformedImages);
       form.setValue("images", transformedImages);

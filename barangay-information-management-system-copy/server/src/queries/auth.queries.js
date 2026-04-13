@@ -9,11 +9,8 @@ export const FIND_USER_BY_EMAIL = `
     role, 
     reset_token, 
     reset_token_expiry,
-    CASE 
-      WHEN picture_path IS NOT NULL THEN CONCAT('${process.env.BASE_URL || "http://localhost:5000"}/', picture_path)
-      ELSE NULL 
-    END as picture_path
-  FROM bims_users 
+    picture_path
+  FROM bims_users
   WHERE email = $1
 `;
 
@@ -26,11 +23,8 @@ export const FIND_USER_BY_ID = `
     target_type, 
     target_id, 
     role,
-    CASE 
-      WHEN picture_path IS NOT NULL THEN CONCAT('${process.env.BASE_URL || "http://localhost:5000"}/', picture_path)
-      ELSE NULL 
-    END as picture_path
-  FROM bims_users 
+    picture_path
+  FROM bims_users
   WHERE id = $1
 `;
 

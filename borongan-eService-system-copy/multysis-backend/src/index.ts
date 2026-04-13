@@ -127,6 +127,8 @@ _allowedOrigins.forEach((o) => {
 if (apiBaseUrl) {
   imgSources.push(apiBaseUrl);
 }
+// Allow Supabase Storage images
+imgSources.push('https://exahyuahguriwrkkeuvm.supabase.co');
 
 // Build WebSocket sources for CSP - allow WebSocket connections
 // Helper function to add HTTP/HTTPS and WebSocket versions of a URL
@@ -423,17 +425,6 @@ app.use('/api/exemptions', apiLimiter, exemptionRoutes);
 app.use('/api/payments', apiLimiter, paymentRoutes);
 app.use('/api/tax-reassessment', apiLimiter, taxReassessmentRoutes);
 app.use('/api/tax', apiLimiter, taxPreviewRoutes);
-
-// Serve uploaded files with CORS headers
-app.use(
-  '/uploads',
-  (_req, res, next) => {
-    res.header('Access-Control-Allow-Origin', corsOrigin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    next();
-  },
-  express.static('uploads')
-);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

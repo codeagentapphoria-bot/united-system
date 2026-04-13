@@ -1,5 +1,4 @@
-import fs from "fs/promises";
-import path from "path";
+import { deleteMultipleFromSupabase } from "../utils/supabaseStorage.js";
 import { pool } from "../config/db.js";
 import logger from "../utils/logger.js";
 import {
@@ -107,12 +106,11 @@ class Municipality {
         pathToDelete.push(oldIdBackgroundBackPath);
       }
 
-      for (const filePath of pathToDelete) {
+      if (pathToDelete.length > 0) {
         try {
-          await fs.unlink(path.resolve(filePath));
+          await deleteMultipleFromSupabase(pathToDelete);
         } catch (error) {
-          if (error.code !== "ENOENT")
-            logger.warn("Failed to delete old logo file", error);
+          logger.warn("Failed to delete old municipality files from storage", error);
         }
       }
 

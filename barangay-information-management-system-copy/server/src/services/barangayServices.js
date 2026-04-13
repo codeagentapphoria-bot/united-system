@@ -1,7 +1,7 @@
-import fs from "fs/promises";
-import path from "path";
+import fs from "fs";
 import { pool } from "../config/db.js";
 import logger from "../utils/logger.js";
+import { deleteMultipleFromSupabase } from "../utils/supabaseStorage.js";
 import {
   INSERT_BARANGAY,
   UPDATE_BARANGAY,
@@ -207,13 +207,11 @@ class Barangay {
         pathsToDelete.push(current.organizational_chart_path);
       }
 
-      for (const filePath of pathsToDelete) {
+      if (pathsToDelete.length > 0) {
         try {
-          await fs.unlink(path.resolve(filePath));
+          await deleteMultipleFromSupabase(pathsToDelete);
         } catch (err) {
-          if (err.code !== "ENOENT") {
-            logger.warn(`Failed to delete old file at ${filePath}:`, err);
-          }
+          logger.warn("Failed to delete old barangay files from storage:", err);
         }
       }
 
@@ -1196,19 +1194,6 @@ class Barangay {
 
       // Add the Excel file as a virtual file
       archive.append(excelBuffer, { name: "barangay_data.xlsx" });
-
-      // Add uploaded files if they exist
-      try {
-        const uploadsDir = path.join(process.cwd(), "uploads");
-        if (fs.existsSync(uploadsDir)) {
-          archive.directory(uploadsDir, "uploads");
-        }
-      } catch (error) {
-        logger.warn(
-          "Could not add uploads directory to archive:",
-          error.message
-        );
-      }
 
       // Finalize and collect the ZIP buffer
       await archive.finalize();

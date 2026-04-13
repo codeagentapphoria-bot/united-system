@@ -73,10 +73,6 @@ ApiKeyModel.ensureTable().catch((e) => {
   console.error("Failed to ensure api_keys table:", e?.message);
 });
 
-// Serve the uploads folder
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use("/api/uploads", express.static(path.join(__dirname, "uploads")));
-
 // =============================================================================
 // Routes
 // =============================================================================

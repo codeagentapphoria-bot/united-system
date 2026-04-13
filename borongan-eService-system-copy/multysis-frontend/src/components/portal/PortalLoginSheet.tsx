@@ -40,7 +40,7 @@ import { FiLock, FiLogIn, FiUser } from 'react-icons/fi';
 import { supabase } from '@/lib/supabase';
 
 const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
+  credential: z.string().min(1, 'Username or email is required'),
   password: z.string().min(1, 'Password is required'),
 });
 type LoginInput = z.infer<typeof loginSchema>;
@@ -62,7 +62,7 @@ export const PortalLoginSheet: React.FC<PortalLoginSheetProps> = ({
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { username: '', password: '' },
+    defaultValues: { credential: '', password: '' },
   });
 
   // Reset form when sheet closes
@@ -75,7 +75,7 @@ export const PortalLoginSheet: React.FC<PortalLoginSheetProps> = ({
   const handleSubmit = async (data: LoginInput) => {
     setIsLoading(true);
     try {
-      await login({ username: data.username, password: data.password });
+      await login({ credential: data.credential, password: data.password });
       toast({ title: 'Welcome back!' });
       form.reset();
       closeLoginSheet();
@@ -84,7 +84,7 @@ export const PortalLoginSheet: React.FC<PortalLoginSheetProps> = ({
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: err.message || 'Invalid username or password',
+        description: err.message || 'Invalid username/email or password',
       });
     } finally {
       setIsLoading(false);
@@ -138,14 +138,14 @@ export const PortalLoginSheet: React.FC<PortalLoginSheetProps> = ({
               <form className="space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
                 <FormField
                   control={form.control}
-                  name="username"
+                  name="credential"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-base font-medium text-heading-700">Username</FormLabel>
+                      <FormLabel className="text-base font-medium text-heading-700">Username or Email</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-heading-400" size={20} />
-                          <Input {...field} placeholder="Enter your username" disabled={isLoading} className="h-12 text-base pl-10" />
+                          <Input {...field} placeholder="Enter your username or email" disabled={isLoading} className="h-12 text-base pl-10" />
                         </div>
                       </FormControl>
                       <FormMessage />

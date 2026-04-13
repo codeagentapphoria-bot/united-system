@@ -1,4 +1,3 @@
-import fs from 'fs';
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 
@@ -34,7 +33,8 @@ import {
   listProgramsForResident,
   reviewApplicationAdmin,
 } from '../services/portal-programs.service';
-import { getFileUrl, validateFileContent } from '../middleware/upload';
+import { uploadFileToSupabase, validateFileContent } from '../middleware/upload';
+import { deleteMultipleFromSupabase } from '../utils/supabaseStorage';
 
 const ALLOWED_APPLICATION_MIMES = [
   'application/pdf',
@@ -98,37 +98,38 @@ export const applyForProgramController = async (req: AuthRequest, res: Response)
       }
     }
 
-    // Validate uploaded files with magic-byte check; reject and clean up on failure
+    // Validate uploaded files with magic-byte check
     const uploadedFiles = (req.files as Express.Multer.File[]) ?? [];
+    const uploadedUrls: string[] = [];
+
     for (const f of uploadedFiles) {
-      const valid = await validateFileContent(f.path, ALLOWED_APPLICATION_MIMES);
+      const valid = await validateFileContent(f.buffer, ALLOWED_APPLICATION_MIMES);
       if (!valid) {
-        // Clean up all files from this request before rejecting
-        for (const file of uploadedFiles) {
-          try {
-            fs.unlinkSync(file.path);
-          } catch {
-            /* best effort */
-          }
+        // Clean up already-uploaded files from Supabase
+        if (uploadedUrls.length > 0) {
+          await deleteMultipleFromSupabase(uploadedUrls);
         }
-        res
-          .status(400)
-          .json({
-            status: 'error',
-            message: `File "${f.originalname}" has an invalid or unsupported format`,
-          });
+        res.status(400).json({
+          status: 'error',
+          message: `File "${f.originalname}" has an invalid or unsupported format`,
+        });
         return;
       }
     }
 
-    // Build attachments from uploaded files (fieldname = requirement label)
-    const attachments = uploadedFiles.map((f) => ({
-      label: f.fieldname,
-      filename: f.originalname,
-      url: getFileUrl(f.path),
-      mimetype: f.mimetype,
-      size: f.size,
-    }));
+    // Upload all validated files to Supabase and build attachments
+    const attachments = [];
+    for (const f of uploadedFiles) {
+      const url = await uploadFileToSupabase(f, 'program-applications', 'app');
+      uploadedUrls.push(url);
+      attachments.push({
+        label: f.fieldname,
+        filename: f.originalname,
+        url,
+        mimetype: f.mimetype,
+        size: f.size,
+      });
+    }
 
     const application = await applyForProgram(residentId, id, { submittedData, attachments });
     res.status(201).json({ status: 'success', data: application });

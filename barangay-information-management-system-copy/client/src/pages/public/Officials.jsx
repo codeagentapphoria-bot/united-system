@@ -69,9 +69,12 @@ const Officials = () => {
       const response = await api.get(`/public/${selectedBarangay.id}/barangay`);
       const barangay = response.data.data;
       if (barangay.organizational_chart_path) {
-        const SERVER_URL =
-          import.meta.env.VITE_SERVER_URL || "";
-        setOrgChartPath(`${SERVER_URL}/${barangay.organizational_chart_path}`);
+        if (barangay.organizational_chart_path.startsWith('http')) {
+          setOrgChartPath(barangay.organizational_chart_path);
+        } else {
+          const SERVER_URL = import.meta.env.VITE_SERVER_URL || "";
+          setOrgChartPath(`${SERVER_URL}/${barangay.organizational_chart_path}`);
+        }
       } else {
         setOrgChartPath(null);
       }
@@ -264,13 +267,15 @@ const Officials = () => {
                             <AvatarImage
                               src={
                                 official.picture_path
-                                  ? `${
-                                      import.meta.env.VITE_SERVER_URL ||
-                                      ""
-                                    }/${official.picture_path.replace(
-                                      /\\/g,
-                                      "/"
-                                    )}`
+                                  ? official.picture_path.startsWith('http')
+                                    ? official.picture_path
+                                    : `${
+                                        import.meta.env.VITE_SERVER_URL ||
+                                        ""
+                                      }/${official.picture_path.replace(
+                                        /\\/g,
+                                        "/"
+                                      )}`
                                   : undefined
                               }
                               className="object-cover"

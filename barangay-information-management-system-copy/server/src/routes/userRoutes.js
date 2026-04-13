@@ -42,14 +42,14 @@ router.get("/list/:targetId/user", smartCache(), ...allUsers, userList);
 router.get("/:userId/user", smartCache(), ...allUsers, userInfo);
 router.post(
   "/user",
-  createUploader(() => "uploads/users", [{ name: "picturePath", maxCount: 1 }]),
+  createUploader("users", [{ name: "picturePath", maxCount: 1 }]),
   upsertUser,
   smartInvalidateCache()
 );
 router.put(
   "/:userId/user",
   ...allUsers,
-  createUploader(() => "uploads/users", [{ name: "picturePath", maxCount: 1 }]),
+  createUploader("users", [{ name: "picturePath", maxCount: 1 }]),
   upsertUser,
   smartInvalidateCache()
 );
@@ -61,7 +61,7 @@ router.post("/send-setup-email", sendSetupEmail);
 // Public route to complete account setup using a setup token (no auth required)
 router.post(
   "/complete-account-setup",
-  createUploader(() => "uploads/users", [{ name: "picturePath", maxCount: 1 }]),
+  createUploader("users", [{ name: "picturePath", maxCount: 1 }]),
   async (req, res) => {
     const { token, fullname, password } = req.body;
     if (!token || !password) {

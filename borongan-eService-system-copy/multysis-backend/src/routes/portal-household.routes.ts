@@ -11,6 +11,7 @@ import { Router } from 'express';
 import { verifyResident } from '../middleware/auth';
 import {
   addMember,
+  editHousehold,
   getMyHousehold,
   registerHousehold,
   removeMember,
@@ -23,6 +24,9 @@ router.get('/my', verifyResident, getMyHousehold);
 
 // POST /api/portal/household
 router.post('/', verifyResident, registerHousehold);
+
+// PUT /api/portal/household/:householdId
+router.put('/:householdId', verifyResident, editHousehold);
 
 // POST /api/portal/household/:householdId/members
 router.post('/:householdId/members', verifyResident, addMember);

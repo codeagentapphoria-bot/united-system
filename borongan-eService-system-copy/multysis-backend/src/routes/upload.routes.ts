@@ -1,14 +1,13 @@
 import { Response, Router } from 'express';
-import fs from 'fs';
-import path from 'path';
 import prisma from '../config/database';
 import { AuthRequest, verifyAdmin, verifyToken } from '../middleware/auth';
 import {
-  getFilePath,
   getFileUrl,
   uploadDocument,
+  uploadFileToSupabase,
   uploadProfilePicture,
 } from '../middleware/upload';
+import { deleteFromSupabase } from '../utils/supabaseStorage';
 
 const router = Router();
 
@@ -23,9 +22,8 @@ router.post(
         res.status(400).json({ status: 'error', message: 'No file uploaded' });
         return;
       }
-      const filePath = getFilePath(_req.file.filename, 'image');
-      const fileUrl = getFileUrl(filePath);
-      res.status(200).json({ status: 'success', data: { url: fileUrl, path: filePath } });
+      const fileUrl = await uploadFileToSupabase(_req.file, 'images', 'profile');
+      res.status(200).json({ status: 'success', data: { url: fileUrl, path: fileUrl } });
     } catch (error: any) {
       res.status(500).json({ status: 'error', message: error.message || 'Failed to upload photo' });
     }
@@ -59,19 +57,12 @@ router.post(
         return;
       }
 
-      const filePath = getFilePath(req.file.filename, 'image');
-      const fileUrl = getFileUrl(filePath);
+      const fileUrl = await uploadFileToSupabase(req.file, 'images', 'profile');
 
-      // Delete old profile picture if it exists
+      // Delete old profile picture from Supabase if it exists
       if ((resident as any).profilePicture) {
         try {
-          const oldFilePath = (resident as any).profilePicture.startsWith('/')
-            ? (resident as any).profilePicture
-            : `/${(resident as any).profilePicture}`;
-          const fullPath = path.join(process.cwd(), oldFilePath);
-          if (fs.existsSync(fullPath)) {
-            fs.unlinkSync(fullPath);
-          }
+          await deleteFromSupabase((resident as any).profilePicture);
         } catch (error) {
           console.error('Error deleting old profile picture:', error);
         }
@@ -79,14 +70,14 @@ router.post(
 
       await prisma.resident.update({
         where: { id: resident.id },
-        data: { profilePicture: filePath } as any,
+        data: { profilePicture: fileUrl } as any,
       });
 
       res.status(200).json({
         status: 'success',
         data: {
-          url: fileUrl, // Return full URL in response
-          filename: req.file.filename,
+          url: fileUrl,
+          filename: req.file.originalname,
         },
       });
     } catch (error: any) {
@@ -144,9 +135,8 @@ router.post(
         res.status(400).json({ status: 'error', message: 'No file uploaded' });
         return;
       }
-      const filePath = getFilePath(req.file.filename, 'image');
-      const fileUrl  = getFileUrl(filePath);
-      res.status(200).json({ status: 'success', data: { url: fileUrl, path: filePath } });
+      const fileUrl = await uploadFileToSupabase(req.file, 'images', 'household');
+      res.status(200).json({ status: 'success', data: { url: fileUrl, path: fileUrl } });
     } catch (error: any) {
       res.status(500).json({ status: 'error', message: error.message || 'Failed to upload image' });
     }
@@ -168,14 +158,13 @@ router.post(
         return;
       }
 
-      const filePath = getFilePath(req.file.filename, 'document');
-      const fileUrl = getFileUrl(filePath);
+      const fileUrl = await uploadFileToSupabase(req.file, 'documents', 'doc');
 
       res.status(200).json({
         status: 'success',
         data: {
           url: fileUrl,
-          filename: req.file.filename,
+          filename: req.file.originalname,
         },
       });
     } catch (error: any) {
@@ -214,17 +203,13 @@ router.post(
         return;
       }
 
-      const filePath = getFilePath(req.file.filename, 'document');
-      const fileUrl = getFileUrl(filePath);
-
-      // TODO: Store document path in transaction or create a separate document table
-      // For now, we'll add it to remarks or create a document reference
+      const fileUrl = await uploadFileToSupabase(req.file, 'documents', 'doc');
 
       res.status(200).json({
         status: 'success',
         data: {
-          url: fileUrl, // Return full URL in response
-          filename: req.file.filename,
+          url: fileUrl,
+          filename: req.file.originalname,
           transactionId: transaction.id,
         },
       });

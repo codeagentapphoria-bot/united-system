@@ -23,14 +23,14 @@ router.post("/public/search", searchPets);
 router.post("/search", ...allUsers, searchPets);
 router.post(
   "/pet",
-  createUploader(() => "uploads/pets", [{ name: "picturePath", maxCount: 1 }]),
+  createUploader("pets", [{ name: "picturePath", maxCount: 1 }]),
   ...allUsers,
   upsertPet,
   smartInvalidateCache()
 );
 router.put(
   "/:petId/pet",
-  createUploader(() => "uploads/pets", [{ name: "picturePath", maxCount: 1 }]),
+  createUploader("pets", [{ name: "picturePath", maxCount: 1 }]),
   ...allUsers,
   upsertPet,
   smartInvalidateCache()
@@ -40,10 +40,7 @@ router.delete("/:petId/pet", ...allUsers, deletePet, smartInvalidateCache());
 // Image upload route for pet sync process
 router.post(
   "/sync/pet/image",
-  createUploader(
-    () => "uploads/pets",
-    [{ name: "picturePath", maxCount: 1 }]
-  ),
+  createUploader("pets", [{ name: "picturePath", maxCount: 1 }]),
   ...allUsers,
   (req, res) => {
     try {
@@ -55,20 +52,12 @@ router.post(
       }
 
       const uploadedFile = req.files.picturePath[0];
-      const fileInfo = {
-        filename: uploadedFile.filename,
-        originalname: uploadedFile.originalname,
-        size: uploadedFile.size,
-        path: uploadedFile.path, // Full server path
-        relativePath: `uploads/pets/${uploadedFile.filename}` // Relative path for database
-      };
 
       return res.status(200).json({
         message: "Pet image uploaded successfully",
         data: {
-          file: fileInfo,
-          filename: fileInfo.filename, // Return filename for backward compatibility
-          path: fileInfo.relativePath // Return full path for database storage
+          filename: uploadedFile.originalname,
+          path: uploadedFile.path // Supabase public URL
         }
       });
     } catch (error) {

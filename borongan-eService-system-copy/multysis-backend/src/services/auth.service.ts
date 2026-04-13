@@ -17,7 +17,7 @@ export interface AdminLoginData {
 }
 
 export interface PortalLoginData {
-  username: string;   // login by username (replaces phone number)
+  credential: string; // username or email
   password: string;
   deviceInfo?: string;
   ipAddress?: string;
@@ -73,13 +73,18 @@ export const adminLogin = async (data: AdminLoginData) => {
 };
 
 // =============================================================================
-// PORTAL LOGIN  (username + password — replaces phone + OTP flow)
+// PORTAL LOGIN  (username or email + password)
 // =============================================================================
 
 export const portalLogin = async (data: PortalLoginData) => {
-  // Find resident by username
-  const resident = await prisma.resident.findUnique({
-    where: { username: data.username },
+  // Find resident by username or email
+  const resident = await prisma.resident.findFirst({
+    where: {
+      OR: [
+        { username: data.credential },
+        { email: data.credential },
+      ],
+    },
     include: {
       credentials: true,
       barangay: {
