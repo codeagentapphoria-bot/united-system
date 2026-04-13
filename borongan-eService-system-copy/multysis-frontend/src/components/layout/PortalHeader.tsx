@@ -34,7 +34,7 @@ interface PortalHeaderProps {}
 export const PortalHeader: React.FC<PortalHeaderProps> = () => {
   const { user, logout, isLoading, isLoggingOut } = useAuth();
   const { isLoginOpen, openLoginSheet, setLoginSheetOpen } = useLoginSheet();
-  const { counts, refresh, clearProgramApplicationUpdates } = usePortalNotifications();
+  const { counts, refresh } = usePortalNotifications();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -48,8 +48,6 @@ export const PortalHeader: React.FC<PortalHeaderProps> = () => {
     { path: '/portal/e-government', label: 'E-Government' },
     { path: '/portal/e-bills', label: 'E-Bills' },
     { path: '/portal/e-news', label: 'E-News' },
-    { path: '/portal/external-websites', label: 'External' },
-    ...(isActiveResident ? [{ path: '/portal/programs', label: 'Programs' }] : []),
   ];
 
   const isActive = (path: string) => {
@@ -106,7 +104,6 @@ export const PortalHeader: React.FC<PortalHeaderProps> = () => {
                   <PortalNotificationDropdown
                     counts={counts}
                     refresh={refresh}
-                    clearProgramApplicationUpdates={clearProgramApplicationUpdates}
                   >
                     <Button
                       variant="ghost"

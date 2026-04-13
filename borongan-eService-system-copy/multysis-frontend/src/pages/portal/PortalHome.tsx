@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 
 // Utils
 import { cn } from '@/lib/utils';
-import { FiArrowRight, FiCreditCard, FiFileText, FiMessageSquare, FiShield, FiZap, FiBarChart, FiCheck, FiExternalLink } from 'react-icons/fi';
+import { FiArrowRight, FiCreditCard, FiFileText, FiMessageSquare, FiShield, FiZap, FiBarChart, FiCheck } from 'react-icons/fi';
 
 // Supabase
 import { supabase } from '@/lib/supabase';
@@ -145,13 +145,6 @@ export const PortalHome: React.FC = () => {
       description: 'Stay updated with latest government news and announcements',
       path: '/portal/e-news',
       color: 'bg-orange-100 text-orange-700',
-    },
-    {
-      icon: <FiExternalLink size={32} />,
-      title: 'External Websites',
-      description: 'Access external government platforms and services',
-      path: '/portal/external-websites',
-      color: 'bg-blue-100 text-blue-700',
     },
   ];
 

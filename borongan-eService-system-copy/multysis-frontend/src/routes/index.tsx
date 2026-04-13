@@ -65,17 +65,12 @@ const PortalEServices = lazy(() =>
   import('../pages/portal/PortalEServices').then(m => ({ default: m.PortalEServices }))
 );
 const PortalENews = lazy(() => import('../pages/portal/PortalENews').then(m => ({ default: m.PortalENews })));
-const PortalExternalWebsites = lazy(() =>
-  import('../pages/portal/PortalExternalWebsites').then(m => ({ default: m.PortalExternalWebsites }))
-);
 const PortalFAQs = lazy(() => import('../pages/portal/PortalFAQs').then(m => ({ default: m.PortalFAQs })));
 const PortalProfile = lazy(() => import('../pages/portal/PortalProfile').then(m => ({ default: m.PortalProfile })));
 const PortalGuestApply = lazy(() =>
   import('../pages/portal/PortalGuestApply').then(m => ({ default: m.PortalGuestApply }))
 );
 const PortalTrack = lazy(() => import('../pages/portal/PortalTrack').then(m => ({ default: m.PortalTrack })));
-const PortalPrograms = lazy(() => import('../pages/portal/PortalPrograms').then(m => ({ default: m.PortalPrograms })));
-
 // Loading component
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -387,14 +382,6 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: 'external-websites',
-        element: (
-          <LazyWrapper>
-            <PortalExternalWebsites />
-          </LazyWrapper>
-        ),
-      },
-      {
         path: 'faqs',
         element: (
           <LazyWrapper>
@@ -426,17 +413,6 @@ export const router = createBrowserRouter([
           <LazyWrapper>
             <PortalTrack />
           </LazyWrapper>
-        ),
-      },
-      {
-        // Government programs discovery & application (active residents only)
-        path: 'programs',
-        element: (
-          <ProtectedRoute requiredRole="resident" requireActiveStatus>
-            <LazyWrapper>
-              <PortalPrograms />
-            </LazyWrapper>
-          </ProtectedRoute>
         ),
       },
     ],
