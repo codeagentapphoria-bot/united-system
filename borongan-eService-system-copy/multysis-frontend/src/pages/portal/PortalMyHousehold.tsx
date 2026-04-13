@@ -11,7 +11,7 @@
  * VITE_API_BASE_URL) so the resident's auth cookie is always in scope.
  */
 
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -51,6 +51,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api/auth.service';
 import { PortalHeader } from '@/components/layout/PortalHeader';
+import { Home } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -139,6 +140,7 @@ export const PortalMyHousehold: React.FC = () => {
   const [householdImagePath, setHouseholdImagePath] = useState<string | null>(null);
   const [householdImagePreview, setHouseholdImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const householdImageRef = useRef<HTMLInputElement>(null);
 
   // Post-registration state
   const [household, setHousehold]           = useState<any>(null);
@@ -901,22 +903,44 @@ export const PortalMyHousehold: React.FC = () => {
                 </p>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Photo of Household (optional)</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    disabled={isUploadingImage}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 disabled:opacity-50"
-                  />
-                  {isUploadingImage && (
-                    <p className="text-xs text-muted-foreground">Uploading image...</p>
-                  )}
-                  {householdImagePreview && (
-                    <img
-                      src={householdImagePreview}
-                      alt="Household preview"
-                      className="h-40 w-full rounded-md object-cover border"
-                    />
+                  {!householdImagePreview ? (
+                    <div
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-all group"
+                      onClick={() => householdImageRef.current?.click()}
+                    >
+                      <input
+                        ref={householdImageRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        disabled={isUploadingImage}
+                        className="hidden"
+                      />
+                      <Home className="w-8 h-8 text-gray-300 mx-auto mb-2 group-hover:text-primary-500 transition-colors" />
+                      <p className="text-sm text-gray-500">
+                        {isUploadingImage ? 'Uploading...' : 'Click to upload household photo'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="relative border rounded-lg p-2">
+                      <img
+                        src={householdImagePreview}
+                        alt="Household preview"
+                        className="h-40 w-full rounded-md object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHouseholdImagePreview(null);
+                          setHouseholdImagePath(null);
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                   )}
                 </div>
 
