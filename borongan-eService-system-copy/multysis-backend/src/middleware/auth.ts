@@ -144,12 +144,7 @@ export const verifyToken = async (
                 setAccessTokenCookie(res, newAccessToken);
                 setRefreshTokenCookie(res, newRefreshToken);
 
-                await createOrUpdateSession(
-                  userId,
-                  userType,
-                  newDbToken.id,
-                  req
-                );
+                await createOrUpdateSession(userId, userType, newDbToken.id, req);
 
                 token = newAccessToken;
               }
@@ -282,7 +277,7 @@ export const verifySubscriber = verifyResident;
 // =============================================================================
 export const optionalAuth = async (
   req: AuthRequest,
-  _res: Response,
+  res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
@@ -298,15 +293,129 @@ export const optionalAuth = async (
       }
     }
 
+    // No access token — attempt refresh token rotation (same as verifyToken)
+    // so that residents with an expired access token still get eligibility computed.
+    if (!token) {
+      const refreshTokenCookieName = getRefreshTokenCookieName();
+      const refreshToken = req.cookies[refreshTokenCookieName];
+
+      if (refreshToken) {
+        try {
+          let isDevToken = false;
+          try {
+            const decoded = jwt.verify(refreshToken, JWT_SECRET) as {
+              id: string;
+              email?: string;
+              role: string;
+              type: 'admin' | 'resident' | 'dev';
+            };
+
+            if (decoded.type === 'dev') {
+              isDevToken = true;
+              const { generateToken, generateRefreshToken } = await import('../utils/jwt');
+              const { setAccessTokenCookie, setRefreshTokenCookie } =
+                await import('../utils/cookies');
+
+              const newAccessToken = generateToken({
+                id: decoded.id,
+                email: decoded.email,
+                role: decoded.role,
+                type: 'dev',
+              });
+              const newRefreshToken = generateRefreshToken({
+                id: decoded.id,
+                email: decoded.email,
+                role: decoded.role,
+                type: 'dev',
+              });
+
+              setAccessTokenCookie(res, newAccessToken);
+              setRefreshTokenCookie(res, newRefreshToken);
+              token = newAccessToken;
+            }
+          } catch {
+            // Not a dev token, proceed to DB-backed refresh
+          }
+
+          if (!isDevToken) {
+            const { findRefreshToken } = await import('../services/refreshToken.service');
+            const { getCurrentUser } = await import('../services/auth.service');
+            const { generateToken, generateRefreshToken } = await import('../utils/jwt');
+            const { setAccessTokenCookie, setRefreshTokenCookie } =
+              await import('../utils/cookies');
+            const { createRefreshToken, revokeRefreshToken } =
+              await import('../services/refreshToken.service');
+            const { createOrUpdateSession } = await import('../middleware/sessionTimeout');
+
+            const dbToken = await findRefreshToken(refreshToken);
+            if (dbToken) {
+              const userId = dbToken.userId || dbToken.residentId;
+              if (userId) {
+                const userType = dbToken.userId ? 'admin' : 'resident';
+                const user = await getCurrentUser(userId, userType);
+
+                const tokenPayload =
+                  userType === 'admin'
+                    ? {
+                        id: userId,
+                        email: (user as any).email,
+                        role: (user as any).role,
+                        type: 'admin' as const,
+                      }
+                    : {
+                        id: userId,
+                        username: (user as any).username,
+                        role: 'resident',
+                        type: 'resident' as const,
+                      };
+
+                const newAccessToken = generateToken(tokenPayload);
+                const newRefreshToken = generateRefreshToken(tokenPayload);
+
+                await revokeRefreshToken(dbToken.id, 'Token rotated');
+
+                const deviceMeta = {
+                  deviceInfo: JSON.stringify({
+                    userAgent: req.headers['user-agent'],
+                    ipAddress: req.ip || req.socket.remoteAddress,
+                  }),
+                  ipAddress: req.ip || req.socket.remoteAddress,
+                  userAgent: req.headers['user-agent'],
+                };
+
+                const newDbToken = await createRefreshToken({
+                  userId: dbToken.userId || undefined,
+                  residentId: dbToken.residentId || undefined,
+                  token: newRefreshToken,
+                  ...deviceMeta,
+                });
+
+                setAccessTokenCookie(res, newAccessToken);
+                setRefreshTokenCookie(res, newRefreshToken);
+                await createOrUpdateSession(userId, userType, newDbToken.id, req);
+                token = newAccessToken;
+              }
+            }
+          }
+        } catch {
+          // Refresh failed — continue as unauthenticated
+        }
+      }
+    }
+
     if (token) {
-      const decoded = jwt.verify(token, JWT_SECRET) as {
-        id: string;
-        email?: string;
-        username?: string;
-        role: string;
-        type: 'admin' | 'resident' | 'dev';
-      };
-      req.user = decoded;
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as {
+          id: string;
+          email?: string;
+          username?: string;
+          role: string;
+          type: 'admin' | 'resident' | 'dev';
+        };
+        req.user = decoded;
+      } catch {
+        // Token invalid — continue as unauthenticated
+      }
     }
     next();
   } catch {

@@ -10,7 +10,7 @@ import {
   listProgramsController,
   reviewApplicationAdminController,
 } from '../controllers/portal-programs.controller';
-import { verifyAdmin, verifyResident } from '../middleware/auth';
+import { verifyAdmin, verifyResident, optionalAuth } from '../middleware/auth';
 import { uploadProgramApplicationFiles } from '../middleware/upload';
 import { validate } from '../middleware/validation';
 
@@ -20,10 +20,11 @@ const router = Router();
 // RESIDENT PORTAL — requires active resident session
 // =============================================================================
 
-// List all active programs with eligibility & application status for the resident
+// List all active programs — public for browsing; eligibility & applicationStatus
+// are only computed when a resident session is present (optionalAuth).
 router.get(
   '/programs',
-  verifyResident,
+  optionalAuth,
   validate([
     query('search').optional().trim().isLength({ max: 200 }),
     query('type')

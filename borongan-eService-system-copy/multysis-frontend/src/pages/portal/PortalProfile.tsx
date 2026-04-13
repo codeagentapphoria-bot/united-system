@@ -226,7 +226,7 @@ const PROG_TYPE_LABELS: Record<GovernmentProgramType, string> = {
 // ── Program application status config ──────────────────────────────────────────
 const PROG_STATUS_CONFIG: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   pending: { label: 'Pending Review', className: 'bg-yellow-100 text-yellow-700', icon: <FiClock size={12} /> },
-  approved: { label: 'Enrolled', className: 'bg-purple-100 text-purple-700', icon: <FiCheck size={12} /> },
+  approved: { label: 'Beneficiary', className: 'bg-purple-100 text-purple-700', icon: <FiCheck size={12} /> },
   rejected: { label: 'Not Approved', className: 'bg-red-100 text-red-700', icon: <FiX size={12} /> },
   cancelled: { label: 'Cancelled', className: 'bg-gray-100 text-gray-600', icon: <FiX size={12} /> },
 };

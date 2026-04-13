@@ -51,7 +51,7 @@ const ALLOWED_APPLICATION_MIMES = [
 
 export const listProgramsController = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const residentId = req.user!.id;
+    const residentId = req.user?.type === 'resident' ? req.user.id : null;
     const result = await listProgramsForResident(residentId, {
       search: (req.query.search as string) || undefined,
       type: (req.query.type as string) || undefined,
@@ -105,9 +105,18 @@ export const applyForProgramController = async (req: AuthRequest, res: Response)
       if (!valid) {
         // Clean up all files from this request before rejecting
         for (const file of uploadedFiles) {
-          try { fs.unlinkSync(file.path); } catch { /* best effort */ }
+          try {
+            fs.unlinkSync(file.path);
+          } catch {
+            /* best effort */
+          }
         }
-        res.status(400).json({ status: 'error', message: `File "${f.originalname}" has an invalid or unsupported format` });
+        res
+          .status(400)
+          .json({
+            status: 'error',
+            message: `File "${f.originalname}" has an invalid or unsupported format`,
+          });
         return;
       }
     }

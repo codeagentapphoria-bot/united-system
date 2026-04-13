@@ -61,7 +61,7 @@ const APPLICATION_STATUS_CONFIG: Record<string, { label: string; className: stri
     icon: <FiClock size={12} />,
   },
   approved: {
-    label: 'Enrolled',
+    label: 'Beneficiary',
     className: 'bg-purple-100 text-purple-700',
     icon: <FiCheck size={12} />,
   },

@@ -20,6 +20,7 @@
 import { Request, Response } from 'express';
 import { logFailedLogin, logSuccessfulLogin } from '../middleware/audit';
 import { AuthRequest } from '../middleware/auth';
+import prisma from '../config/database';
 import { createOrUpdateSession, deleteUserSessions } from '../middleware/sessionTimeout';
 import { addDevLog } from '../services/dev.service';
 import { adminLogin, getCurrentUser, portalLogin } from '../services/auth.service';
@@ -179,10 +180,7 @@ export const googleCallbackController = async (req: Request, res: Response): Pro
 // GOOGLE OAUTH — Supabase-initiated (frontend sends googleId + googleEmail)
 // =============================================================================
 
-export const supabaseGoogleLoginController = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+export const supabaseGoogleLoginController = async (req: Request, res: Response): Promise<void> => {
   try {
     const { googleId, googleEmail } = req.body;
     const device = getDeviceInfo(req);
@@ -206,12 +204,7 @@ export const supabaseGoogleLoginController = async (
 
     const dbToken = await findRefreshToken(result.refreshToken);
     if (dbToken && result.resident) {
-      await createOrUpdateSession(
-        (result.resident as any).id,
-        'resident',
-        dbToken.id,
-        req
-      );
+      await createOrUpdateSession((result.resident as any).id, 'resident', dbToken.id, req);
     }
 
     res.status(200).json({ status: 'success', data: { resident: result.resident } });
@@ -307,10 +300,7 @@ export const logoutController = async (req: AuthRequest, res: Response): Promise
 // GET CURRENT USER  (/me)
 // =============================================================================
 
-export const getCurrentUserController = async (
-  req: AuthRequest,
-  res: Response
-): Promise<void> => {
+export const getCurrentUserController = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user?.id) {
       res.status(401).json({ status: 'error', message: 'Authentication required' });
@@ -393,10 +383,7 @@ export const refreshTokenController = async (req: AuthRequest, res: Response): P
 // SOCKET TOKEN  (short-lived token for Socket.io auth)
 // =============================================================================
 
-export const getSocketTokenController = async (
-  req: AuthRequest,
-  res: Response
-): Promise<void> => {
+export const getSocketTokenController = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({ status: 'error', message: 'Authentication required' });
@@ -413,5 +400,46 @@ export const getSocketTokenController = async (
     res.status(200).json({ status: 'success', data: { token: socketToken } });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: 'Failed to generate socket token' });
+  }
+};
+
+// =============================================================================
+// GET /id-card-info  — returns barangay & municipality branding for the ID card
+// =============================================================================
+export const getIdCardInfoController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user?.id || req.user.type !== 'resident') {
+      res.status(403).json({ status: 'error', message: 'Resident access required' });
+      return;
+    }
+
+    const resident = await prisma.resident.findUnique({
+      where: { id: req.user.id },
+      select: {
+        barangay: {
+          select: {
+            barangayName: true,
+            barangayLogoPath: true,
+            municipality: {
+              select: {
+                municipalityName: true,
+                municipalityLogoPath: true,
+                idBackgroundFrontPath: true,
+                idBackgroundBackPath: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!resident) {
+      res.status(404).json({ status: 'error', message: 'Resident not found' });
+      return;
+    }
+
+    res.status(200).json({ status: 'success', data: resident.barangay ?? {} });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: 'Failed to load ID card info' });
   }
 };
