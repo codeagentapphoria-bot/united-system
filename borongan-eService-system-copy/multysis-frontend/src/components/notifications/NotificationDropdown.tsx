@@ -6,12 +6,12 @@ import { useNavigate } from 'react-router-dom';
 
 // UI Components (shadcn/ui)
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
 // Hooks
@@ -19,7 +19,7 @@ import { useAdminNotifications } from '@/hooks/notifications/useAdminNotificatio
 import { useActiveServices } from '@/hooks/useActiveServices';
 
 // Utils
-import { FiBell, FiEdit, FiFileText, FiMessageSquare, FiUsers } from 'react-icons/fi';
+import { FiBell, FiBookOpen, FiEdit, FiFileText, FiMessageSquare, FiUsers } from 'react-icons/fi';
 
 interface NotificationDropdownProps {
   children: React.ReactNode;
@@ -73,11 +73,13 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ chil
     navigate('/admin/residents');
   };
 
+  const handlePendingProgramApplicationsClick = () => {
+    navigate('/admin/e-government/social-amelioration?tab=program-applications');
+  };
+
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        {children}
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
         <DropdownMenuLabel className="text-primary-700 flex items-center justify-between">
           <span>Notifications</span>
@@ -110,12 +112,40 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ chil
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-900">Pending Applications</span>
                       <span className="text-xs text-gray-500">
-                        {counts.pendingApplications} {counts.pendingApplications === 1 ? 'application' : 'applications'} need review
+                        {counts.pendingApplications} {counts.pendingApplications === 1 ? 'application' : 'applications'}{' '}
+                        need review
                       </span>
                     </div>
                   </div>
                   <span className="ml-2 px-2 py-0.5 text-xs font-semibold text-white bg-blue-600 rounded-full">
                     {counts.pendingApplications}
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+
+            {/* Pending Program Applications */}
+            {counts.pendingProgramApplications > 0 && (
+              <>
+                <DropdownMenuItem
+                  className="flex items-center justify-between px-3 py-2 cursor-pointer hover:!bg-gray-100 focus:!bg-gray-100"
+                  onSelect={handlePendingProgramApplicationsClick}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 rounded-lg bg-orange-100 text-orange-600">
+                      <FiBookOpen size={16} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-gray-900">Pending Program Applications</span>
+                      <span className="text-xs text-gray-500">
+                        {counts.pendingProgramApplications}{' '}
+                        {counts.pendingProgramApplications === 1 ? 'application' : 'applications'} pending review
+                      </span>
+                    </div>
+                  </div>
+                  <span className="ml-2 px-2 py-0.5 text-xs font-semibold text-white bg-orange-600 rounded-full">
+                    {counts.pendingProgramApplications}
                   </span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -136,7 +166,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ chil
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-900">Pending Citizen Approvals</span>
                       <span className="text-xs text-gray-500">
-                        {counts.pendingCitizens} {counts.pendingCitizens === 1 ? 'citizen' : 'citizens'} awaiting approval
+                        {counts.pendingCitizens} {counts.pendingCitizens === 1 ? 'citizen' : 'citizens'} awaiting
+                        approval
                       </span>
                     </div>
                   </div>
@@ -162,7 +193,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ chil
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-900">Pending Update Requests</span>
                       <span className="text-xs text-gray-500">
-                        {counts.pendingUpdateRequests} {counts.pendingUpdateRequests === 1 ? 'request' : 'requests'} need review
+                        {counts.pendingUpdateRequests} {counts.pendingUpdateRequests === 1 ? 'request' : 'requests'}{' '}
+                        need review
                       </span>
                     </div>
                   </div>
@@ -204,4 +236,3 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ chil
     </DropdownMenu>
   );
 };
-

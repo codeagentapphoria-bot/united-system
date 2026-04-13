@@ -9,11 +9,12 @@ import {
   setAdminNotificationsGlobal,
   initializeAdminNotifications,
 } from '@/context/AdminNotificationsContext';
-import type { 
-  TransactionUpdatePayload, 
+import type {
+  TransactionUpdatePayload,
   NewTransactionPayload,
   CitizenStatusChangePayload,
   TransactionNoteReadPayload,
+  ProgramApplicationNewPayload,
 } from '@/types/socket.types';
 
 interface UseAdminNotificationsOptions {
@@ -35,6 +36,7 @@ const EMPTY_COUNTS: NotificationCounts = {
   pendingCitizens: 0,
   pendingUpdateRequests: 0,
   unreadMessages: 0,
+  pendingProgramApplications: 0,
   total: 0,
   pendingApplicationsByService: {},
 };
@@ -118,17 +120,17 @@ export const useAdminNotifications = ({
       updateLastEventTime();
       const current = globalState.counts;
       const updated = { ...current };
-      
+
       if (data.paymentStatus && data.serviceCode && isPendingPaymentStatus(data.paymentStatus, data.serviceCode)) {
         updated.pendingApplications += 1;
         updated.total += 1;
-        
+
         if (data.serviceCode) {
-          updated.pendingApplicationsByService[data.serviceCode] = 
+          updated.pendingApplicationsByService[data.serviceCode] =
             (updated.pendingApplicationsByService[data.serviceCode] || 0) + 1;
         }
       }
-      
+
       setAdminNotificationsGlobal({ counts: updated });
     };
 
@@ -136,38 +138,45 @@ export const useAdminNotifications = ({
       updateLastEventTime();
       const current = globalState.counts;
       const updated = { ...current };
-      
-      if (data.paymentStatus !== undefined && data.oldPaymentStatus !== undefined && 
-          data.paymentStatus !== data.oldPaymentStatus && data.serviceCode) {
-        
+
+      if (
+        data.paymentStatus !== undefined &&
+        data.oldPaymentStatus !== undefined &&
+        data.paymentStatus !== data.oldPaymentStatus &&
+        data.serviceCode
+      ) {
         const wasPending = isPendingPaymentStatus(data.oldPaymentStatus, data.serviceCode);
         const isNowPending = isPendingPaymentStatus(data.paymentStatus, data.serviceCode);
-        
+
         if (wasPending && !isNowPending) {
           updated.pendingApplications = Math.max(0, updated.pendingApplications - 1);
           updated.total = Math.max(0, updated.total - 1);
-          
+
           if (data.serviceCode && updated.pendingApplicationsByService[data.serviceCode]) {
-            updated.pendingApplicationsByService[data.serviceCode] = 
-              Math.max(0, updated.pendingApplicationsByService[data.serviceCode] - 1);
+            updated.pendingApplicationsByService[data.serviceCode] = Math.max(
+              0,
+              updated.pendingApplicationsByService[data.serviceCode] - 1
+            );
           }
         } else if (!wasPending && isNowPending) {
           updated.pendingApplications += 1;
           updated.total += 1;
-          
+
           if (data.serviceCode) {
-            updated.pendingApplicationsByService[data.serviceCode] = 
+            updated.pendingApplicationsByService[data.serviceCode] =
               (updated.pendingApplicationsByService[data.serviceCode] || 0) + 1;
           }
         }
       }
-      
-      if (data.updateRequestStatus !== undefined && data.oldUpdateRequestStatus !== undefined &&
-          data.updateRequestStatus !== data.oldUpdateRequestStatus) {
-        
+
+      if (
+        data.updateRequestStatus !== undefined &&
+        data.oldUpdateRequestStatus !== undefined &&
+        data.updateRequestStatus !== data.oldUpdateRequestStatus
+      ) {
         const wasPendingAdmin = data.oldUpdateRequestStatus === 'PENDING_ADMIN';
         const isNowPendingAdmin = data.updateRequestStatus === 'PENDING_ADMIN';
-        
+
         if (wasPendingAdmin && !isNowPendingAdmin) {
           updated.pendingUpdateRequests = Math.max(0, updated.pendingUpdateRequests - 1);
           updated.total = Math.max(0, updated.total - 1);
@@ -176,7 +185,7 @@ export const useAdminNotifications = ({
           updated.total += 1;
         }
       }
-      
+
       setAdminNotificationsGlobal({ counts: updated });
     };
 
@@ -184,10 +193,10 @@ export const useAdminNotifications = ({
       updateLastEventTime();
       const current = globalState.counts;
       const updated = { ...current };
-      
+
       const wasPending = data.oldStatus === 'PENDING';
       const isNowPending = data.newStatus === 'PENDING';
-      
+
       if (wasPending && !isNowPending) {
         updated.pendingCitizens = Math.max(0, updated.pendingCitizens - 1);
         updated.total = Math.max(0, updated.total - 1);
@@ -195,7 +204,7 @@ export const useAdminNotifications = ({
         updated.pendingCitizens += 1;
         updated.total += 1;
       }
-      
+
       setAdminNotificationsGlobal({ counts: updated });
     };
 
@@ -203,12 +212,34 @@ export const useAdminNotifications = ({
       updateLastEventTime();
       const current = globalState.counts;
       const updated = { ...current };
-      
-      if (data.senderType === 'SUBSCRIBER' && data.isRead) {
+
+      if (data.senderType === 'RESIDENT' && data.isRead) {
         updated.unreadMessages = Math.max(0, updated.unreadMessages - 1);
         updated.total = Math.max(0, updated.total - 1);
       }
-      
+
+      setAdminNotificationsGlobal({ counts: updated });
+    };
+
+    const handleProgramApplicationNew = (_data: ProgramApplicationNewPayload) => {
+      updateLastEventTime();
+      const current = globalState.counts;
+      const updated = {
+        ...current,
+        pendingProgramApplications: current.pendingProgramApplications + 1,
+        total: current.total + 1,
+      };
+      setAdminNotificationsGlobal({ counts: updated });
+    };
+
+    const handleProgramApplicationReview = () => {
+      updateLastEventTime();
+      const current = globalState.counts;
+      const updated = {
+        ...current,
+        pendingProgramApplications: Math.max(0, current.pendingProgramApplications - 1),
+        total: Math.max(0, current.total - 1),
+      };
       setAdminNotificationsGlobal({ counts: updated });
     };
 
@@ -216,12 +247,16 @@ export const useAdminNotifications = ({
     socket.on('transaction:update', handleTransactionUpdate);
     socket.on('citizen:status-change', handleCitizenStatusChange);
     socket.on('transaction:note:read', handleTransactionNoteRead);
+    socket.on('program-application:new', handleProgramApplicationNew);
+    socket.on('program-application:review', handleProgramApplicationReview);
 
     return () => {
       socket.off('transaction:new', handleNewTransaction);
       socket.off('transaction:update', handleTransactionUpdate);
       socket.off('citizen:status-change', handleCitizenStatusChange);
       socket.off('transaction:note:read', handleTransactionNoteRead);
+      socket.off('program-application:new', handleProgramApplicationNew);
+      socket.off('program-application:review', handleProgramApplicationReview);
       socketListenerAttached = false;
     };
   }, [socket, isConnected, user, globalState.counts]);
@@ -258,7 +293,7 @@ export const useAdminNotifications = ({
       try {
         const services = await serviceService.getActiveServices();
         const statusesMap: Record<string, string[]> = {};
-        services.forEach((service) => {
+        services.forEach(service => {
           if (service.paymentStatuses && Array.isArray(service.paymentStatuses)) {
             statusesMap[service.code] = service.paymentStatuses;
           }

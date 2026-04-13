@@ -7,6 +7,7 @@ export interface AdminNotificationCounts {
   pendingCitizens: number;
   pendingUpdateRequests: number;
   unreadMessages: number;
+  pendingProgramApplications: number;
   total: number;
   pendingApplicationsByService: Record<string, number>; // service code -> count
 }
@@ -15,6 +16,7 @@ export interface SubscriberNotificationCounts {
   pendingUpdateRequests: number;
   unreadMessages: number;
   statusUpdates: number;
+  programApplicationUpdates: number;
   total: number;
 }
 
@@ -28,17 +30,21 @@ export const getAdminNotificationCounts = async (): Promise<AdminNotificationCou
 
   // HYPER-OPTIMIZATION: Fetch ALL counts in a single round-trip using raw SQL.
   // This avoids parallel independent count queries that each overhead the DB.
-  
+
   const [countsRaw, pendingAppsByServiceRaw] = await Promise.all([
-    prisma.$queryRaw<{ 
-      pending_citizens: number; 
-      pending_update_requests: number; 
-      unread_messages: number; 
-    }[]>`
-      SELECT 
+    prisma.$queryRaw<
+      {
+        pending_citizens: number;
+        pending_update_requests: number;
+        unread_messages: number;
+        pending_program_applications: number;
+      }[]
+    >`
+      SELECT
         (SELECT CAST(COUNT(*) AS INTEGER) FROM residents WHERE status = 'pending') as pending_citizens,
         (SELECT CAST(COUNT(*) AS INTEGER) FROM transactions WHERE update_request_status = 'PENDING_ADMIN') as pending_update_requests,
-        (SELECT CAST(COUNT(*) AS INTEGER) FROM transaction_notes WHERE is_read = false AND sender_type = 'RESIDENT') as unread_messages
+        (SELECT CAST(COUNT(*) AS INTEGER) FROM transaction_notes WHERE is_read = false AND sender_type = 'RESIDENT') as unread_messages,
+        (SELECT CAST(COUNT(*) AS INTEGER) FROM government_program_applications WHERE status = 'pending') as pending_program_applications
     `,
     // Get pending applications per service code
     prisma.$queryRaw<{ code: string; count: number }[]>`
@@ -55,27 +61,40 @@ export const getAdminNotificationCounts = async (): Promise<AdminNotificationCou
     `,
   ]);
 
-  const { pending_citizens, pending_update_requests, unread_messages } = countsRaw[0] || {
+  const {
+    pending_citizens,
+    pending_update_requests,
+    unread_messages,
+    pending_program_applications,
+  } = countsRaw[0] || {
     pending_citizens: 0,
     pending_update_requests: 0,
     unread_messages: 0,
+    pending_program_applications: 0,
   };
 
   let pendingApplications = 0;
   const pendingApplicationsByService: Record<string, number> = {};
-  
-  pendingAppsByServiceRaw.forEach(item => {
+
+  pendingAppsByServiceRaw.forEach((item) => {
     pendingApplications += item.count;
     pendingApplicationsByService[item.code] = item.count;
   });
 
-  const total = pendingApplications + Number(pending_citizens) + Number(pending_update_requests) + Number(unread_messages);
+  const pendingProgramApplications = Number(pending_program_applications);
+  const total =
+    pendingApplications +
+    Number(pending_citizens) +
+    Number(pending_update_requests) +
+    Number(unread_messages) +
+    pendingProgramApplications;
 
   const result = {
     pendingApplications,
     pendingCitizens: Number(pending_citizens),
     pendingUpdateRequests: Number(pending_update_requests),
     unreadMessages: Number(unread_messages),
+    pendingProgramApplications,
     total,
     pendingApplicationsByService,
   };
@@ -145,12 +164,22 @@ export const getSubscriberNotificationCounts = async (
     },
   });
 
-  const total = pendingUpdateRequests + unreadMessages + statusUpdates;
+  // Count recently reviewed program applications (last 24 hours)
+  const programApplicationUpdates = await prisma.governmentProgramApplication.count({
+    where: {
+      residentId,
+      status: { in: ['approved', 'rejected'] },
+      reviewedAt: { gte: oneDayAgo },
+    },
+  });
+
+  const total = pendingUpdateRequests + unreadMessages + statusUpdates + programApplicationUpdates;
 
   const result = {
     pendingUpdateRequests,
     unreadMessages,
     statusUpdates,
+    programApplicationUpdates,
     total,
   };
 
@@ -220,7 +249,7 @@ export interface DashboardStatistics {
 
 export const getDashboardStatistics = async (): Promise<DashboardStatistics> => {
   const cacheKey = 'dashboard:statistics';
-  
+
   const cached = await cacheService.get<DashboardStatistics>(cacheKey);
   if (cached) {
     return cached;
@@ -412,30 +441,30 @@ export const getDashboardStatistics = async (): Promise<DashboardStatistics> => 
       .sort((a, b) => a.date.localeCompare(b.date));
 
   // Recent Activity Processing
-  const recentTransactions: DashboardStatistics['recentTransactions'] =
-    recentTransactionsData.map((t: any) => ({
+  const recentTransactions: DashboardStatistics['recentTransactions'] = recentTransactionsData.map(
+    (t: any) => ({
       id: t.id,
       transactionId: t.transactionId,
       serviceName: t.service.name,
       serviceCode: t.service.code,
-      residentName: t.resident
-        ? `${t.resident.firstName} ${t.resident.lastName}`
-        : 'Unknown',
+      residentName: t.resident ? `${t.resident.firstName} ${t.resident.lastName}` : 'Unknown',
       paymentStatus: t.paymentStatus,
       status: t.status,
       paymentAmount: Number(t.paymentAmount || 0),
       createdAt: t.createdAt.toISOString(),
-    }));
+    })
+  );
 
-  const recentCitizens: DashboardStatistics['recentCitizens'] =
-    recentResidentsData.map((c: any) => ({
+  const recentCitizens: DashboardStatistics['recentCitizens'] = recentResidentsData.map(
+    (c: any) => ({
       id: c.id,
       firstName: c.firstName,
       lastName: c.lastName,
       contactNumber: c.contactNumber,
       status: c.status,
       createdAt: c.createdAt.toISOString(),
-    }));
+    })
+  );
 
   const result: DashboardStatistics = {
     totalTransactions,
@@ -463,6 +492,6 @@ export const getDashboardStatistics = async (): Promise<DashboardStatistics> => 
   };
 
   await cacheService.set(cacheKey, result, 60);
-  
+
   return result;
 };

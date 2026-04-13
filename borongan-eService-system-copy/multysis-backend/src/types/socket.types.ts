@@ -203,7 +203,7 @@ export interface GovernmentProgramNewPayload {
   id: string;
   name: string;
   description?: string;
-  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+  types: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL')[];
   isActive: boolean;
   createdAt: Date | string;
 }
@@ -212,7 +212,7 @@ export interface GovernmentProgramUpdatePayload {
   programId: string;
   name?: string;
   description?: string;
-  type?: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+  types?: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL')[];
   isActive?: boolean;
   oldIsActive?: boolean;
   updatedAt: Date | string;
@@ -251,6 +251,24 @@ export interface CitizenStatusChangePayload {
   action: 'approve' | 'reject' | 'activate' | 'deactivate';
   remarks?: string;
   updatedAt: Date | string;
+}
+
+// Program Application Events
+export interface ProgramApplicationNewPayload {
+  applicationId: string;
+  programId: string;
+  programName: string;
+  residentId: string;
+  appliedAt: string;
+}
+
+export interface ProgramApplicationReviewPayload {
+  applicationId: string;
+  programId: string;
+  programName: string;
+  status: 'approved' | 'rejected';
+  adminNotes?: string;
+  reviewedAt: string;
 }
 
 // Error Events

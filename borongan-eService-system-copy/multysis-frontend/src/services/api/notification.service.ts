@@ -5,6 +5,7 @@ export interface NotificationCounts {
   pendingCitizens: number;
   pendingUpdateRequests: number;
   unreadMessages: number;
+  pendingProgramApplications: number;
   total: number;
   pendingApplicationsByService: Record<string, number>; // service code -> count
 }
@@ -13,6 +14,7 @@ export interface SubscriberNotificationCounts {
   pendingUpdateRequests: number;
   unreadMessages: number;
   statusUpdates: number;
+  programApplicationUpdates: number;
   total: number;
 }
 
@@ -27,4 +29,3 @@ export const notificationService = {
     return response.data.data;
   },
 };
-

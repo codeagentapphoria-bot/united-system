@@ -26,6 +26,7 @@ interface AddSeniorCitizenFieldsProps {
   onSearchChange: (value: string) => void;
   selectedCitizen: any;
   onCitizenSelect: (citizen: any) => void;
+  filteredCitizens: any[];
   existingBeneficiaries?: any[];
   programOptions: Array<{ value: string; label: string }>;
   reactSelectStyles: any;
@@ -38,6 +39,7 @@ export const AddSeniorCitizenFields: React.FC<AddSeniorCitizenFieldsProps> = ({
   onSearchChange,
   selectedCitizen,
   onCitizenSelect,
+  filteredCitizens,
   existingBeneficiaries = [],
   programOptions,
   reactSelectStyles: _reactSelectStyles,
@@ -74,6 +76,7 @@ export const AddSeniorCitizenFields: React.FC<AddSeniorCitizenFieldsProps> = ({
         selectedCitizen={selectedCitizen}
         onCitizenSelect={onCitizenSelect}
         onAddNewCitizen={onAddNewCitizen}
+        filteredCitizens={filteredCitizens}
         isLoading={isLoadingCitizens}
       />
 
@@ -101,7 +104,7 @@ export const AddSeniorCitizenFields: React.FC<AddSeniorCitizenFieldsProps> = ({
             <Select
               isMulti
               value={pensionTypeOptions.filter(option => field.value?.includes(option.value))}
-              onChange={(selectedOptions) => {
+              onChange={selectedOptions => {
                 const values = selectedOptions ? selectedOptions.map(opt => opt.value) : [];
                 field.onChange(values);
               }}
@@ -110,12 +113,10 @@ export const AddSeniorCitizenFields: React.FC<AddSeniorCitizenFieldsProps> = ({
               className="mt-1"
               classNamePrefix="react-select"
               isSearchable={true}
-              formatOptionLabel={(option) => (
+              formatOptionLabel={option => (
                 <div className="flex flex-col">
                   <span className="font-medium">{option.label}</span>
-                  {option.description && (
-                    <span className="text-xs text-gray-500 mt-1">{option.description}</span>
-                  )}
+                  {option.description && <span className="text-xs text-gray-500 mt-1">{option.description}</span>}
                 </div>
               )}
               styles={pensionReactSelectStyles}
@@ -130,7 +131,7 @@ export const AddSeniorCitizenFields: React.FC<AddSeniorCitizenFieldsProps> = ({
       {/* 3. Government Programs */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-primary-600">Government Programs</h3>
-        
+
         <FormField
           control={form.control}
           name="governmentPrograms"
@@ -140,7 +141,7 @@ export const AddSeniorCitizenFields: React.FC<AddSeniorCitizenFieldsProps> = ({
               <Select
                 isMulti
                 value={programOptions.filter(option => field.value?.includes(option.value))}
-                onChange={(selectedOptions) => {
+                onChange={selectedOptions => {
                   field.onChange(selectedOptions ? selectedOptions.map(option => option.value) : []);
                 }}
                 options={programOptions}
@@ -158,4 +159,3 @@ export const AddSeniorCitizenFields: React.FC<AddSeniorCitizenFieldsProps> = ({
     </div>
   );
 };
-

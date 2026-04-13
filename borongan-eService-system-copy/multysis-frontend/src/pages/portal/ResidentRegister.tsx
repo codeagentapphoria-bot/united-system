@@ -228,7 +228,7 @@ export const ResidentRegister: React.FC = () => {
           handleMunicipalityChange(String(borongan.id));
         }
       })
-      .catch(() => { });
+      .catch(() => {});
 
     // Load social amelioration settings for registration form dropdowns
     const types = ['PENSION_TYPE', 'DISABILITY_TYPE', 'GRADE_LEVEL', 'SOLO_PARENT_CATEGORY'];
@@ -272,7 +272,7 @@ export const ResidentRegister: React.FC = () => {
     try {
       const res = await api.get(`/addresses/barangays?municipalityId=${municipalityId}`);
       setBarangays(res.data.data || []);
-    } catch { }
+    } catch {}
   };
 
   // Check username availability (debounced)
@@ -494,16 +494,18 @@ export const ResidentRegister: React.FC = () => {
               return (
                 <div
                   key={s.num}
-                  className={`flex items-start gap-3 rounded-xl px-4 py-3 transition-all ${isCurrent ? 'bg-white/15 shadow-lg' : isDone ? 'opacity-80' : 'opacity-50'
-                    }`}
+                  className={`flex items-start gap-3 rounded-xl px-4 py-3 transition-all ${
+                    isCurrent ? 'bg-white/15 shadow-lg' : isDone ? 'opacity-80' : 'opacity-50'
+                  }`}
                 >
                   <div
-                    className={`mt-0.5 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${isDone
+                    className={`mt-0.5 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                      isDone
                         ? 'bg-green-400 text-green-900'
                         : isCurrent
                           ? 'bg-white text-primary-700'
                           : 'bg-white/20 text-white'
-                      }`}
+                    }`}
                   >
                     {isDone ? <Check className="w-4 h-4" /> : s.num}
                   </div>

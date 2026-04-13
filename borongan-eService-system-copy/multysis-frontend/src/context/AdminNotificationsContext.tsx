@@ -4,11 +4,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { useActiveServices } from '@/hooks/useActiveServices';
-import type { 
-  TransactionUpdatePayload, 
+import type {
+  TransactionUpdatePayload,
   NewTransactionPayload,
   CitizenStatusChangePayload,
   TransactionNoteReadPayload,
+  ProgramApplicationNewPayload,
 } from '@/types/socket.types';
 
 interface AdminNotificationsContextType {
@@ -25,6 +26,7 @@ const EMPTY_COUNTS: NotificationCounts = {
   pendingCitizens: 0,
   pendingUpdateRequests: 0,
   unreadMessages: 0,
+  pendingProgramApplications: 0,
   total: 0,
   pendingApplicationsByService: {},
 };
@@ -43,13 +45,15 @@ const notifySubscribers = () => {
 
 export const useAdminNotificationsGlobal = () => {
   const [, forceUpdate] = useState(0);
-  
+
   useEffect(() => {
     const callback = () => forceUpdate(prev => prev + 1);
     subscribers.add(callback);
-    return () => { subscribers.delete(callback); };
+    return () => {
+      subscribers.delete(callback);
+    };
   }, []);
-  
+
   return {
     counts: globalCounts,
     isLoading: globalIsLoading,
@@ -59,7 +63,13 @@ export const useAdminNotificationsGlobal = () => {
   };
 };
 
-export const setAdminNotificationsGlobal = (data: { counts?: NotificationCounts; isLoading?: boolean; error?: string | null; isWebSocketHealthy?: boolean; isInitialized?: boolean }) => {
+export const setAdminNotificationsGlobal = (data: {
+  counts?: NotificationCounts;
+  isLoading?: boolean;
+  error?: string | null;
+  isWebSocketHealthy?: boolean;
+  isInitialized?: boolean;
+}) => {
   if (data.counts) {
     globalCounts = data.counts;
   }
@@ -74,16 +84,16 @@ export const initializeAdminNotifications = async () => {
   if (globalIsInitialized && globalCounts.total !== -1) {
     return;
   }
-  
+
   if (initializationPromise) {
     return initializationPromise;
   }
-  
+
   globalCounts = { ...EMPTY_COUNTS };
   globalIsLoading = true;
   globalError = null;
   notifySubscribers();
-  
+
   initializationPromise = (async () => {
     try {
       const result = await notificationService.getAdminNotificationCounts();
@@ -97,7 +107,7 @@ export const initializeAdminNotifications = async () => {
       notifySubscribers();
     }
   })();
-  
+
   return initializationPromise;
 };
 
@@ -123,19 +133,25 @@ export const AdminNotificationsProvider: React.FC<AdminNotificationsProviderProp
   const healthCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const initializedRef = useRef(false);
 
-  const getFirstPaymentStatus = useCallback((serviceCode: string): string => {
-    const statuses = servicePaymentStatuses[serviceCode];
-    if (statuses && statuses.length > 0) {
-      return statuses[0];
-    }
-    return 'PENDING';
-  }, [servicePaymentStatuses]);
+  const getFirstPaymentStatus = useCallback(
+    (serviceCode: string): string => {
+      const statuses = servicePaymentStatuses[serviceCode];
+      if (statuses && statuses.length > 0) {
+        return statuses[0];
+      }
+      return 'PENDING';
+    },
+    [servicePaymentStatuses]
+  );
 
-  const isPendingPaymentStatus = useCallback((paymentStatus: string | undefined, serviceCode: string | undefined): boolean => {
-    if (!paymentStatus || !serviceCode) return false;
-    const firstStatus = getFirstPaymentStatus(serviceCode);
-    return paymentStatus === firstStatus;
-  }, [getFirstPaymentStatus]);
+  const isPendingPaymentStatus = useCallback(
+    (paymentStatus: string | undefined, serviceCode: string | undefined): boolean => {
+      if (!paymentStatus || !serviceCode) return false;
+      const firstStatus = getFirstPaymentStatus(serviceCode);
+      return paymentStatus === firstStatus;
+    },
+    [getFirstPaymentStatus]
+  );
 
   const fetchCounts = useCallback(async () => {
     if (!user || user.role !== 'admin') {
@@ -263,19 +279,19 @@ export const AdminNotificationsProvider: React.FC<AdminNotificationsProviderProp
 
     const handleNewTransaction = (data: NewTransactionPayload) => {
       updateLastEventTime();
-      setCounts((prev) => {
+      setCounts(prev => {
         const updated = { ...prev };
-        
+
         if (data.paymentStatus && data.serviceCode && isPendingPaymentStatus(data.paymentStatus, data.serviceCode)) {
           updated.pendingApplications += 1;
           updated.total += 1;
-          
+
           if (data.serviceCode) {
-            updated.pendingApplicationsByService[data.serviceCode] = 
+            updated.pendingApplicationsByService[data.serviceCode] =
               (updated.pendingApplicationsByService[data.serviceCode] || 0) + 1;
           }
         }
-        
+
         globalCounts = updated;
         return updated;
       });
@@ -283,40 +299,47 @@ export const AdminNotificationsProvider: React.FC<AdminNotificationsProviderProp
 
     const handleTransactionUpdate = (data: TransactionUpdatePayload) => {
       updateLastEventTime();
-      setCounts((prev) => {
+      setCounts(prev => {
         const updated = { ...prev };
-        
-        if (data.paymentStatus !== undefined && data.oldPaymentStatus !== undefined && 
-            data.paymentStatus !== data.oldPaymentStatus && data.serviceCode) {
-          
+
+        if (
+          data.paymentStatus !== undefined &&
+          data.oldPaymentStatus !== undefined &&
+          data.paymentStatus !== data.oldPaymentStatus &&
+          data.serviceCode
+        ) {
           const wasPending = isPendingPaymentStatus(data.oldPaymentStatus, data.serviceCode);
           const isNowPending = isPendingPaymentStatus(data.paymentStatus, data.serviceCode);
-          
+
           if (wasPending && !isNowPending) {
             updated.pendingApplications = Math.max(0, updated.pendingApplications - 1);
             updated.total = Math.max(0, updated.total - 1);
-            
+
             if (data.serviceCode && updated.pendingApplicationsByService[data.serviceCode]) {
-              updated.pendingApplicationsByService[data.serviceCode] = 
-                Math.max(0, updated.pendingApplicationsByService[data.serviceCode] - 1);
+              updated.pendingApplicationsByService[data.serviceCode] = Math.max(
+                0,
+                updated.pendingApplicationsByService[data.serviceCode] - 1
+              );
             }
           } else if (!wasPending && isNowPending) {
             updated.pendingApplications += 1;
             updated.total += 1;
-            
+
             if (data.serviceCode) {
-              updated.pendingApplicationsByService[data.serviceCode] = 
+              updated.pendingApplicationsByService[data.serviceCode] =
                 (updated.pendingApplicationsByService[data.serviceCode] || 0) + 1;
             }
           }
         }
-        
-        if (data.updateRequestStatus !== undefined && data.oldUpdateRequestStatus !== undefined &&
-            data.updateRequestStatus !== data.oldUpdateRequestStatus) {
-          
+
+        if (
+          data.updateRequestStatus !== undefined &&
+          data.oldUpdateRequestStatus !== undefined &&
+          data.updateRequestStatus !== data.oldUpdateRequestStatus
+        ) {
           const wasPendingAdmin = data.oldUpdateRequestStatus === 'PENDING_ADMIN';
           const isNowPendingAdmin = data.updateRequestStatus === 'PENDING_ADMIN';
-          
+
           if (wasPendingAdmin && !isNowPendingAdmin) {
             updated.pendingUpdateRequests = Math.max(0, updated.pendingUpdateRequests - 1);
             updated.total = Math.max(0, updated.total - 1);
@@ -325,7 +348,7 @@ export const AdminNotificationsProvider: React.FC<AdminNotificationsProviderProp
             updated.total += 1;
           }
         }
-        
+
         globalCounts = updated;
         return updated;
       });
@@ -333,12 +356,12 @@ export const AdminNotificationsProvider: React.FC<AdminNotificationsProviderProp
 
     const handleCitizenStatusChange = (data: CitizenStatusChangePayload) => {
       updateLastEventTime();
-      setCounts((prev) => {
+      setCounts(prev => {
         const updated = { ...prev };
-        
+
         const wasPending = data.oldStatus === 'PENDING';
         const isNowPending = data.newStatus === 'PENDING';
-        
+
         if (wasPending && !isNowPending) {
           updated.pendingCitizens = Math.max(0, updated.pendingCitizens - 1);
           updated.total = Math.max(0, updated.total - 1);
@@ -346,7 +369,7 @@ export const AdminNotificationsProvider: React.FC<AdminNotificationsProviderProp
           updated.pendingCitizens += 1;
           updated.total += 1;
         }
-        
+
         globalCounts = updated;
         return updated;
       });
@@ -354,14 +377,40 @@ export const AdminNotificationsProvider: React.FC<AdminNotificationsProviderProp
 
     const handleTransactionNoteRead = (data: TransactionNoteReadPayload) => {
       updateLastEventTime();
-      setCounts((prev) => {
+      setCounts(prev => {
         const updated = { ...prev };
-        
-        if (data.senderType === 'SUBSCRIBER' && data.isRead) {
+
+        if (data.senderType === 'RESIDENT' && data.isRead) {
           updated.unreadMessages = Math.max(0, updated.unreadMessages - 1);
           updated.total = Math.max(0, updated.total - 1);
         }
-        
+
+        globalCounts = updated;
+        return updated;
+      });
+    };
+
+    const handleProgramApplicationNew = (_data: ProgramApplicationNewPayload) => {
+      updateLastEventTime();
+      setCounts(prev => {
+        const updated = {
+          ...prev,
+          pendingProgramApplications: prev.pendingProgramApplications + 1,
+          total: prev.total + 1,
+        };
+        globalCounts = updated;
+        return updated;
+      });
+    };
+
+    const handleProgramApplicationReview = () => {
+      updateLastEventTime();
+      setCounts(prev => {
+        const updated = {
+          ...prev,
+          pendingProgramApplications: Math.max(0, prev.pendingProgramApplications - 1),
+          total: Math.max(0, prev.total - 1),
+        };
         globalCounts = updated;
         return updated;
       });
@@ -371,12 +420,16 @@ export const AdminNotificationsProvider: React.FC<AdminNotificationsProviderProp
     socket.on('transaction:update', handleTransactionUpdate);
     socket.on('citizen:status-change', handleCitizenStatusChange);
     socket.on('transaction:note:read', handleTransactionNoteRead);
+    socket.on('program-application:new', handleProgramApplicationNew);
+    socket.on('program-application:review', handleProgramApplicationReview);
 
     return () => {
       socket.off('transaction:new', handleNewTransaction);
       socket.off('transaction:update', handleTransactionUpdate);
       socket.off('citizen:status-change', handleCitizenStatusChange);
       socket.off('transaction:note:read', handleTransactionNoteRead);
+      socket.off('program-application:new', handleProgramApplicationNew);
+      socket.off('program-application:review', handleProgramApplicationReview);
     };
   }, [socket, isConnected, user, isPendingPaymentStatus, isWebSocketHealthy]);
 
@@ -401,7 +454,9 @@ export const AdminNotificationsProvider: React.FC<AdminNotificationsProviderProp
   }, [fetchCounts]);
 
   return (
-    <AdminNotificationsContext.Provider value={{ counts, isLoading, error, refresh, isWebSocketHealthy, isInitialized }}>
+    <AdminNotificationsContext.Provider
+      value={{ counts, isLoading, error, refresh, isWebSocketHealthy, isInitialized }}
+    >
       {children}
     </AdminNotificationsContext.Provider>
   );

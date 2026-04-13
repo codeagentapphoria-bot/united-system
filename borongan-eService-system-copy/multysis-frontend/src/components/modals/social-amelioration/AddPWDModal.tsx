@@ -44,6 +44,7 @@ export const AddPWDModal: React.FC<AddPWDModalProps> = ({
   const navigate = useNavigate();
   const { getActiveProgramsByType } = useGovernmentPrograms();
   const {
+    filteredCitizens,
     isLoadingCitizens,
     localSearchQuery,
     setLocalSearchQuery,
@@ -76,7 +77,7 @@ export const AddPWDModal: React.FC<AddPWDModalProps> = ({
   const existingBeneficiary = React.useMemo(() => {
     if (!selectedCitizen) return null;
     return existingBeneficiaries.find(
-      (b) => b.citizenId === selectedCitizen.id || (b.citizen && b.citizen.id === selectedCitizen.id)
+      b => b.citizenId === selectedCitizen.id || (b.citizen && b.citizen.id === selectedCitizen.id)
     );
   }, [selectedCitizen, existingBeneficiaries]);
 
@@ -131,11 +132,9 @@ export const AddPWDModal: React.FC<AddPWDModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className={cn("max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0")}>
+      <DialogContent className={cn('max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0')}>
         <DialogHeader className="px-6 pt-6 pb-4">
-          <DialogTitle className={cn("text-2xl font-semibold text-primary-600")}>
-            Add PWD
-          </DialogTitle>
+          <DialogTitle className={cn('text-2xl font-semibold text-primary-600')}>Add PWD</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6">
@@ -143,7 +142,8 @@ export const AddPWDModal: React.FC<AddPWDModalProps> = ({
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <h4 className="text-sm font-semibold text-red-800 mb-2">Resident Already Registered</h4>
               <p className="text-sm text-red-700 mb-3">
-                This resident ({selectedCitizen?.firstName} {selectedCitizen?.lastName}) is already registered as a PWD. Please edit the existing record instead.
+                This resident ({selectedCitizen?.firstName} {selectedCitizen?.lastName}) is already registered as a PWD.
+                Please edit the existing record instead.
               </p>
               {onEdit && (
                 <Button
@@ -170,6 +170,7 @@ export const AddPWDModal: React.FC<AddPWDModalProps> = ({
                 onSearchChange={setLocalSearchQuery}
                 selectedCitizen={selectedCitizen}
                 onCitizenSelect={setSelectedCitizen}
+                filteredCitizens={filteredCitizens}
                 programOptions={programOptions}
                 reactSelectStyles={reactSelectStyles}
               />
@@ -201,4 +202,3 @@ export const AddPWDModal: React.FC<AddPWDModalProps> = ({
     </Dialog>
   );
 };
-

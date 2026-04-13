@@ -34,11 +34,15 @@ const validateEnvironment = (): void => {
 
   // Validate CORS_ORIGIN — supports comma-separated list of URLs
   const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5174';
-  corsOrigin.split(',').map((o) => o.trim()).filter(Boolean).forEach((origin) => {
-    if (!origin.match(/^https?:\/\/.+/)) {
-      errors.push(`CORS_ORIGIN entry '${origin}' must be a valid URL`);
-    }
-  });
+  corsOrigin
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean)
+    .forEach((origin) => {
+      if (!origin.match(/^https?:\/\/.+/)) {
+        errors.push(`CORS_ORIGIN entry '${origin}' must be a valid URL`);
+      }
+    });
 
   // Validate timeout environment variables
   // Validate ACCESS_TOKEN_EXPIRES (default: 10m, range: 5-15 min)
@@ -108,13 +112,18 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 // Supports comma-separated list of allowed origins (BIMS frontend + E-Services frontend)
 const _rawOrigins = process.env.CORS_ORIGIN || 'http://localhost:5174';
-const _allowedOrigins = _rawOrigins.split(',').map((o) => o.trim()).filter(Boolean);
+const _allowedOrigins = _rawOrigins
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
 const corsOrigin = _allowedOrigins[0]; // for backward-compat usages below
 const apiBaseUrl = process.env.API_BASE_URL || `http://localhost:${PORT}`;
 
 // Build image sources for CSP - allow same origin, data URIs, and configured origins
 const imgSources = ["'self'", 'data:'];
-_allowedOrigins.forEach((o) => { if (o !== apiBaseUrl) imgSources.push(o); });
+_allowedOrigins.forEach((o) => {
+  if (o !== apiBaseUrl) imgSources.push(o);
+});
 if (apiBaseUrl) {
   imgSources.push(apiBaseUrl);
 }
@@ -279,10 +288,12 @@ app.use((req: Request, res: Response, next: NextFunction): void => {
   const path = req.path;
 
   // Static data endpoints - cacheable (5 minutes)
-  if (path.startsWith('/api/services') || 
-      path.startsWith('/api/faqs') ||
-      path.startsWith('/api/public/faqs') ||
-      path.startsWith('/api/addresses')) {
+  if (
+    path.startsWith('/api/services') ||
+    path.startsWith('/api/faqs') ||
+    path.startsWith('/api/public/faqs') ||
+    path.startsWith('/api/addresses')
+  ) {
     res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
   }
   // Dashboard - short cache (30 seconds)
@@ -349,6 +360,7 @@ import authRoutes from './routes/auth.routes';
 import portalRegistrationRoutes from './routes/portal-registration.routes';
 import portalHouseholdRoutes from './routes/portal-household.routes';
 import portalClassificationRoutes from './routes/portal-classification.routes';
+import portalProgramsRoutes from './routes/portal-programs.routes';
 import devRoutes from './routes/dev.routes';
 import faqRoutes from './routes/faq.routes';
 import governmentProgramRoutes from './routes/government-program.routes';
@@ -390,6 +402,8 @@ app.use('/api/portal-registration', apiLimiter, portalRegistrationRoutes);
 app.use('/api/portal/household', apiLimiter, portalHouseholdRoutes);
 // Resident portal BIMS classification display (read-only)
 app.use('/api/portal/classifications', apiLimiter, portalClassificationRoutes);
+// Resident portal government programs discovery + application; admin application review
+app.use('/api/portal', apiLimiter, portalProgramsRoutes);
 app.use('/api/transactions', apiLimiter, transactionRoutes);
 app.use('/api/roles', apiLimiter, roleRoutes);
 app.use('/api/permissions', apiLimiter, permissionRoutes);
@@ -457,17 +471,19 @@ httpServer.listen(PORT, () => {
   console.log(`🔌 WebSocket server initialized`);
 
   // Verify Redis connection on startup
-  import('./services/cache.service').then(({ cacheService }) => {
-    cacheService.connect().then((connected) => {
-      if (connected) {
-        console.log(`✅ Redis connected successfully`);
-      } else {
-        console.warn(`⚠️ Redis connection failed - caching disabled`);
-      }
+  import('./services/cache.service')
+    .then(({ cacheService }) => {
+      cacheService.connect().then((connected) => {
+        if (connected) {
+          console.log(`✅ Redis connected successfully`);
+        } else {
+          console.warn(`⚠️ Redis connection failed - caching disabled`);
+        }
+      });
+    })
+    .catch((err) => {
+      console.warn(`⚠️ Redis import failed:`, err.message);
     });
-  }).catch((err) => {
-    console.warn(`⚠️ Redis import failed:`, err.message);
-  });
 
   // Log server startup
   addDevLog('info', 'Server started', {

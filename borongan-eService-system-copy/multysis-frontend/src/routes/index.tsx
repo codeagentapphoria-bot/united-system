@@ -6,42 +6,75 @@ import { ProtectedRoute } from '../components/common/ProtectedRoute';
 // Lazy load all pages for code splitting
 // Admin Pages
 const AdminAddresses = lazy(() => import('../pages/admin/AdminAddresses').then(m => ({ default: m.AdminAddresses })));
-const AdminAppointments = lazy(() => import('../pages/admin/AdminAppointments').then(m => ({ default: m.AdminAppointments })));
+const AdminAppointments = lazy(() =>
+  import('../pages/admin/AdminAppointments').then(m => ({ default: m.AdminAppointments }))
+);
 const AdminCitizens = lazy(() => import('../pages/admin/AdminCitizens').then(m => ({ default: m.AdminCitizens })));
 const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const AdminFAQs = lazy(() => import('../pages/admin/AdminFAQs').then(m => ({ default: m.AdminFAQs })));
-const AdminGovernmentPrograms = lazy(() => import('../pages/admin/AdminGovernmentPrograms').then(m => ({ default: m.AdminGovernmentPrograms })));
+const AdminGovernmentPrograms = lazy(() =>
+  import('../pages/admin/AdminGovernmentPrograms').then(m => ({ default: m.AdminGovernmentPrograms }))
+);
 const AdminLogin = lazy(() => import('../pages/admin/AdminLogin').then(m => ({ default: m.AdminLogin })));
-const AdminPermissionsManagement = lazy(() => import('../pages/admin/AdminPermissionsManagement').then(m => ({ default: m.AdminPermissionsManagement })));
-const AdminRoleManagement = lazy(() => import('../pages/admin/AdminRoleManagement').then(m => ({ default: m.AdminRoleManagement })));
-const AdminSmartCityServices = lazy(() => import('../pages/admin/AdminSmartCityServices').then(m => ({ default: m.AdminSmartCityServices })));
-const AdminSubscribers = lazy(() => import('../pages/admin/AdminSubscribers').then(m => ({ default: m.AdminSubscribers })));
-const AdminUserManagement = lazy(() => import('../pages/admin/AdminUserManagement').then(m => ({ default: m.AdminUserManagement })));
+const AdminPermissionsManagement = lazy(() =>
+  import('../pages/admin/AdminPermissionsManagement').then(m => ({ default: m.AdminPermissionsManagement }))
+);
+const AdminRoleManagement = lazy(() =>
+  import('../pages/admin/AdminRoleManagement').then(m => ({ default: m.AdminRoleManagement }))
+);
+const AdminSmartCityServices = lazy(() =>
+  import('../pages/admin/AdminSmartCityServices').then(m => ({ default: m.AdminSmartCityServices }))
+);
+const AdminSubscribers = lazy(() =>
+  import('../pages/admin/AdminSubscribers').then(m => ({ default: m.AdminSubscribers }))
+);
+const AdminUserManagement = lazy(() =>
+  import('../pages/admin/AdminUserManagement').then(m => ({ default: m.AdminUserManagement }))
+);
 const ServicePage = lazy(() => import('../pages/admin/ServicePage').then(m => ({ default: m.ServicePage })));
-const SocialAmelioration = lazy(() => import('../pages/admin/SocialAmelioration').then(m => ({ default: m.SocialAmelioration })));
+const SocialAmelioration = lazy(() =>
+  import('../pages/admin/SocialAmelioration').then(m => ({ default: m.SocialAmelioration }))
+);
 const EGovReports = lazy(() => import('../pages/admin/EGovReports').then(m => ({ default: m.EGovReports })));
 const TaxProfiles = lazy(() => import('../pages/admin/TaxProfiles').then(m => ({ default: m.TaxProfiles })));
-const AdminRegistrationWorkflow = lazy(() => import('../pages/admin/AdminRegistrationWorkflow').then(m => ({ default: m.AdminRegistrationWorkflow })));
+const AdminRegistrationWorkflow = lazy(() =>
+  import('../pages/admin/AdminRegistrationWorkflow').then(m => ({ default: m.AdminRegistrationWorkflow }))
+);
 
 // Dev Pages
 const DevLogin = lazy(() => import('../pages/dev/DevLogin').then(m => ({ default: m.DevLogin })));
 const DevDashboard = lazy(() => import('../pages/dev/DevDashboard').then(m => ({ default: m.DevDashboard })));
 
 // Portal Pages — v2
-const ResidentRegister = lazy(() => import('../pages/portal/ResidentRegister').then(m => ({ default: m.ResidentRegister })));
-const RegistrationStatus = lazy(() => import('../pages/portal/RegistrationStatus').then(m => ({ default: m.RegistrationStatus })));
+const ResidentRegister = lazy(() =>
+  import('../pages/portal/ResidentRegister').then(m => ({ default: m.ResidentRegister }))
+);
+const RegistrationStatus = lazy(() =>
+  import('../pages/portal/RegistrationStatus').then(m => ({ default: m.RegistrationStatus }))
+);
 const PortalMyID = lazy(() => import('../pages/portal/PortalMyID').then(m => ({ default: m.PortalMyID })));
-const PortalMyHousehold = lazy(() => import('../pages/portal/PortalMyHousehold').then(m => ({ default: m.PortalMyHousehold })));
+const PortalMyHousehold = lazy(() =>
+  import('../pages/portal/PortalMyHousehold').then(m => ({ default: m.PortalMyHousehold }))
+);
 const PortalHome = lazy(() => import('../pages/portal/PortalHome').then(m => ({ default: m.PortalHome })));
-const PortalEGovernment = lazy(() => import('../pages/portal/PortalEGovernment').then(m => ({ default: m.PortalEGovernment })));
+const PortalEGovernment = lazy(() =>
+  import('../pages/portal/PortalEGovernment').then(m => ({ default: m.PortalEGovernment }))
+);
 const PortalEBills = lazy(() => import('../pages/portal/PortalEBills').then(m => ({ default: m.PortalEBills })));
-const PortalEServices = lazy(() => import('../pages/portal/PortalEServices').then(m => ({ default: m.PortalEServices })));
+const PortalEServices = lazy(() =>
+  import('../pages/portal/PortalEServices').then(m => ({ default: m.PortalEServices }))
+);
 const PortalENews = lazy(() => import('../pages/portal/PortalENews').then(m => ({ default: m.PortalENews })));
-const PortalExternalWebsites = lazy(() => import('../pages/portal/PortalExternalWebsites').then(m => ({ default: m.PortalExternalWebsites })));
+const PortalExternalWebsites = lazy(() =>
+  import('../pages/portal/PortalExternalWebsites').then(m => ({ default: m.PortalExternalWebsites }))
+);
 const PortalFAQs = lazy(() => import('../pages/portal/PortalFAQs').then(m => ({ default: m.PortalFAQs })));
 const PortalProfile = lazy(() => import('../pages/portal/PortalProfile').then(m => ({ default: m.PortalProfile })));
-const PortalGuestApply = lazy(() => import('../pages/portal/PortalGuestApply').then(m => ({ default: m.PortalGuestApply })));
+const PortalGuestApply = lazy(() =>
+  import('../pages/portal/PortalGuestApply').then(m => ({ default: m.PortalGuestApply }))
+);
 const PortalTrack = lazy(() => import('../pages/portal/PortalTrack').then(m => ({ default: m.PortalTrack })));
+const PortalPrograms = lazy(() => import('../pages/portal/PortalPrograms').then(m => ({ default: m.PortalPrograms })));
 
 // Loading component
 const LoadingFallback = () => (
@@ -52,9 +85,7 @@ const LoadingFallback = () => (
 
 // Wrapper component for Suspense
 const LazyWrapper = ({ children }: { children: React.ReactNode }) => (
-  <Suspense fallback={<LoadingFallback />}>
-    {children}
-  </Suspense>
+  <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
 );
 
 export const router = createBrowserRouter([
@@ -397,6 +428,17 @@ export const router = createBrowserRouter([
           </LazyWrapper>
         ),
       },
+      {
+        // Government programs discovery & application (active residents only)
+        path: 'programs',
+        element: (
+          <ProtectedRoute requiredRole="resident" requireActiveStatus>
+            <LazyWrapper>
+              <PortalPrograms />
+            </LazyWrapper>
+          </ProtectedRoute>
+        ),
+      },
     ],
   },
   // Catch all - redirect to portal home
@@ -405,4 +447,3 @@ export const router = createBrowserRouter([
     element: <Navigate to="/portal" replace />,
   },
 ]);
-

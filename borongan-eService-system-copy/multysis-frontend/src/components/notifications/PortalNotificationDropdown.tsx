@@ -14,21 +14,26 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-// Hooks
-import { usePortalNotifications } from '@/hooks/notifications/usePortalNotifications';
+// Types
+import type { SubscriberNotificationCounts } from '@/services/api/notification.service';
 
 // Utils
-import { FiBell, FiEdit, FiFileText, FiMessageSquare } from 'react-icons/fi';
+import { FiBell, FiBookOpen, FiEdit, FiFileText, FiMessageSquare } from 'react-icons/fi';
 
 interface PortalNotificationDropdownProps {
   children: React.ReactNode;
+  counts: SubscriberNotificationCounts;
+  refresh: () => void;
+  clearProgramApplicationUpdates: () => void;
 }
 
 export const PortalNotificationDropdown: React.FC<PortalNotificationDropdownProps> = ({
   children,
+  counts,
+  refresh,
+  clearProgramApplicationUpdates,
 }) => {
   const navigate = useNavigate();
-  const { counts, refresh } = usePortalNotifications();
   const [isOpen, setIsOpen] = useState(false);
 
   const hasNotifications = counts.total > 0;
@@ -58,6 +63,12 @@ export const PortalNotificationDropdown: React.FC<PortalNotificationDropdownProp
     await refresh(); // Refresh before navigating
     setIsOpen(false); // Close dropdown
     navigate('/portal/profile');
+  };
+
+  const handleProgramApplicationUpdatesSelect = () => {
+    clearProgramApplicationUpdates(); // Dismiss the notification immediately
+    setIsOpen(false); // Close dropdown
+    navigate('/portal/programs');
   };
 
   return (
@@ -93,12 +104,10 @@ export const PortalNotificationDropdown: React.FC<PortalNotificationDropdownProp
                       <FiEdit size={16} />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-gray-900">
-                        Pending Update Requests
-                      </span>
+                      <span className="text-sm font-medium text-gray-900">Pending Update Requests</span>
                       <span className="text-xs text-gray-500">
-                        {counts.pendingUpdateRequests}{' '}
-                        {counts.pendingUpdateRequests === 1 ? 'request' : 'requests'} from admin
+                        {counts.pendingUpdateRequests} {counts.pendingUpdateRequests === 1 ? 'request' : 'requests'}{' '}
+                        from admin
                       </span>
                     </div>
                   </div>
@@ -124,8 +133,7 @@ export const PortalNotificationDropdown: React.FC<PortalNotificationDropdownProp
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-900">Unread Messages</span>
                       <span className="text-xs text-gray-500">
-                        {counts.unreadMessages} {counts.unreadMessages === 1 ? 'message' : 'messages'}{' '}
-                        from admin
+                        {counts.unreadMessages} {counts.unreadMessages === 1 ? 'message' : 'messages'} from admin
                       </span>
                     </div>
                   </div>
@@ -151,8 +159,8 @@ export const PortalNotificationDropdown: React.FC<PortalNotificationDropdownProp
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-900">Status Updates</span>
                       <span className="text-xs text-gray-500">
-                        {counts.statusUpdates} recent{' '}
-                        {counts.statusUpdates === 1 ? 'update' : 'updates'} on applications
+                        {counts.statusUpdates} recent {counts.statusUpdates === 1 ? 'update' : 'updates'} on
+                        applications
                       </span>
                     </div>
                   </div>
@@ -160,7 +168,32 @@ export const PortalNotificationDropdown: React.FC<PortalNotificationDropdownProp
                     {counts.statusUpdates}
                   </span>
                 </DropdownMenuItem>
+                {counts.programApplicationUpdates > 0 && <DropdownMenuSeparator />}
               </>
+            )}
+
+            {/* Program Application Updates */}
+            {counts.programApplicationUpdates > 0 && (
+              <DropdownMenuItem
+                className="flex items-center justify-between px-3 py-2 cursor-pointer hover:!bg-gray-100 focus:!bg-gray-100"
+                onSelect={handleProgramApplicationUpdatesSelect}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-lg bg-orange-100 text-orange-600">
+                    <FiBookOpen size={16} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-900">Program Applications</span>
+                    <span className="text-xs text-gray-500">
+                      {counts.programApplicationUpdates} {counts.programApplicationUpdates === 1 ? 'update' : 'updates'}{' '}
+                      on your applications
+                    </span>
+                  </div>
+                </div>
+                <span className="ml-2 px-2 py-0.5 text-xs font-semibold text-white bg-orange-600 rounded-full">
+                  {counts.programApplicationUpdates}
+                </span>
+              </DropdownMenuItem>
             )}
           </div>
         )}
@@ -168,4 +201,3 @@ export const PortalNotificationDropdown: React.FC<PortalNotificationDropdownProp
     </DropdownMenu>
   );
 };
-

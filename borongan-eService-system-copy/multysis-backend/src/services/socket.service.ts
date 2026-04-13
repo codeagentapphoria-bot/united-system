@@ -35,6 +35,8 @@ import type {
   NewServicePayload,
   NewSubscriberPayload,
   NewTransactionPayload,
+  ProgramApplicationNewPayload,
+  ProgramApplicationReviewPayload,
   ServiceDeletePayload,
   ServiceUpdatePayload,
   SubscriberUpdatePayload,
@@ -448,7 +450,7 @@ export const emitGovernmentProgramNew = async (program: {
   id: string;
   name: string;
   description?: string;
-  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+  types: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL')[];
   isActive: boolean;
   createdAt: Date | string;
 }): Promise<void> => {
@@ -458,7 +460,7 @@ export const emitGovernmentProgramNew = async (program: {
       id: program.id,
       name: program.name,
       description: program.description,
-      type: program.type,
+      types: program.types,
       isActive: program.isActive,
       createdAt:
         program.createdAt instanceof Date ? program.createdAt.toISOString() : program.createdAt,
@@ -474,7 +476,7 @@ export const emitGovernmentProgramUpdate = async (
   update: {
     name?: string;
     description?: string;
-    type?: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+    types?: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL')[];
     isActive?: boolean;
     oldIsActive?: boolean;
     updatedAt: Date;
@@ -486,7 +488,7 @@ export const emitGovernmentProgramUpdate = async (
       programId,
       name: update.name,
       description: update.description,
-      type: update.type,
+      types: update.types,
       isActive: update.isActive,
       oldIsActive: update.oldIsActive,
       updatedAt: update.updatedAt.toISOString(),
@@ -652,4 +654,33 @@ export const emitDevLogUpdate = (log: {
       timestamp: new Date().toISOString(),
     } as DevLogPayload);
   }
+};
+
+export const emitProgramApplicationNew = async (
+  payload: ProgramApplicationNewPayload
+): Promise<void> => {
+  const io = getSocketInstance();
+  if (!io) {
+    console.warn('[socket] emitProgramApplicationNew: socket instance not available');
+    return;
+  }
+  io.to('admins').emit('program-application:new', payload);
+  await invalidateAdminNotificationCache();
+};
+
+export const emitProgramApplicationReview = async (
+  residentId: string,
+  payload: ProgramApplicationReviewPayload
+): Promise<void> => {
+  const io = getSocketInstance();
+  if (!io) {
+    console.warn('[socket] emitProgramApplicationReview: socket instance not available');
+    return;
+  }
+  // Notify the resident
+  io.to(`user:${residentId}`).emit('program-application:review', payload);
+  // Notify admins so they can decrement their pending count in real-time
+  io.to('admins').emit('program-application:review', payload);
+  await invalidateSubscriberNotificationCache(residentId);
+  await invalidateAdminNotificationCache();
 };

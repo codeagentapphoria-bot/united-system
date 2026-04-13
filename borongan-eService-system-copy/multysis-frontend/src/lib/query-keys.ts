@@ -7,14 +7,12 @@ export const queryKeys = {
     all: ['residents'] as const,
     list: (filters: Record<string, unknown>) => ['residents', 'list', filters] as const,
     detail: (id: string) => ['residents', 'detail', id] as const,
-    search: (search: string, options?: Record<string, unknown>) =>
-      ['residents', 'search', search, options] as const,
+    search: (search: string, options?: Record<string, unknown>) => ['residents', 'search', search, options] as const,
   },
 
   services: {
     all: ['services'] as const,
-    list: (page: number, filters?: Record<string, unknown>) =>
-      ['services', 'list', page, filters] as const,
+    list: (page: number, filters?: Record<string, unknown>) => ['services', 'list', page, filters] as const,
     detail: (id: string) => ['services', 'detail', id] as const,
     categories: ['services', 'categories'] as const,
   },
@@ -73,6 +71,12 @@ export const queryKeys = {
     unread: ['notifications', 'unread'] as const,
     subscriber: ['notifications', 'subscriber'] as const,
     admin: ['notifications', 'admin'] as const,
+  },
+
+  portalPrograms: {
+    all: ['portalPrograms'] as const,
+    list: (params?: Record<string, unknown>) => ['portalPrograms', 'list', params] as const,
+    myApplications: ['portalPrograms', 'myApplications'] as const,
   },
 };
 
