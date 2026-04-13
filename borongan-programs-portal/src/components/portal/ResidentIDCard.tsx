@@ -195,7 +195,6 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
                     BORONGANON ID
                   </div>
                 </div>
-                <img src="/da-logo.png" alt="DA" style={{ width: 32, height: 32, objectFit: 'contain' }} />
               </div>
 
               {/* Body */}
