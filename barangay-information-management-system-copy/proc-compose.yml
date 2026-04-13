@@ -4,6 +4,13 @@ merge:
   port: 8080
 
 processes:
+  redis:
+    cmd: docker start redis-united-systems
+    restart: on-failure
+    max_restarts: 5
+    shutdown_timeout: 5
+    ready_when:
+      tcp: localhost:6379
   frontend:
     cmd: npm run dev
     dir: ./client
@@ -14,6 +21,11 @@ processes:
     dir: ./server
     env:
       PORT: "5000"
+      REDIS_HOST: "localhost"
+      REDIS_PORT: "6379"
+      REDIS_ENABLED: "true"
     restart: on-failure
     max_restarts: 10
     shutdown_timeout: 10
+    depends_on:
+      - redis
