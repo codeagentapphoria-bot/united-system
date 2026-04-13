@@ -24,7 +24,7 @@ export interface User {
 }
 
 export interface LoginCredentials {
-  username: string;
+  credential: string;
   password: string;
 }
 
@@ -44,10 +44,6 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   isLoggingOut: boolean;
-  login: (
-    credentials: { username: string; password: string } | { email: string; password: string },
-    isAdmin?: boolean,
-    isDev?: boolean
-  ) => Promise<any>;
+  login: (credentials: { credential: string; password: string }) => Promise<any>;
   logout: () => void;
 }

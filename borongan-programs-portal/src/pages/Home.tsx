@@ -35,10 +35,6 @@ const APPLICATION_STATUS_CONFIG: Record<string, { label: string; className: stri
   cancelled: { label: 'Cancelled', className: 'bg-gray-100 text-gray-600', icon: <FiX size={12} /> },
 };
 
-const EXTERNAL_SITE_URL = import.meta.env.VITE_ESERVICES_PORTAL_URL
-  ? `${import.meta.env.VITE_ESERVICES_PORTAL_URL}/portal/external-websites`
-  : 'http://localhost:5174/portal/external-websites';
-
 const OTHER_PROGRAMS_URL = import.meta.env.VITE_OTHER_PROGRAMS_URL || '';
 
 // ---------------------------------------------------------------------------
@@ -50,8 +46,17 @@ interface ProgramCardProps {
 }
 
 const ProgramCard: React.FC<ProgramCardProps> = ({ program }) => {
+  const navigate = useNavigate();
   const appStatus = program.applicationStatus;
   const statusConfig = appStatus ? APPLICATION_STATUS_CONFIG[appStatus] : null;
+
+  const handleOpen = () => {
+    if (program.name.toLowerCase().includes('libre sakay')) {
+      navigate('/libre-sakay');
+    } else {
+      navigate(`/programs/${program.id}`);
+    }
+  };
 
   return (
     <Card className="h-full flex flex-col hover:shadow-md transition-shadow border-primary-100">
@@ -84,14 +89,13 @@ const ProgramCard: React.FC<ProgramCardProps> = ({ program }) => {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Visit button */}
+        {/* Open button */}
         <Button
           size="sm"
-          className="w-full bg-primary-600 hover:bg-primary-700 gap-1.5"
-          onClick={() => window.open(EXTERNAL_SITE_URL, '_blank', 'noopener,noreferrer')}
+          className="w-full bg-primary-600 hover:bg-primary-700"
+          onClick={handleOpen}
         >
-          <FiExternalLink size={14} />
-          Visit
+          Open
         </Button>
       </CardContent>
     </Card>

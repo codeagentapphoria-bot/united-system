@@ -50,13 +50,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (storedUser && !fetchedUser && !isSuccess && !isError) setIsLoading(false);
   }, [storedUser, fetchedUser, isSuccess, isError]);
 
-  const login = async (
-    credentials: { username: string; password: string } | { email: string; password: string }
-  ) => {
+  const login = async (credentials: { credential: string; password: string }) => {
     try {
-      const { resident } = await authService.portalLogin(
-        credentials as { username: string; password: string }
-      );
+      const { resident } = await authService.portalLogin(credentials);
 
       const firstName = String(resident.firstName || '');
       const lastName = String(resident.lastName || '');

@@ -54,7 +54,7 @@ function buildResidentUser(resident: Record<string, unknown>): User {
 }
 
 export const authService = {
-  async portalLogin(credentials: { username: string; password: string }): Promise<{ resident: Record<string, unknown> }> {
+  async portalLogin(credentials: { credential: string; password: string }): Promise<{ resident: Record<string, unknown> }> {
     try {
       const response = await api.post('/auth/portal/login', credentials);
       const result = response.data.data;

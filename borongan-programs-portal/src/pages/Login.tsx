@@ -16,7 +16,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 const loginSchema = z.object({
-  username: z.string().min(3, 'Username is required'),
+  credential: z.string().min(3, 'Username or email is required'),
   password: z.string().min(1, 'Password is required'),
 });
 type LoginInput = z.infer<typeof loginSchema>;
@@ -39,13 +39,13 @@ export const Login: React.FC = () => {
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { username: '', password: '' },
+    defaultValues: { credential: '', password: '' },
   });
 
   const handleSubmit = async (data: LoginInput) => {
     setIsLoading(true);
     try {
-      await login({ username: data.username, password: data.password });
+      await login({ credential: data.credential, password: data.password });
       toast({ title: 'Welcome back!' });
       navigate('/');
     } catch (err: unknown) {
@@ -53,7 +53,7 @@ export const Login: React.FC = () => {
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: error.message || 'Invalid username or password',
+        description: error.message || 'Invalid username/email or password',
       });
     } finally {
       setIsLoading(false);
@@ -117,8 +117,8 @@ export const Login: React.FC = () => {
 
             <div className="relative">
               <Separator />
-              <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 bg-white px-3 text-xs text-gray-400">
-                or sign in with username
+              <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 bg-white px-3 text-xs text-gray-400 text-center">
+                or sign in with credentials
               </span>
             </div>
 
@@ -126,12 +126,12 @@ export const Login: React.FC = () => {
               <form className="space-y-5" onSubmit={form.handleSubmit(handleSubmit)}>
                 <FormField
                   control={form.control}
-                  name="username"
+                  name="credential"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-base font-medium">Username</FormLabel>
+                      <FormLabel className="text-base font-medium">Username or Email</FormLabel>
                       <FormControl>
-                        <Input {...field} type="text" placeholder="Enter your username" disabled={isLoading} className="h-12 text-base" autoComplete="username" />
+                        <Input {...field} type="text" placeholder="Enter your username or email" disabled={isLoading} className="h-12 text-base" autoComplete="username" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

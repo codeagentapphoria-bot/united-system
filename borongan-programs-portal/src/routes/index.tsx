@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 const Home = React.lazy(() => import('@/pages/Home').then((m) => ({ default: m.Home })));
 const Login = React.lazy(() => import('@/pages/Login').then((m) => ({ default: m.Login })));
 const Register = React.lazy(() => import('@/pages/Register').then((m) => ({ default: m.Register })));
+const LibreSakay = React.lazy(() => import('@/pages/LibreSakay').then((m) => ({ default: m.LibreSakay })));
 
 const Spinner = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -47,6 +48,10 @@ export const router = createBrowserRouter([
   {
     path: '/register',
     element: <GuestRoute>{withSuspense(<Register />)}</GuestRoute>,
+  },
+  {
+    path: '/libre-sakay',
+    element: <ProtectedRoute>{withSuspense(<LibreSakay />)}</ProtectedRoute>,
   },
   {
     path: '*',
