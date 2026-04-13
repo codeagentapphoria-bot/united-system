@@ -366,7 +366,7 @@ export const getApplicationAdmin = async (applicationId: string) => {
 export const reviewApplicationAdmin = async (
   applicationId: string,
   action: 'approve' | 'reject',
-  adminId: number,
+  adminId: string,
   adminNotes?: string
 ) => {
   const application = await prisma.governmentProgramApplication.findUnique({
@@ -384,7 +384,7 @@ export const reviewApplicationAdmin = async (
 
   const newStatus = action === 'approve' ? 'approved' : 'rejected';
   const { residentId, programId } = application;
-  const programTypes = application.program.types as string[];
+  const programTypes = (application.program.types as string[] | null) ?? [];
 
   // For ALL-type programs, enroll across all existing beneficiary records
   const typesToEnroll = programTypes.includes('ALL')

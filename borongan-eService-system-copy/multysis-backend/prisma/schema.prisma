@@ -681,7 +681,7 @@ model GovernmentProgramApplication {
   attachments   Json?
   appliedAt     DateTime          @map("applied_at") @default(now())
   reviewedAt    DateTime?         @map("reviewed_at")
-  reviewedBy    Int?              @map("reviewed_by") // multysis users.id — cross-system ref
+  reviewedBy    String?           @map("reviewed_by") // eservice_users.id (UUID)
 
   resident   Resident          @relation(fields: [residentId], references: [id], onDelete: Cascade)
   program    GovernmentProgram @relation(fields: [programId], references: [id], onDelete: Cascade)

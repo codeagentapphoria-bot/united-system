@@ -224,7 +224,7 @@ export const reviewApplicationAdminController = async (
       return;
     }
 
-    const adminId = parseInt(req.user!.id, 10);
+    const adminId = req.user!.id;
     const data = await reviewApplicationAdmin(appId, action, adminId, adminNotes);
     res.status(200).json({ status: 'success', data });
   } catch (error: any) {
