@@ -125,14 +125,14 @@ const ArchivesViewDialog = ({
                        className="w-full h-48 object-cover rounded-lg transition-transform group-hover:scale-105"
                        onError={(e) => {
                          e.target.style.display = 'none';
-                         e.target.nextSibling.style.display = 'block';
+                         e.target.parentElement.nextSibling.style.display = 'flex';
                        }}
                      />
                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
                        <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                      </div>
                    </div>
-                   <div className="hidden w-full h-48 bg-muted rounded-lg flex items-center justify-center">
+                   <div className="w-full h-48 bg-muted rounded-lg flex items-center justify-center" style={{ display: 'none' }}>
                      <div className="text-center text-muted-foreground">
                        <Image className="h-12 w-12 mx-auto mb-2" />
                        <p className="text-sm">Image not available</p>
