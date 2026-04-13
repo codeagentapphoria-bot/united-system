@@ -1,5 +1,4 @@
-import fs from "fs/promises";
-import path from "path";
+import { deleteFromSupabase } from "../utils/supabaseStorage.js";
 import bcrypt from "bcrypt";
 import { pool } from "../config/db.js";
 import logger from "../utils/logger.js";
@@ -133,11 +132,9 @@ class User {
 
       if (oldPicturePath && oldPicturePath !== picturePath) {
         try {
-          console.log("updateUser - Deleting old picture file:", oldPicturePath);
-          await fs.unlink(path.resolve(oldPicturePath));
+          await deleteFromSupabase(oldPicturePath);
         } catch (error) {
-          if (error.code !== "ENOENT")
-            logger.warn("Failed to delete old file", error);
+          logger.warn("Failed to delete old file from storage", error);
         }
       }
 
@@ -176,10 +173,9 @@ class User {
 
       if (picturePath) {
         try {
-          await fs.unlink(path.resolve(picturePath));
+          await deleteFromSupabase(picturePath);
         } catch (error) {
-          if (error.code !== "ENOENT")
-            logger.warn("Failed to delete user picture file", error);
+          logger.warn("Failed to delete user picture from storage", error);
         }
       }
 

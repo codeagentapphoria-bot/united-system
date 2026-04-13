@@ -478,7 +478,7 @@ export const PortalMyHousehold: React.FC = () => {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Photo</p>
                       <img
-                        src={`${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') ?? ''}${images[0]}`}
+                        src={images[0].startsWith('http') ? images[0] : `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') ?? ''}${images[0]}`}
                         alt="Household"
                         className="h-48 w-full rounded-md object-cover border"
                       />

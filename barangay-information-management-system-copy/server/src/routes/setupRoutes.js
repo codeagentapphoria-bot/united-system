@@ -105,15 +105,14 @@ router.post("/municipality", ...municipalityAdminOnly, async (req, res) => {
     const muniResult = await client.query(
       `UPDATE municipalities SET
         municipality_name  = $1,
-        municipality_code  = $2,
-        gis_code           = $3,
-        region             = $4,
-        province           = $5,
+        gis_code           = $2,
+        region             = $3,
+        province           = $4,
         setup_status       = 'active',
         updated_at         = CURRENT_TIMESTAMP
       WHERE id = (SELECT id FROM municipalities ORDER BY id LIMIT 1)
       RETURNING *`,
-      [gisMuni.name, gis_municipality_code, gis_municipality_code, region, province]
+      [gisMuni.name, gis_municipality_code, region, province]
     );
 
     const municipality = muniResult.rows[0];

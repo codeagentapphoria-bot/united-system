@@ -48,11 +48,8 @@ export const GET_USERS_BY_TARGET = `
     last_login,
     created_at,
     updated_at,
-    CASE 
-      WHEN picture_path IS NOT NULL THEN CONCAT('${process.env.BASE_URL || "http://localhost:5000"}/', picture_path)
-      ELSE NULL 
-    END as picture_path,
-    CASE 
+    picture_path,
+    CASE
       WHEN target_type = 'barangay' THEN 'Barangay ' || target_id
       WHEN target_type = 'municipality' THEN 'Municipality ' || target_id
       ELSE 'Unknown Target'
@@ -74,11 +71,8 @@ export const GET_USER_BY_ID = `
     u.last_login,
     u.created_at,
     u.updated_at,
-    CASE 
-      WHEN u.picture_path IS NOT NULL THEN CONCAT('${process.env.BASE_URL || "http://localhost:5000"}/', u.picture_path)
-      ELSE NULL 
-    END as picture_path,
-    CASE 
+    u.picture_path,
+    CASE
       WHEN u.target_type = 'barangay' THEN b.barangay_name
       WHEN u.target_type = 'municipality' THEN m.municipality_name
       ELSE NULL

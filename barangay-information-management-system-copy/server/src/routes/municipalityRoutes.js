@@ -21,7 +21,7 @@ router.get("/export/households", ...allUsers, exportHouseholds);
 router.put(
   "/:municipalityId/municipality",
   createUploader(
-    () => "uploads/municipalities",
+    "municipalities",
     [
       { name: "municipalityLogoPath", maxCount: 1 },
       { name: "idBackgroundFrontPath", maxCount: 1 },

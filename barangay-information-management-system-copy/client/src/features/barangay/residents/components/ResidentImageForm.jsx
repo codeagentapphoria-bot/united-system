@@ -24,11 +24,12 @@ const ResidentImageForm = ({
   // Set initial image preview if resident has an image
   useEffect(() => {
     if (resident?.picture_path) {
-      const SERVER_URL =
-        import.meta.env.VITE_SERVER_URL || "";
-      setImagePreview(
-        `${SERVER_URL}/${resident.picture_path.replace(/\\/g, "/")}`
-      );
+      if (resident.picture_path.startsWith('http')) {
+        setImagePreview(resident.picture_path);
+      } else {
+        const SERVER_URL = import.meta.env.VITE_SERVER_URL || "";
+        setImagePreview(`${SERVER_URL}/${resident.picture_path.replace(/\\/g, "/")}`);
+      }
     }
   }, [resident]);
 

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { getFileUrl } from "@/utils/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +32,7 @@ const InventoryForm = ({
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(
     inventory?.file_path 
-      ? `${import.meta.env.VITE_API_BASE_URL || '/api'}/${inventory.file_path}`
+      ? getFileUrl(inventory.file_path)
       : null
   );
 

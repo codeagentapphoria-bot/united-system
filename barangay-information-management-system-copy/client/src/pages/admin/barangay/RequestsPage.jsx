@@ -120,6 +120,7 @@ const sanitizeHtml = (input) => {
 
 // Server URL for background images
   const SERVER_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+  const resolveUrl = (p) => p?.startsWith("http") ? p : `${SERVER_URL}/${p?.replace(/\\/g, "/") || ""}`;
 
 // Add custom styles for QR scanner with unique ID to avoid conflicts
 const qrScannerStyles = `
@@ -674,10 +675,7 @@ This clearance is issued for the purpose of securing a Mayor's Permit / Business
         <body>
           ${
             barangayInfo.certificate_background_path
-              ? `<img src="${SERVER_URL}/${barangayInfo.certificate_background_path.replace(
-                  /\\/g,
-                  "/"
-                )}" alt="Certificate Background" class="certificate-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; object-fit: cover; opacity: 0.9;">`
+              ? `<img src="${resolveUrl(barangayInfo.certificate_background_path)}" alt="Certificate Background" class="certificate-background" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; object-fit: cover; opacity: 0.9;">`
               : ""
           }
 
@@ -685,7 +683,7 @@ This clearance is issued for the purpose of securing a Mayor's Permit / Business
             <div class="logo-container" style="display: flex; justify-content: center; align-items: center; margin-bottom: 20px; gap: 100px;">
                              ${
                  barangayInfo.municipality_logo_path
-                   ? `<img src="${SERVER_URL}/${barangayInfo.municipality_logo_path}" alt="Municipality Logo" style="height: 80px; width: 80px; object-fit: contain;">`
+                   ? `<img src="${resolveUrl(barangayInfo.municipality_logo_path)}" alt="Municipality Logo" style="height: 80px; width: 80px; object-fit: contain;">`
                    : '<div style="height: 80px; width: 80px;"></div>'
                }
                <div style="text-align: center;">
@@ -696,7 +694,7 @@ This clearance is issued for the purpose of securing a Mayor's Permit / Business
                </div>
                ${
                  barangayInfo.barangay_logo_path
-                   ? `<img src="${SERVER_URL}/${barangayInfo.barangay_logo_path}" alt="Barangay Logo" style="height: 80px; width: 80px; object-fit: contain;">`
+                   ? `<img src="${resolveUrl(barangayInfo.barangay_logo_path)}" alt="Barangay Logo" style="height: 80px; width: 80px; object-fit: contain;">`
                    : '<div style="height: 80px; width: 80px;"></div>'
                }
             </div>
@@ -813,10 +811,7 @@ This clearance is issued for the purpose of securing a Mayor's Permit / Business
               fontSize: "12pt",
               lineHeight: "1.6",
               ...(barangayInfo.certificate_background_path && {
-                backgroundImage: `url('${SERVER_URL}/${barangayInfo.certificate_background_path.replace(
-                  /\\/g,
-                  "/"
-                )}')`,
+                backgroundImage: `url('${resolveUrl(barangayInfo.certificate_background_path)}')`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 backgroundRepeat: "no-repeat",
@@ -830,7 +825,7 @@ This clearance is issued for the purpose of securing a Mayor's Permit / Business
               <div className="flex justify-center items-center mb-5 gap-[100px]">
                                  {barangayInfo.municipality_logo_path ? (
                    <img
-                     src={`${SERVER_URL}/${barangayInfo.municipality_logo_path}`}
+                     src={resolveUrl(barangayInfo.municipality_logo_path)}
                      alt="Municipality Logo"
                      className="h-15 w-15 object-contain"
                      style={{ height: "80px", width: "80px" }}
@@ -850,7 +845,7 @@ This clearance is issued for the purpose of securing a Mayor's Permit / Business
                 </div>
                                  {barangayInfo.barangay_logo_path ? (
                    <img
-                     src={`${SERVER_URL}/${barangayInfo.barangay_logo_path}`}
+                     src={resolveUrl(barangayInfo.barangay_logo_path)}
                      alt="Barangay Logo"
                      className="h-15 w-15 object-contain"
                      style={{ height: "80px", width: "80px" }}

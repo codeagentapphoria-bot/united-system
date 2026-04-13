@@ -136,9 +136,12 @@ const OfficialsPage = () => {
       const response = await api.get(`/${barangayId}/barangay`);
       const barangay = response.data.data;
       if (barangay.organizational_chart_path) {
-        const SERVER_URL =
-          import.meta.env.VITE_SERVER_URL || "";
-        setOrgChartPath(`${SERVER_URL}/${barangay.organizational_chart_path}`);
+        if (barangay.organizational_chart_path.startsWith('http')) {
+          setOrgChartPath(barangay.organizational_chart_path);
+        } else {
+          const SERVER_URL = import.meta.env.VITE_SERVER_URL || "";
+          setOrgChartPath(`${SERVER_URL}/${barangay.organizational_chart_path}`);
+        }
       } else {
         setOrgChartPath(null);
       }
