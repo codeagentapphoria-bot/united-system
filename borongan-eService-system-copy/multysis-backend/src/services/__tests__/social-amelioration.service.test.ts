@@ -275,4 +275,74 @@ describe('Social Amelioration Service', () => {
       expect(result.data[0].programs).toEqual(['prog-edu']);
     });
   });
+
+  describe('listSoloParentBeneficiaries', () => {
+    it('should batch-fetch programs in one query instead of N queries', async () => {
+      const mockSoloParents = [
+        {
+          id: 'sp-1',
+          soloParentId: 'SP-2026-001',
+          status: 'ACTIVE',
+          remarks: null,
+          categoryId: 'cat-1',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          residentId: 'res-1',
+          category: { id: 'cat-1', name: 'Widowed' },
+          resident: {
+            id: 'res-1',
+            firstName: 'Elena',
+            lastName: 'Cruz',
+            middleName: null,
+            extensionName: null,
+            picturePath: null,
+            proofOfIdentification: null,
+          },
+        },
+        {
+          id: 'sp-2',
+          soloParentId: 'SP-2026-002',
+          status: 'ACTIVE',
+          remarks: null,
+          categoryId: 'cat-2',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          residentId: 'res-2',
+          category: { id: 'cat-2', name: 'Separated' },
+          resident: {
+            id: 'res-2',
+            firstName: 'Luz',
+            lastName: 'Ramos',
+            middleName: null,
+            extensionName: null,
+            picturePath: null,
+            proofOfIdentification: null,
+          },
+        },
+      ];
+
+      const mockProgramPivots = [
+        { beneficiaryId: 'sp-2', programId: 'prog-assist' },
+      ];
+
+      mockedPrisma.soloParentBeneficiary.findMany.mockResolvedValue(mockSoloParents);
+      mockedPrisma.soloParentBeneficiary.count.mockResolvedValue(2);
+      mockedPrisma.beneficiaryProgramPivot.findMany.mockResolvedValue(mockProgramPivots);
+
+      const result = await socialAmeliorationService.listSoloParentBeneficiaries();
+
+      expect(mockedPrisma.beneficiaryProgramPivot.findMany).toHaveBeenCalledTimes(1);
+      expect(mockedPrisma.beneficiaryProgramPivot.findMany).toHaveBeenCalledWith({
+        where: {
+          beneficiaryType: 'SOLO_PARENT',
+          beneficiaryId: { in: ['sp-1', 'sp-2'] },
+        },
+        select: { beneficiaryId: true, programId: true },
+      });
+
+      // IMPORTANT: Solo parent formatter uses `assistancePrograms` key
+      expect(result.data[0].assistancePrograms).toEqual([]);
+      expect(result.data[1].assistancePrograms).toEqual(['prog-assist']);
+    });
+  });
 });

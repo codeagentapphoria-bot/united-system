@@ -212,12 +212,13 @@ const formatStudentBeneficiary = async (record: StudentWithRelations, preloadedP
   };
 };
 
-const formatSoloParentBeneficiary = async (record: SoloParentWithRelations) => {
+const formatSoloParentBeneficiary = async (record: SoloParentWithRelations, preloadedProgramIds?: string[]) => {
   const { category, resident, ...rest } = record as any;
-  const programs = await getBeneficiaryPrograms('SOLO_PARENT', record.id);
+  const programIds = preloadedProgramIds ??
+    (await getBeneficiaryPrograms('SOLO_PARENT', record.id)).map((p: any) => p.programId);
   return {
     ...rest,
-    assistancePrograms: programs.map((p: any) => p.programId) ?? [],
+    assistancePrograms: programIds,
     category: category?.id || rest.categoryId,
     categoryName: category?.name || null,
     resident: resident
@@ -904,8 +905,14 @@ export const socialAmeliorationService = {
       prisma.soloParentBeneficiary.count({ where }),
     ]);
 
-    // Format items with programs
-    const formattedItems = await Promise.all(items.map(formatSoloParentBeneficiary));
+    // Batch-fetch all programs for these beneficiaries in one query
+    const programMap = await getBeneficiaryProgramsMap(
+      'SOLO_PARENT',
+      items.map((i) => i.id)
+    );
+    const formattedItems = await Promise.all(
+      items.map((item) => formatSoloParentBeneficiary(item, programMap.get(item.id) ?? []))
+    );
 
     return {
       data: formattedItems,
