@@ -226,4 +226,53 @@ describe('Social Amelioration Service', () => {
       expect(result.data[1].governmentPrograms).toEqual(['prog-y', 'prog-z']);
     });
   });
+
+  describe('listStudentBeneficiaries', () => {
+    it('should batch-fetch programs in one query instead of N queries', async () => {
+      const mockStudents = [
+        {
+          id: 'stu-1',
+          studentId: 'ST-2026-001',
+          status: 'ACTIVE',
+          remarks: null,
+          gradeLevelId: 'gl-1',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          residentId: 'res-1',
+          gradeLevel: { id: 'gl-1', name: 'Grade 10' },
+          resident: {
+            id: 'res-1',
+            firstName: 'Carlo',
+            lastName: 'Tan',
+            middleName: null,
+            extensionName: null,
+            picturePath: null,
+            proofOfIdentification: null,
+          },
+        },
+      ];
+
+      const mockProgramPivots = [
+        { beneficiaryId: 'stu-1', programId: 'prog-edu' },
+      ];
+
+      mockedPrisma.studentBeneficiary.findMany.mockResolvedValue(mockStudents);
+      mockedPrisma.studentBeneficiary.count.mockResolvedValue(1);
+      mockedPrisma.beneficiaryProgramPivot.findMany.mockResolvedValue(mockProgramPivots);
+
+      const result = await socialAmeliorationService.listStudentBeneficiaries();
+
+      expect(mockedPrisma.beneficiaryProgramPivot.findMany).toHaveBeenCalledTimes(1);
+      expect(mockedPrisma.beneficiaryProgramPivot.findMany).toHaveBeenCalledWith({
+        where: {
+          beneficiaryType: 'STUDENT',
+          beneficiaryId: { in: ['stu-1'] },
+        },
+        select: { beneficiaryId: true, programId: true },
+      });
+
+      // IMPORTANT: Student formatter uses `programs` key, NOT `governmentPrograms`
+      expect(result.data[0].programs).toEqual(['prog-edu']);
+    });
+  });
 });

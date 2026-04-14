@@ -191,12 +191,13 @@ const formatPWDBeneficiary = async (record: PWDWithRelations, preloadedProgramId
   };
 };
 
-const formatStudentBeneficiary = async (record: StudentWithRelations) => {
+const formatStudentBeneficiary = async (record: StudentWithRelations, preloadedProgramIds?: string[]) => {
   const { gradeLevel, resident, ...rest } = record as any;
-  const programs = await getBeneficiaryPrograms('STUDENT', record.id);
+  const programIds = preloadedProgramIds ??
+    (await getBeneficiaryPrograms('STUDENT', record.id)).map((p: any) => p.programId);
   return {
     ...rest,
-    programs: programs.map((p: any) => p.programId) ?? [],
+    programs: programIds,
     gradeLevel: gradeLevel?.id || rest.gradeLevelId,
     gradeLevelName: gradeLevel?.name || null,
     resident: resident
@@ -761,8 +762,14 @@ export const socialAmeliorationService = {
       prisma.studentBeneficiary.count({ where }),
     ]);
 
-    // Format items with programs
-    const formattedItems = await Promise.all(items.map(formatStudentBeneficiary));
+    // Batch-fetch all programs for these beneficiaries in one query
+    const programMap = await getBeneficiaryProgramsMap(
+      'STUDENT',
+      items.map((i) => i.id)
+    );
+    const formattedItems = await Promise.all(
+      items.map((item) => formatStudentBeneficiary(item, programMap.get(item.id) ?? []))
+    );
 
     return {
       data: formattedItems,
