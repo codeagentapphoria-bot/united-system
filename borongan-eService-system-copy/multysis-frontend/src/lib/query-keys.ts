@@ -73,6 +73,13 @@ export const queryKeys = {
     admin: ['notifications', 'admin'] as const,
   },
 
+  medicineRequests: {
+    all: ['medicineRequests'] as const,
+    list: (filters: Record<string, unknown>) => ['medicineRequests', 'list', filters] as const,
+    detail: (id: string) => ['medicineRequests', 'detail', id] as const,
+    stats: ['medicineRequests', 'stats'] as const,
+  },
+
 };
 
 export default queryKeys;
