@@ -149,12 +149,13 @@ type PWDWithRelations = any;
 type StudentWithRelations = any;
 type SoloParentWithRelations = any;
 
-const formatSeniorBeneficiary = async (record: SeniorWithRelations) => {
+const formatSeniorBeneficiary = async (record: SeniorWithRelations, preloadedProgramIds?: string[]) => {
   const { pensionTypes, resident, ...rest } = record as any;
-  const programs = await getBeneficiaryPrograms('SENIOR_CITIZEN', record.id);
+  const programIds = preloadedProgramIds ??
+    (await getBeneficiaryPrograms('SENIOR_CITIZEN', record.id)).map((p: any) => p.programId);
   return {
     ...rest,
-    governmentPrograms: programs.map((p: any) => p.programId) ?? [],
+    governmentPrograms: programIds,
     pensionTypes: pensionTypes?.map((pivot: any) => pivot.settingId) ?? [],
     pensionTypeNames: pensionTypes?.map((pivot: any) => pivot.setting?.name).filter(Boolean) ?? [],
     resident: resident
@@ -455,8 +456,14 @@ export const socialAmeliorationService = {
       prisma.seniorCitizenBeneficiary.count({ where }),
     ]);
 
-    // Format items with programs
-    const formattedItems = await Promise.all(items.map(formatSeniorBeneficiary));
+    // Batch-fetch all programs for these beneficiaries in one query
+    const programMap = await getBeneficiaryProgramsMap(
+      'SENIOR_CITIZEN',
+      items.map((i) => i.id)
+    );
+    const formattedItems = await Promise.all(
+      items.map((item) => formatSeniorBeneficiary(item, programMap.get(item.id) ?? []))
+    );
 
     return {
       data: formattedItems,
