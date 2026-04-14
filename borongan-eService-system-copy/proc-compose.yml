@@ -6,6 +6,7 @@ merge:
     - /api
     - /health
     - /socket.io
+    - /notifications
     - /uploads
 
 processes:

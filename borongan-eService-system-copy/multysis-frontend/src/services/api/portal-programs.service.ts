@@ -13,23 +13,31 @@ export interface ApplicationAttachment {
   size: number;
 }
 
+interface BeneficiaryInfo {
+  status: string;
+  seniorCitizenId?: string;
+  pwdId?: string;
+  studentId?: string;
+  soloParentId?: string;
+}
+
 export interface AdminProgramApplication {
   id: string;
   residentId: string;
   programId: string;
   status: string;
-  adminNotes?: string;
   appliedAt: string;
+  adminNotes?: string | null;
   reviewedAt?: string;
   reviewedBy?: number;
   resident: {
     id: string;
     firstName: string;
-    middleName?: string;
+    middleName?: string | null;
     lastName: string;
-    extensionName?: string;
-    picturePath?: string;
-    barangay?: { barangayName: string };
+    extensionName?: string | null;
+    picturePath?: string | null;
+    barangay?: { barangayName: string } | null;
   };
   program: {
     id: string;
@@ -43,31 +51,31 @@ export interface AdminProgramApplicationDetail {
   residentId: string;
   programId: string;
   status: string;
-  adminNotes?: string;
-  submittedData?: Record<string, string>;
-  attachments?: ApplicationAttachment[];
   appliedAt: string;
+  adminNotes?: string | null;
+  submittedData?: Record<string, string> | null;
+  attachments?: ApplicationAttachment[] | null;
   reviewedAt?: string;
   reviewedBy?: number;
   resident: {
     id: string;
+    residentId?: string | null;
     firstName: string;
-    middleName?: string;
+    middleName?: string | null;
     lastName: string;
-    extensionName?: string;
-    picturePath?: string;
-    residentId?: string;
-    contactNumber?: string;
-    email?: string;
-    birthdate?: string;
-    sex?: string;
-    civilStatus?: string;
-    streetAddress?: string;
-    barangay?: { barangayName: string };
-    seniorCitizenBeneficiary?: { status: string; seniorCitizenId?: string } | null;
-    pwdBeneficiary?: { status: string; pwdId?: string } | null;
-    studentBeneficiary?: { status: string; studentId?: string } | null;
-    soloParentBeneficiary?: { status: string; soloParentId?: string } | null;
+    extensionName?: string | null;
+    picturePath?: string | null;
+    sex?: string | null;
+    civilStatus?: string | null;
+    birthdate?: string | null;
+    contactNumber?: string | null;
+    streetAddress?: string | null;
+    email?: string | null;
+    barangay?: { barangayName: string } | null;
+    seniorCitizenBeneficiary?: BeneficiaryInfo | null;
+    pwdBeneficiary?: BeneficiaryInfo | null;
+    studentBeneficiary?: BeneficiaryInfo | null;
+    soloParentBeneficiary?: BeneficiaryInfo | null;
   };
   program: {
     id: string;
@@ -78,36 +86,35 @@ export interface AdminProgramApplicationDetail {
   };
 }
 
-export interface AdminApplicationsResponse {
-  data: AdminProgramApplication[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Service — admin methods only
 // ---------------------------------------------------------------------------
 
+interface ListApplicationsParams {
+  status?: string;
+  programId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+interface PaginatedResponse {
+  data: AdminProgramApplication[];
+  pagination: { page: number; limit: number; totalPages: number; total: number };
+}
+
 export const portalProgramsService = {
-  async listApplicationsAdmin(params?: {
-    status?: string;
-    programId?: string;
-    search?: string;
-    page?: number;
-    limit?: number;
-  }): Promise<AdminApplicationsResponse> {
+  async listApplicationsAdmin(params?: ListApplicationsParams): Promise<PaginatedResponse> {
     const query = new URLSearchParams();
     if (params?.status) query.append('status', params.status);
     if (params?.programId) query.append('programId', params.programId);
     if (params?.search) query.append('search', params.search);
     if (params?.page) query.append('page', params.page.toString());
     if (params?.limit) query.append('limit', params.limit.toString());
-    const qs = query.toString();
-    const response = await api.get(`/portal/program-applications${qs ? `?${qs}` : ''}`);
+
+    const queryString = query.toString();
+    const url = `/portal/program-applications${queryString ? `?${queryString}` : ''}`;
+    const response = await api.get(url);
     return { data: response.data.data, pagination: response.data.pagination };
   },
 

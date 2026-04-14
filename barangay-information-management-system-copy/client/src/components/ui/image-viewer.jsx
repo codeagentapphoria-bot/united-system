@@ -2,6 +2,9 @@ import React from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
@@ -15,6 +18,10 @@ const ImageViewer = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] max-h-[90vh] p-0 overflow-hidden">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Image Viewer</DialogTitle>
+          <DialogDescription>Viewing image: {alt}</DialogDescription>
+        </DialogHeader>
         {/* Close Button - Top Right */}
         <Button
           variant="secondary"
@@ -37,7 +44,7 @@ const ImageViewer = ({
               e.target.nextSibling.style.display = 'flex';
             }}
           />
-          <div className="hidden w-full h-full flex items-center justify-center text-white">
+          <div className="w-full h-full flex items-center justify-center text-white" style={{ display: 'none' }}>
             <div className="text-center">
               <p className="text-lg">Image could not be loaded</p>
             </div>
