@@ -1,5 +1,5 @@
 /**
- * ResidentRegister.tsx — v2
+ * Register.tsx
  *
  * 4-step self-registration wizard for new residents.
  *
@@ -41,7 +41,7 @@ const nameField = (label: string) =>
     .string()
     .min(1, `${label} is required`)
     .max(100, `${label} must be at most 100 characters`)
-    .regex(nameChars, `${label}: only letters, spaces, hyphens, and apostrophes`);
+    .regex(nameChars, `${label}: only letters, spaces, hyphens, apostrophes, and periods`);
 const optionalName = (maxLen = 100) =>
   z
     .string()
@@ -443,15 +443,51 @@ export const Register: React.FC = () => {
   const handleStep4 = async (data: Step4Data) => {
     setIsLoading(true);
     try {
-      const { termsAccepted: _terms, ...cleanFormData } = formData as any;
+      const fd = formData as any;
       const payload = {
-        ...cleanFormData,
+        // Step 1 — personal info
+        firstName: fd.firstName,
+        middleName: fd.middleName,
+        lastName: fd.lastName,
+        extensionName: fd.extensionName,
+        sex: fd.sex,
+        civilStatus: fd.civilStatus,
+        birthdate: fd.birthdate,
+        birthRegion: fd.birthRegion,
+        birthProvince: fd.birthProvince,
+        birthMunicipality: fd.birthMunicipality,
+        citizenship: fd.citizenship,
+        contactNumber: fd.contactNumber,
+        email: fd.email,
+        height: fd.height,
+        weight: fd.weight,
+        occupation: fd.occupation,
+        profession: fd.profession,
+        employmentStatus: fd.employmentStatus,
+        educationAttainment: fd.educationAttainment,
+        monthlyIncome: fd.monthlyIncome ? parseFloat(fd.monthlyIncome) : undefined,
+        isVoter: fd.isVoter,
+        indigenousPerson: fd.indigenousPerson,
+        hasDisability: fd.hasDisability,
+        hasChildren: fd.hasChildren,
+        emergencyContactPerson: fd.emergencyContactPerson,
+        emergencyContactNumber: fd.emergencyContactNumber,
+        spouseName: fd.spouseName,
+        picturePath: fd.picturePath,
+        ameliorationData: fd.ameliorationData || null,
+        // Step 2 — address
+        barangayId: parseInt(fd.barangayId || '0'),
+        streetAddress: fd.streetAddress,
+        // Step 3 — ID documents
+        idType: fd.idType,
+        idDocumentNumber: fd.idDocumentNumber,
+        idDocumentUrl: fd.idDocumentUrl,
+        selfieUrl: fd.selfieUrl,
+        acrNo: fd.acrNo,
+        // Step 4 — credentials
         username: data.username,
         password: data.password,
-        barangayId: parseInt(formData.barangayId || '0'),
-        monthlyIncome: formData.monthlyIncome ? parseFloat(formData.monthlyIncome as string) : undefined,
-        isEmployed: ['employed', 'self-employed'].includes((formData as any).employmentStatus || '') || undefined,
-        ameliorationData: (formData as any).ameliorationData || null,
+        isEmployed: ['employed', 'self-employed'].includes(fd.employmentStatus || ''),
       };
 
       await api.post('/portal-registration/register', payload);

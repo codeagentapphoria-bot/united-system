@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiAlertCircle, FiCheck, FiChevronDown, FiClock, FiDownload, FiExternalLink, FiX } from 'react-icons/fi';
 
@@ -198,6 +198,8 @@ export const Home: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const { toast } = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
   const { canInstall, isInstalled, install } = useInstallPrompt();
 
   const [programs, setPrograms] = useState<PortalProgram[]>([]);
@@ -216,11 +218,11 @@ export const Home: React.FC = () => {
       const { data } = await portalProgramsService.listPrograms({});
       setPrograms(data);
     } catch {
-      toast({ variant: 'destructive', title: 'Failed to load programs', description: 'Please try again.' });
+      toastRef.current({ variant: 'destructive', title: 'Failed to load programs', description: 'Please try again.' });
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, []); // toast accessed via ref — stable across renders
 
   useEffect(() => {
     if (!authLoading) fetchPrograms();

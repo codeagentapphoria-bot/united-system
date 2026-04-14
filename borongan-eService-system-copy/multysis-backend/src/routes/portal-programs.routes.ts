@@ -17,7 +17,7 @@ import { validate } from '../middleware/validation';
 const router = Router();
 
 // =============================================================================
-// RESIDENT PORTAL — requires active resident session
+// RESIDENT PORTAL — resident endpoints (verifyResident) and public endpoints (optionalAuth)
 // =============================================================================
 
 // List all active programs — public for browsing; eligibility & applicationStatus

@@ -20,6 +20,31 @@ import {
 } from '../services/portal-registration.service';
 import { socialAmeliorationSettingService } from '../services/social-amelioration-setting.service';
 
+// Known user-facing error substrings — safe to forward to clients.
+// Everything else gets a generic message to avoid leaking DB/Prisma internals.
+const USER_FACING_SUBSTRINGS = [
+  'already',
+  'not found',
+  'required',
+  'invalid',
+  'username',
+  'email',
+  'password',
+  'pending review',
+  'under review',
+  'rejected',
+  'approved',
+];
+
+function toUserMessage(err: unknown): string {
+  const msg = err instanceof Error ? err.message : '';
+  if (msg && USER_FACING_SUBSTRINGS.some((k) => msg.toLowerCase().includes(k.toLowerCase()))) {
+    return msg;
+  }
+  if (msg) console.error('[portal-registration] Unexpected error:', msg);
+  return 'An unexpected error occurred';
+}
+
 // =============================================================================
 // PUBLIC: Get active social amelioration settings by type
 // GET /api/portal-registration/amelioration-settings?type=PENSION_TYPE
@@ -36,7 +61,7 @@ export const getPublicAmeliorationSettingsController = async (
     });
     res.status(200).json({ status: 'success', data: settings });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ status: 'error', message: toUserMessage(error) });
   }
 };
 
@@ -136,8 +161,9 @@ export const submitRegistrationController = async (req: Request, res: Response):
       data: result,
     });
   } catch (error: any) {
+    const msg = toUserMessage(error);
     const status = error.message?.includes('already') ? 409 : 400;
-    res.status(status).json({ status: 'error', message: error.message });
+    res.status(status).json({ status: 'error', message: msg });
   }
 };
 
@@ -154,7 +180,7 @@ export const getRegistrationStatusController = async (
     const status = await getRegistrationStatus(username);
     res.status(200).json({ status: 'success', data: status });
   } catch (error: any) {
-    res.status(404).json({ status: 'error', message: error.message });
+    res.status(404).json({ status: 'error', message: toUserMessage(error) });
   }
 };
 
@@ -179,7 +205,7 @@ export const listRegistrationRequestsController = async (
 
     res.status(200).json({ status: 'success', data: result });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ status: 'error', message: toUserMessage(error) });
   }
 };
 
@@ -196,7 +222,7 @@ export const getRegistrationRequestController = async (
     const request = await getRegistrationRequest(id);
     res.status(200).json({ status: 'success', data: request });
   } catch (error: any) {
-    res.status(404).json({ status: 'error', message: error.message });
+    res.status(404).json({ status: 'error', message: toUserMessage(error) });
   }
 };
 
@@ -212,7 +238,7 @@ export const markUnderReviewController = async (req: AuthRequest, res: Response)
     const result = await markUnderReview(id, reviewerId);
     res.status(200).json({ status: 'success', data: result });
   } catch (error: any) {
-    res.status(400).json({ status: 'error', message: error.message });
+    res.status(400).json({ status: 'error', message: toUserMessage(error) });
   }
 };
 
@@ -241,13 +267,22 @@ export const reviewRegistrationController = async (
       reviewerId: Number(reviewerId),
     });
 
-    res.status(200).json({
-      status: 'success',
-      message: action === 'approve' ? 'Registration approved' : 'Registration rejected',
-      data: result,
-    });
+    const message = action === 'approve' ? 'Registration approved' : 'Registration rejected';
+
+    // Warn the admin if the approval email failed to send so they can
+    // manually provide credentials to the resident.
+    if (action === 'approve' && result.emailSent === false) {
+      res.status(200).json({
+        status: 'success',
+        message: `${message} — but the notification email could not be sent. Please share login credentials with the resident manually.`,
+        data: result,
+      });
+      return;
+    }
+
+    res.status(200).json({ status: 'success', message, data: result });
   } catch (error: any) {
-    res.status(400).json({ status: 'error', message: error.message });
+    res.status(400).json({ status: 'error', message: toUserMessage(error) });
   }
 };
 
@@ -267,7 +302,7 @@ export const requestResubmissionController = async (
     const result = await requestResubmission(id, adminNotes, Number(reviewerId));
     res.status(200).json({ status: 'success', data: result });
   } catch (error: any) {
-    res.status(400).json({ status: 'error', message: error.message });
+    res.status(400).json({ status: 'error', message: toUserMessage(error) });
   }
 };
 
@@ -291,7 +326,7 @@ export const resubmitHandler = async (req: Request, res: Response): Promise<void
       message: 'Resubmission received. Your application is under review again.',
     });
   } catch (err: any) {
-    res.status(400).json({ status: 'error', message: err.message });
+    res.status(400).json({ status: 'error', message: toUserMessage(err) });
   }
 };
 
@@ -305,6 +340,6 @@ export const deleteRejectedController = async (req: AuthRequest, res: Response):
     const result = await deleteRejectedRegistrations(olderThanDays);
     res.status(200).json({ status: 'success', data: result });
   } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+    res.status(500).json({ status: 'error', message: toUserMessage(error) });
   }
 };

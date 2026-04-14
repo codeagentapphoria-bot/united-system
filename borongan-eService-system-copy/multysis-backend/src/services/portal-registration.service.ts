@@ -561,6 +561,7 @@ export const reviewRegistrationRequest = async (requestId: string, data: ReviewD
         data: { password: hashedTemp },
       });
 
+      let emailSent = false;
       try {
         const { subject, html, text } = getResidentApprovalEmail({
           residentName: `${resident.firstName} ${resident.lastName}`,
@@ -572,12 +573,15 @@ export const reviewRegistrationRequest = async (requestId: string, data: ReviewD
             : '/portal/login',
         });
         await sendEmailSafely(resident.email, subject, html, text);
+        emailSent = true;
       } catch (err: any) {
         console.error('Failed to send approval email:', err.message);
       }
+
+      return { residentId, status: 'approved', emailSent };
     }
 
-    return { residentId, status: 'approved' };
+    return { residentId, status: 'approved', emailSent: true };
   } else {
     // reject
     await prisma.$transaction([
