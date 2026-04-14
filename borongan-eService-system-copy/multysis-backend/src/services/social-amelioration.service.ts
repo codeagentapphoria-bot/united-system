@@ -96,6 +96,30 @@ const getBeneficiaryPrograms = async (
   });
 };
 
+const getBeneficiaryProgramsMap = async (
+  beneficiaryType: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT',
+  beneficiaryIds: string[]
+): Promise<Map<string, string[]>> => {
+  if (beneficiaryIds.length === 0) return new Map();
+  const pivots = await (prisma as any).beneficiaryProgramPivot.findMany({
+    where: {
+      beneficiaryType: beneficiaryType,
+      beneficiaryId: { in: beneficiaryIds },
+    },
+    select: {
+      beneficiaryId: true,
+      programId: true,
+    },
+  });
+  const map = new Map<string, string[]>();
+  for (const p of pivots) {
+    const list = map.get(p.beneficiaryId) ?? [];
+    list.push(p.programId);
+    map.set(p.beneficiaryId, list);
+  }
+  return map;
+};
+
 const seniorInclude = {
   resident: true,
   pensionTypes: {
