@@ -1,4 +1,6 @@
 united-database/.env
+united-database/.env.example
 
 .claude/
-./logs/
+.sisyphus/
+logs/
