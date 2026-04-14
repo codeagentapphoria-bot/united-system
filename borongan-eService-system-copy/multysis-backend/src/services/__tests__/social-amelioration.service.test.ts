@@ -147,4 +147,83 @@ describe('Social Amelioration Service', () => {
       expect(result.data[0].governmentPrograms).toEqual([]);
     });
   });
+
+  describe('listPWDBeneficiaries', () => {
+    it('should batch-fetch programs in one query instead of N queries', async () => {
+      const mockPWDs = [
+        {
+          id: 'pwd-1',
+          pwdId: 'PWD-2026-001',
+          status: 'ACTIVE',
+          remarks: null,
+          disabilityLevel: 'Moderate',
+          disabilityTypeId: 'dt-1',
+          monetaryAllowance: false,
+          assistedDevice: false,
+          donorDevice: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          residentId: 'res-1',
+          disabilityType: { id: 'dt-1', name: 'Visual' },
+          resident: {
+            id: 'res-1',
+            firstName: 'Pedro',
+            lastName: 'Garcia',
+            middleName: null,
+            extensionName: null,
+            picturePath: null,
+            proofOfIdentification: null,
+          },
+        },
+        {
+          id: 'pwd-2',
+          pwdId: 'PWD-2026-002',
+          status: 'ACTIVE',
+          remarks: null,
+          disabilityLevel: 'Severe',
+          disabilityTypeId: 'dt-2',
+          monetaryAllowance: true,
+          assistedDevice: true,
+          donorDevice: 'NGO',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          residentId: 'res-2',
+          disabilityType: { id: 'dt-2', name: 'Physical' },
+          resident: {
+            id: 'res-2',
+            firstName: 'Rosa',
+            lastName: 'Lim',
+            middleName: null,
+            extensionName: null,
+            picturePath: null,
+            proofOfIdentification: null,
+          },
+        },
+      ];
+
+      const mockProgramPivots = [
+        { beneficiaryId: 'pwd-1', programId: 'prog-x' },
+        { beneficiaryId: 'pwd-2', programId: 'prog-y' },
+        { beneficiaryId: 'pwd-2', programId: 'prog-z' },
+      ];
+
+      mockedPrisma.pWDBeneficiary.findMany.mockResolvedValue(mockPWDs);
+      mockedPrisma.pWDBeneficiary.count.mockResolvedValue(2);
+      mockedPrisma.beneficiaryProgramPivot.findMany.mockResolvedValue(mockProgramPivots);
+
+      const result = await socialAmeliorationService.listPWDBeneficiaries();
+
+      expect(mockedPrisma.beneficiaryProgramPivot.findMany).toHaveBeenCalledTimes(1);
+      expect(mockedPrisma.beneficiaryProgramPivot.findMany).toHaveBeenCalledWith({
+        where: {
+          beneficiaryType: 'PWD',
+          beneficiaryId: { in: ['pwd-1', 'pwd-2'] },
+        },
+        select: { beneficiaryId: true, programId: true },
+      });
+
+      expect(result.data[0].governmentPrograms).toEqual(['prog-x']);
+      expect(result.data[1].governmentPrograms).toEqual(['prog-y', 'prog-z']);
+    });
+  });
 });
