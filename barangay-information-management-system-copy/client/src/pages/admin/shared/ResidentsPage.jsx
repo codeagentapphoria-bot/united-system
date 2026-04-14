@@ -775,319 +775,218 @@ const ResidentsPage = ({ role }) => {
   };
 
   // Print and download handlers
+  // Shared html2canvas options
+  const canvasOpts = {
+    scale: 4,
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: '#ffffff',
+    logging: false,
+    imageTimeout: 0,
+    removeContainer: true,
+    foreignObjectRendering: false,
+  };
+
+  // Capture both card faces and return canvases (throws on failure)
+  const captureCards = async () => {
+    const frontCard = document.querySelector(".id-card-front");
+    const backCard = document.querySelector(".id-card-back");
+    if (!frontCard || !backCard) throw new Error("ID card elements not found. Please try again.");
+    const [frontCanvas, backCanvas] = await Promise.all([
+      html2canvas(frontCard, canvasOpts),
+      // Strip rotateY(180deg) in the clone so html2canvas captures the back correctly
+      html2canvas(backCard, {
+        ...canvasOpts,
+        onclone: (_clonedDoc, clonedEl) => {
+          clonedEl.style.transform = "none";
+        },
+      }),
+    ]);
+    return { frontCanvas, backCanvas };
+  };
+
+  // Draw a rounded-rect stroke path on a canvas context
+  const strokeRoundRect = (ctx, x, y, w, h, r, lineWidth, color) => {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y,     x + w, y + r,     r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x,     y + h, x,     y + h - r, r);
+    ctx.lineTo(x,     y + r);
+    ctx.arcTo(x,     y,     x + r, y,         r);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  // Build a single combined canvas: front on top, back below, with black rounded borders
+  const buildCombinedCanvas = (frontCanvas, backCanvas) => {
+    const gap    = 32;  // px gap between cards
+    const border = 4;   // border width in canvas px (scale 4 → 1px visual)
+    const radius = 40;  // borderRadius 10px × scale 4
+    const pad    = 24;  // outer padding
+    const w = Math.max(frontCanvas.width, backCanvas.width) + pad * 2;
+    const combined = document.createElement("canvas");
+    combined.width  = w;
+    combined.height = pad + frontCanvas.height + gap + backCanvas.height + pad;
+    const ctx = combined.getContext("2d");
+
+    ctx.fillStyle = "#f0f0f0";
+    ctx.fillRect(0, 0, combined.width, combined.height);
+
+    // Front card
+    const fx = (w - frontCanvas.width) / 2;
+    const fy = pad;
+    ctx.drawImage(frontCanvas, fx, fy);
+    strokeRoundRect(ctx, fx + border / 2, fy + border / 2, frontCanvas.width - border, frontCanvas.height - border, radius, border, "#000000");
+
+    // Back card
+    const bx = (w - backCanvas.width) / 2;
+    const by = pad + frontCanvas.height + gap;
+    ctx.drawImage(backCanvas, bx, by);
+    strokeRoundRect(ctx, bx + border / 2, by + border / 2, backCanvas.width - border, backCanvas.height - border, radius, border, "#000000");
+
+    return combined;
+  };
+
   const handlePrint = async () => {
     setPrintLoading(true);
     try {
-      // Convert front card to image
-      const frontCard = document.querySelector(".id-card-front");
-      const backCard = document.querySelector(".id-card-back");
-      
-      if (!frontCard || !backCard) {
-        toast({
-          title: "Print Error",
-          description: "ID card elements not found. Please try again.",
-          variant: "destructive",
-        });
-        return;
+      const { frontCanvas, backCanvas } = await captureCards();
+      const frontDataUrl = frontCanvas.toDataURL('image/png', 1.0);
+      const backDataUrl  = backCanvas.toDataURL('image/png', 1.0);
+
+      const win = window.open("", "", "width=900,height=700");
+      win.document.write(`<!DOCTYPE html>
+<html>
+  <head>
+    <title>Resident ID Card</title>
+    <style>
+      @page { size: A4 portrait; margin: 12mm; }
+      body { margin: 0; padding: 0; background: #fff; }
+      .page {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8mm;
+        padding-top: 8mm;
       }
-
-      // Convert both cards to canvas images with high quality
-      const frontCanvas = await html2canvas(frontCard, {
-        scale: 4, // Higher scale for better quality
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        imageTimeout: 0,
-        removeContainer: true,
-        foreignObjectRendering: false,
-        // Remove width and height to use natural element size
-      });
-
-      const backCanvas = await html2canvas(backCard, {
-        scale: 4, // Higher scale for better quality
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        imageTimeout: 0,
-        removeContainer: true,
-        foreignObjectRendering: false,
-        // Remove width and height to use natural element size
-      });
-
-      // Convert canvas to image data URLs with maximum quality
-      const frontImageDataUrl = frontCanvas.toDataURL('image/png', 1.0);
-      const backImageDataUrl = backCanvas.toDataURL('image/png', 1.0);
-
-      // Create print window with the images
-      const win = window.open("", "", "width=900,height=600");
-      
-      const printHTML = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Resident ID Card - Print</title>
-            <style>
-              @page {
-                size: A4;
-                margin: 10mm;
-              }
-              
-              body {
-                margin: 0;
-                padding: 0;
-                font-family: Arial, sans-serif;
-              }
-              
-              .print-container {
-                display: flex;
-                flex-direction: row;
-                gap: 10mm;
-                align-items: flex-start;
-                padding: 0;
-                position: absolute;
-                top: 10mm;
-                left: 10mm;
-              }
-              
-              .card-image {
-                width: 54mm;
-                height: 85.6mm;
-                object-fit: contain;
-                border: 1px solid #ccc;
-                page-break-inside: avoid;
-                image-rendering: -webkit-optimize-contrast;
-                image-rendering: crisp-edges;
-              }
-              
-              @media print {
-                @page {
-                  size: A4;
-                  margin: 10mm;
-                }
-                
-                body {
-                  margin: 0;
-                  padding: 0;
-                }
-                
-                .print-container {
-                  display: flex;
-                  flex-direction: row;
-                  gap: 10mm;
-                  align-items: flex-start;
-                  padding: 0;
-                  position: absolute;
-                  top: 10mm;
-                  left: 10mm;
-                }
-                
-                .card-image {
-                  width: 54mm !important;
-                  height: 85.6mm !important;
-                  object-fit: contain;
-                  border: 1px solid #ccc;
-                  page-break-inside: avoid;
-                  image-rendering: -webkit-optimize-contrast;
-                  image-rendering: crisp-edges;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="print-container">
-              <img src="${frontImageDataUrl}" alt="Resident ID Card Front" class="card-image" />
-              <img src="${backImageDataUrl}" alt="Resident ID Card Back" class="card-image" />
-            </div>
-          </body>
-        </html>
-      `;
-      
-      win.document.write(printHTML);
+      .label {
+        font-family: Arial, sans-serif;
+        font-size: 9pt;
+        font-weight: bold;
+        color: #555;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        text-align: center;
+      }
+      .card-wrap { display: flex; flex-direction: column; align-items: center; gap: 2mm; }
+      .card-img {
+        width: 85.6mm;
+        height: 54mm;
+        object-fit: contain;
+        display: block;
+        border: 1px solid #000;
+        border-radius: 2.25mm;
+        image-rendering: crisp-edges;
+        image-rendering: -webkit-optimize-contrast;
+      }
+      @media print {
+        @page { size: A4 portrait; margin: 12mm; }
+        body { margin: 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="card-wrap">
+        <div class="label">Front</div>
+        <img class="card-img" src="${frontDataUrl}" />
+      </div>
+      <div class="card-wrap">
+        <div class="label">Back</div>
+        <img class="card-img" src="${backDataUrl}" />
+      </div>
+    </div>
+    <script>
+      window.onload = function() { window.focus(); window.print(); window.close(); };
+    <\/script>
+  </body>
+</html>`);
       win.document.close();
-      win.focus();
-      
-      // Wait for images to load, then print
-      setTimeout(() => {
-        win.print();
-        win.close();
-      }, 1000);
-      
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-  console.error('Error generating print images:', error);
-}
-      toast({
-        title: "Print Error",
-        description: "Failed to generate print images. Please try again.",
-        variant: "destructive",
-      });
+      if (process.env.NODE_ENV === 'development') console.error('Print error:', error);
+      toast({ title: "Print Error", description: error.message || "Failed to print. Please try again.", variant: "destructive" });
     } finally {
       setPrintLoading(false);
     }
   };
+
   const handleDownloadImage = async () => {
     setDownloadImageLoading(true);
     try {
-      const frontCard = document.querySelector(".id-card-front");
-      const backCard = document.querySelector(".id-card-back");
-      
-      if (!frontCard || !backCard) {
-        toast({
-          title: "Download Error",
-          description: "ID card elements not found. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
+      const { frontCanvas, backCanvas } = await captureCards();
+      const combined = buildCombinedCanvas(frontCanvas, backCanvas);
 
-      // Convert front card to image with high quality
-      const frontCanvas = await html2canvas(frontCard, {
-        scale: 4, // Higher scale for better quality
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        imageTimeout: 0,
-        removeContainer: true,
-        foreignObjectRendering: false,
-        // Remove width and height to use natural element size
-      });
+      const link = document.createElement("a");
+      link.download = `resident-id-${viewResident.resident_id}.png`;
+      link.href = combined.toDataURL('image/png', 1.0);
+      link.click();
 
-      // Download front card with maximum quality
-      const frontLink = document.createElement("a");
-      frontLink.download = `resident-id-${viewResident.resident_id}-front.png`;
-      frontLink.href = frontCanvas.toDataURL('image/png', 1.0);
-      frontLink.click();
-
-      // Convert back card to image with high quality
-      const backCanvas = await html2canvas(backCard, {
-        scale: 4, // Higher scale for better quality
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        imageTimeout: 0,
-        removeContainer: true,
-        foreignObjectRendering: false,
-        // Remove width and height to use natural element size
-      });
-
-      // Download back card with maximum quality
-      const backLink = document.createElement("a");
-      backLink.download = `resident-id-${viewResident.resident_id}-back.png`;
-      backLink.href = backCanvas.toDataURL('image/png', 1.0);
-      backLink.click();
-
-      toast({
-        title: "Download Successful",
-        description: "Both ID card images have been downloaded.",
-      });
+      toast({ title: "Download Successful", description: "ID card image has been downloaded." });
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-  console.error('Error downloading images:', error);
-}
-      toast({
-        title: "Download Error",
-        description: "Failed to download images. Please try again.",
-        variant: "destructive",
-      });
+      if (process.env.NODE_ENV === 'development') console.error('Download image error:', error);
+      toast({ title: "Download Error", description: error.message || "Failed to download image. Please try again.", variant: "destructive" });
     } finally {
       setDownloadImageLoading(false);
     }
   };
+
   const handleDownloadPDF = async () => {
     setDownloadPDFLoading(true);
     try {
-      const frontCard = document.querySelector(".id-card-front");
-      const backCard = document.querySelector(".id-card-back");
-      
-      if (!frontCard || !backCard) {
-        toast({
-          title: "PDF Error",
-          description: "ID card elements not found. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Convert both cards to canvas images with high quality
-      const frontCanvas = await html2canvas(frontCard, {
-        scale: 4, // Higher scale for better quality
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        imageTimeout: 0,
-        removeContainer: true,
-        foreignObjectRendering: false,
-        // Remove width and height to use natural element size
-      });
-
-      const backCanvas = await html2canvas(backCard, {
-        scale: 4, // Higher scale for better quality
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        imageTimeout: 0,
-        removeContainer: true,
-        foreignObjectRendering: false,
-        // Remove width and height to use natural element size
-      });
-
-      // Convert canvas to image data URLs with maximum quality
+      const { frontCanvas, backCanvas } = await captureCards();
       const frontImgData = frontCanvas.toDataURL("image/png", 1.0);
-      const backImgData = backCanvas.toDataURL("image/png", 1.0);
+      const backImgData  = backCanvas.toDataURL("image/png", 1.0);
 
-      // Create PDF with both cards
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
+      // CR80 landscape: 85.6 mm × 54 mm
+      const cardW = 85.6;
+      const cardH = 54;
+      const gap   = 12; // mm between cards
 
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      
-      // Calculate card dimensions in mm (54mm x 85.6mm)
-      const cardWidth = 54;
-      const cardHeight = 85.6;
-      
-      // Center the cards on the page
-      const frontX = (pageWidth - cardWidth) / 2;
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageW = pdf.internal.pageSize.getWidth(); // 210
+      const x = (pageW - cardW) / 2;
+
       const frontY = 20;
-      const backX = (pageWidth - cardWidth) / 2;
-      const backY = frontY + cardHeight + 20;
+      const backY  = frontY + cardH + gap;
 
-      // Add front card with high quality
-      pdf.addImage(frontImgData, "PNG", frontX, frontY, cardWidth, cardHeight);
-      
-      // Add back card with high quality
-      pdf.addImage(backImgData, "PNG", backX, backY, cardWidth, cardHeight);
-
-      // Add labels
-      pdf.setFontSize(12);
+      pdf.setFontSize(8);
       pdf.setFont("helvetica", "bold");
-      pdf.text("FRONT SIDE", pageWidth / 2, frontY - 5, { align: "center" });
-      pdf.text("BACK SIDE", pageWidth / 2, backY - 5, { align: "center" });
+      pdf.setTextColor(100);
+      pdf.text("FRONT", pageW / 2, frontY - 3, { align: "center" });
+      pdf.addImage(frontImgData, "PNG", x, frontY, cardW, cardH);
+      // border radius: card is 10px / 380px wide → 10/380 × 85.6mm ≈ 2.25mm
+      pdf.setDrawColor(0, 0, 0);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(x, frontY, cardW, cardH, 2.25, 2.25, "S");
+
+      pdf.text("BACK", pageW / 2, backY - 3, { align: "center" });
+      pdf.addImage(backImgData, "PNG", x, backY, cardW, cardH);
+      pdf.roundedRect(x, backY, cardW, cardH, 2.25, 2.25, "S");
 
       pdf.save(`resident-id-${viewResident.resident_id}.pdf`);
 
-      toast({
-        title: "PDF Download Successful",
-        description: "ID card PDF has been downloaded.",
-      });
+      toast({ title: "PDF Downloaded", description: "ID card PDF has been downloaded." });
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-  console.error('Error generating PDF:', error);
-}
-      toast({
-        title: "PDF Error",
-        description: "Failed to generate PDF. Please try again.",
-        variant: "destructive",
-      });
+      if (process.env.NODE_ENV === 'development') console.error('PDF error:', error);
+      toast({ title: "PDF Error", description: error.message || "Failed to generate PDF. Please try again.", variant: "destructive" });
     } finally {
       setDownloadPDFLoading(false);
     }
