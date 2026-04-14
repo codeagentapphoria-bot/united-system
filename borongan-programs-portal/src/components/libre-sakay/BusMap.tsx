@@ -5,7 +5,9 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { useBusLocations, type BusLocation } from '@/hooks/useBusLocations';
 import { Crosshair, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+if (!MAPBOX_TOKEN) throw new Error('VITE_MAPBOX_TOKEN is not set');
+
 const BORONGAN_LNG = 125.4377;
 const BORONGAN_LAT = 11.5077;
 const DEFAULT_ZOOM = 13;
@@ -18,10 +20,7 @@ function getCardinalDirection(heading: number): string {
 }
 
 function getRouteName(bus: BusLocation['bus']): string {
-  const routes = bus?.routes as unknown;
-  if (Array.isArray(routes) && routes.length > 0) return routes[0].name ?? 'Unknown Route';
-  if (routes && typeof routes === 'object' && 'name' in routes) return (routes as { name: string }).name;
-  return 'Unknown Route';
+  return bus?.routes?.[0]?.name ?? 'Unknown Route';
 }
 
 // ── Marker components ──────────────────────────────────────────────────────────
@@ -49,12 +48,15 @@ function BusPin({ busLocation, onClick }: { busLocation: BusLocation; onClick: (
 function UserPin() {
   return (
     <div style={{ position: 'relative', width: 20, height: 20 }}>
-      <div style={{
-        position: 'absolute',
-        background: 'rgba(34,197,94,.2)', borderRadius: '50%',
-        width: 40, height: 40,
-        top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-      }} />
+      <div
+        className="animate-ping"
+        style={{
+          position: 'absolute',
+          background: 'rgba(34,197,94,.2)', borderRadius: '50%',
+          width: 40, height: 40,
+          top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+        }}
+      />
       <div style={{
         background: '#22c55e', width: 20, height: 20, borderRadius: '50%',
         border: '4px solid white', boxShadow: '0 2px 8px rgba(0,0,0,.3)',
@@ -99,12 +101,17 @@ interface BusMapProps {
 
 export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMapProps) {
   const mapRef = useRef<MapRef>(null);
-  const [selectedBus, setSelectedBus] = useState<BusLocation | null>(null);
+  const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
 
   const { data: buses = [], isLoading, isFetching, refetch } = useBusLocations(30_000);
-  const activeBuses = buses.filter(b => b.latitude && b.longitude);
+  const activeBuses = buses.filter(
+    b => typeof b.latitude === 'number' && isFinite(b.latitude) &&
+         typeof b.longitude === 'number' && isFinite(b.longitude)
+  );
+  // Always look up from live data so popup reflects latest position/speed
+  const selectedBus = activeBuses.find(b => b.id === selectedBusId) ?? null;
 
   const handleLocate = useCallback(() => {
     if (!navigator.geolocation) { setLocateError('Geolocation not supported'); return; }
@@ -122,15 +129,17 @@ export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMa
     );
   }, [onUserLocation]);
 
+  const handleMapClick = useCallback(() => setSelectedBusId(null), []);
+
   return (
     <div className="relative w-full rounded-xl overflow-hidden bg-gray-100" style={{ height }}>
       <Map
         ref={mapRef}
         initialViewState={{ longitude: BORONGAN_LNG, latitude: BORONGAN_LAT, zoom: DEFAULT_ZOOM }}
         style={{ width: '100%', height: '100%' }}
-        mapStyle="mapbox://styles/mapbox/streets-v12"
+        mapStyle="mapbox://styles/mapbox/navigation-day-v1"
         mapboxAccessToken={MAPBOX_TOKEN}
-        onClick={() => setSelectedBus(null)}
+        onClick={handleMapClick}
       >
         {activeBuses.map(bus => (
           <Marker
@@ -139,7 +148,7 @@ export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMa
             latitude={bus.latitude}
             anchor="center"
           >
-            <BusPin busLocation={bus} onClick={() => setSelectedBus(bus)} />
+            <BusPin busLocation={bus} onClick={() => setSelectedBusId(bus.id)} />
           </Marker>
         ))}
 
@@ -154,7 +163,7 @@ export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMa
             longitude={selectedBus.longitude}
             latitude={selectedBus.latitude}
             anchor="bottom"
-            onClose={() => setSelectedBus(null)}
+            onClose={() => setSelectedBusId(null)}
             closeOnClick={false}
             offset={20}
           >
@@ -168,6 +177,7 @@ export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMa
         <button
           onClick={handleLocate}
           disabled={locating}
+          aria-label={locateError ?? 'Get my location'}
           title={locateError ?? 'Get My Location'}
           className="w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors disabled:bg-gray-100"
         >
@@ -179,6 +189,7 @@ export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMa
         <button
           onClick={() => refetch()}
           disabled={isFetching}
+          aria-label="Refresh buses"
           title="Refresh buses"
           className="w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors disabled:bg-gray-100"
         >
@@ -186,12 +197,16 @@ export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMa
         </button>
         <button
           onClick={() => mapRef.current?.zoomIn()}
+          aria-label="Zoom in"
+          title="Zoom in"
           className="w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
         >
           <ZoomIn className="w-5 h-5 text-gray-700" />
         </button>
         <button
           onClick={() => mapRef.current?.zoomOut()}
+          aria-label="Zoom out"
+          title="Zoom out"
           className="w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
         >
           <ZoomOut className="w-5 h-5 text-gray-700" />
