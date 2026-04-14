@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useBusLocations, type BusLocation } from '@/hooks/useBusLocations';
-import { Crosshair, ZoomIn, ZoomOut } from 'lucide-react';
+import { Crosshair, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
 const BORONGAN_CENTER: [number, number] = [11.5077, 125.4377];
 const DEFAULT_ZOOM = 13;
@@ -62,9 +62,11 @@ const userIcon = new L.DivIcon({
 interface MapControlsProps {
   userLocation: [number, number] | null;
   onUserLocation: (pos: [number, number]) => void;
+  onRefresh: () => void;
+  isRefreshing: boolean;
 }
 
-function MapControls({ userLocation, onUserLocation }: MapControlsProps) {
+function MapControls({ userLocation, onUserLocation, onRefresh, isRefreshing }: MapControlsProps) {
   const map = useMap();
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +99,14 @@ function MapControls({ userLocation, onUserLocation }: MapControlsProps) {
           ? <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
           : <Crosshair className={`w-5 h-5 ${userLocation ? 'text-green-600' : 'text-gray-700'}`} />
         }
+      </button>
+      <button
+        onClick={onRefresh}
+        disabled={isRefreshing}
+        title="Refresh buses"
+        className="w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors disabled:bg-gray-100"
+      >
+        <RefreshCw className={`w-5 h-5 text-gray-700 ${isRefreshing ? 'animate-spin' : ''}`} />
       </button>
       <button onClick={() => map.zoomIn()} className="w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors">
         <ZoomIn className="w-5 h-5 text-gray-700" />
@@ -149,7 +159,7 @@ interface BusMapProps {
 }
 
 export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMapProps) {
-  const { data: buses = [], isLoading } = useBusLocations(30_000);
+  const { data: buses = [], isLoading, isFetching, refetch } = useBusLocations(30_000);
   const activeBuses = buses.filter(b => b.latitude && b.longitude);
 
   // Fix leaflet default icon paths broken by bundlers
@@ -186,7 +196,12 @@ export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMa
           </Marker>
         )}
 
-        <MapControls userLocation={userLocation} onUserLocation={onUserLocation} />
+        <MapControls
+          userLocation={userLocation}
+          onUserLocation={onUserLocation}
+          onRefresh={refetch}
+          isRefreshing={isFetching}
+        />
       </MapContainer>
 
       {isLoading && (

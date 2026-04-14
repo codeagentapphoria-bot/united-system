@@ -6,6 +6,7 @@ const Home = React.lazy(() => import('@/pages/Home').then((m) => ({ default: m.H
 const Login = React.lazy(() => import('@/pages/Login').then((m) => ({ default: m.Login })));
 const Register = React.lazy(() => import('@/pages/Register').then((m) => ({ default: m.Register })));
 const LibreSakay = React.lazy(() => import('@/pages/LibreSakay').then((m) => ({ default: m.LibreSakay })));
+const ProgramDetail = React.lazy(() => import('@/pages/ProgramDetail').then((m) => ({ default: m.ProgramDetail })));
 
 const Spinner = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -52,6 +53,10 @@ export const router = createBrowserRouter([
   {
     path: '/libre-sakay',
     element: <ProtectedRoute>{withSuspense(<LibreSakay />)}</ProtectedRoute>,
+  },
+  {
+    path: '/programs/:id',
+    element: <ProtectedRoute>{withSuspense(<ProgramDetail />)}</ProtectedRoute>,
   },
   {
     path: '*',
