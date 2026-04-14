@@ -51,7 +51,7 @@ function isEligible(
 // List programs with per-resident eligibility & application status
 // ---------------------------------------------------------------------------
 export const listProgramsForResident = async (
-  residentId: string,
+  residentId: string | null,
   params?: { search?: string; type?: string; page?: number; limit?: number }
 ) => {
   const page = params?.page && params.page > 0 ? params.page : 1;
@@ -71,7 +71,18 @@ export const listProgramsForResident = async (
     ];
   }
 
-  const [programs, total, applications, eligibleTypes] = await Promise.all([
+  // When unauthenticated, skip per-resident DB queries entirely
+  const residentQueries = residentId
+    ? Promise.all([
+        prisma.governmentProgramApplication.findMany({
+          where: { residentId },
+          select: { programId: true, status: true },
+        }),
+        getResidentEligibleTypes(residentId),
+      ])
+    : Promise.resolve([[], new Set<ProgramTypeValue>()] as const);
+
+  const [programs, total, [applications, eligibleTypes]] = await Promise.all([
     prisma.governmentProgram.findMany({
       where,
       orderBy: [{ name: 'asc' }],
@@ -79,18 +90,17 @@ export const listProgramsForResident = async (
       take: limit,
     }),
     prisma.governmentProgram.count({ where }),
-    prisma.governmentProgramApplication.findMany({
-      where: { residentId },
-      select: { programId: true, status: true },
-    }),
-    getResidentEligibleTypes(residentId),
+    residentQueries,
   ]);
 
-  const appMap = new Map(applications.map((a) => [a.programId, a.status]));
+  const appMap = new Map(
+    (applications as { programId: string; status: string }[]).map((a) => [a.programId, a.status])
+  );
 
   const data = programs.map((program) => {
     const applicationStatus = appMap.get(program.id) ?? null;
-    const eligible = isEligible(program.types, eligibleTypes);
+    // Unauthenticated visitors get eligible: false — no apply action shown
+    const eligible = residentId ? isEligible(program.types, eligibleTypes) : false;
 
     return {
       id: program.id,
@@ -100,7 +110,12 @@ export const listProgramsForResident = async (
       types: program.types,
       isActive: program.isActive,
       eligible,
-      applicationStatus, // null | 'pending' | 'approved' | 'rejected' | 'cancelled'
+      applicationStatus: applicationStatus as
+        | 'pending'
+        | 'approved'
+        | 'rejected'
+        | 'cancelled'
+        | null,
     };
   });
 

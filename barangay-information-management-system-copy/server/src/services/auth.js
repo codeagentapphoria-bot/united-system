@@ -322,7 +322,25 @@ export const resetPassword = async (email, resetCode, newPassword) => {
   return { message: "Password reset successful" };
 };
 
-export const logoutUser = async (_rawToken) => {
-  // Refresh token is a self-contained JWT; invalidation is handled by
-  // the controller clearing the HttpOnly cookie.
+export const logoutUser = async (rawToken) => {
+  if (!rawToken) return;
+
+  // Decode to get expiry so we can set a matching TTL on the blocklist entry.
+  // If decoding fails (malformed token) we still want to attempt the blocklist
+  // write using a safe default TTL of 7 days (max refresh token lifetime).
+  let ttlSeconds = 7 * 24 * 60 * 60;
+  try {
+    const decoded = verifyToken(rawToken);
+    if (decoded?.exp) {
+      const secondsRemaining = decoded.exp - Math.floor(Date.now() / 1000);
+      if (secondsRemaining > 0) ttlSeconds = secondsRemaining;
+    }
+  } catch {
+    // Expired or invalid — blocklist it anyway with the default TTL
+  }
+
+  // Add the token to a Redis blocklist so it cannot be replayed even if an
+  // attacker captured it before the client cookie was cleared.
+  const key = `bims:token:blocklist:${rawToken}`;
+  await cacheUtils.set(key, '1', ttlSeconds);
 };

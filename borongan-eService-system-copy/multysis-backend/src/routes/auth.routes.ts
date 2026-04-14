@@ -4,6 +4,7 @@ import { addDevLog } from '../services/dev.service';
 import {
   adminLoginController,
   getCurrentUserController,
+  getIdCardInfoController,
   getSocketTokenController,
   googleCallbackController,
   googleLoginInitiateController,
@@ -14,7 +15,7 @@ import {
   supabaseGoogleLoginController,
   unlinkGoogleAccountController,
 } from '../controllers/auth.controller';
-import { verifyToken, type AuthRequest } from '../middleware/auth';
+import { verifyResident, verifyToken, type AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -32,7 +33,9 @@ const authLimiter = rateLimit({
       ip: req.ip,
       path: req.originalUrl,
     });
-    res.status(429).json({ status: 'error', message: 'Too many login attempts, please try again later' });
+    res
+      .status(429)
+      .json({ status: 'error', message: 'Too many login attempts, please try again later' });
   },
 });
 
@@ -69,13 +72,19 @@ router.post('/portal/google/supabase', authLimiter, supabaseGoogleLoginControlle
 
 // Google account linking (requires auth)
 router.post('/portal/google/link', authenticatedLimiter, verifyToken, linkGoogleAccountController);
-router.delete('/portal/google/unlink', authenticatedLimiter, verifyToken, unlinkGoogleAccountController);
+router.delete(
+  '/portal/google/unlink',
+  authenticatedLimiter,
+  verifyToken,
+  unlinkGoogleAccountController
+);
 
 // =============================================================================
 // Common authenticated routes
 // =============================================================================
 router.post('/logout', authenticatedLimiter, verifyToken, logoutController);
 router.get('/me', authenticatedLimiter, verifyToken, getCurrentUserController);
+router.get('/id-card-info', authenticatedLimiter, verifyResident, getIdCardInfoController);
 router.post('/refresh', authenticatedLimiter, verifyToken, refreshTokenController);
 router.get('/socket-token', authenticatedLimiter, verifyToken, getSocketTokenController);
 

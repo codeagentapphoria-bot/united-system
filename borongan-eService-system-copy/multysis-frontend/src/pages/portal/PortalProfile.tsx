@@ -35,7 +35,6 @@ import { queryKeys } from '@/lib/query-keys';
 import { AttachmentGrid } from '@/components/common/AttachmentPreview';
 import {
   FiCalendar,
-  FiCheck,
   FiEdit2,
   FiFileText,
   FiHome,

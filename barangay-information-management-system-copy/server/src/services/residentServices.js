@@ -217,7 +217,18 @@ class Resident {
     // Normalize keys before syncing so BIMS form output keys (e.g. "disabilityType")
     // map correctly to beneficiary table columns (e.g. "disabilityTypeId")
     const normalized = normalizeDetails(classificationType, classificationDetails || {});
-    await Resident._syncBeneficiaryOnInsert(residentId, classificationType, normalized);
+
+    // Beneficiary sync is best-effort: the classification row is already committed,
+    // so a sync failure must not bubble up as a 500 or leave the caller in a retry
+    // loop that would conflict on the already-inserted classification.
+    try {
+      await Resident._syncBeneficiaryOnInsert(residentId, classificationType, normalized);
+    } catch (syncErr) {
+      console.warn(
+        `[residentServices] Beneficiary sync failed for resident ${residentId} ` +
+        `(${classificationType}): ${syncErr.message}. Classification was saved.`
+      );
+    }
 
     return result.rows[0];
   }

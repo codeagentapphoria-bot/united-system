@@ -1,11 +1,35 @@
 import api from './auth.service';
 import type { GovernmentProgramType } from './government-program.service';
 
+// ---------------------------------------------------------------------------
+// Shared types
+// ---------------------------------------------------------------------------
+
+export interface ApplicationAttachment {
+  label: string;
+  filename: string;
+  url: string;
+  mimetype: string;
+  size: number;
+}
+
+interface BeneficiaryInfo {
+  status: string;
+  seniorCitizenId?: string;
+  pwdId?: string;
+  studentId?: string;
+  soloParentId?: string;
+}
+
 export interface AdminProgramApplication {
   id: string;
+  residentId: string;
+  programId: string;
   status: string;
   appliedAt: string;
   adminNotes?: string | null;
+  reviewedAt?: string;
+  reviewedBy?: number;
   resident: {
     id: string;
     firstName: string;
@@ -22,21 +46,17 @@ export interface AdminProgramApplication {
   };
 }
 
-interface BeneficiaryInfo {
-  status: string;
-  seniorCitizenId?: string;
-  pwdId?: string;
-  studentId?: string;
-  soloParentId?: string;
-}
-
 export interface AdminProgramApplicationDetail {
   id: string;
+  residentId: string;
+  programId: string;
   status: string;
   appliedAt: string;
   adminNotes?: string | null;
   submittedData?: Record<string, string> | null;
-  attachments?: Array<{ label: string; filename: string; url: string; mimetype: string; size: number }> | null;
+  attachments?: ApplicationAttachment[] | null;
+  reviewedAt?: string;
+  reviewedBy?: number;
   resident: {
     id: string;
     residentId?: string | null;
@@ -61,11 +81,18 @@ export interface AdminProgramApplicationDetail {
     id: string;
     name: string;
     types: GovernmentProgramType[];
+    description?: string;
+    requirements?: string;
   };
 }
 
+// ---------------------------------------------------------------------------
+// Service — admin methods only
+// ---------------------------------------------------------------------------
+
 interface ListApplicationsParams {
   status?: string;
+  programId?: string;
   search?: string;
   page?: number;
   limit?: number;
@@ -73,16 +100,17 @@ interface ListApplicationsParams {
 
 interface PaginatedResponse {
   data: AdminProgramApplication[];
-  pagination: { page: number; totalPages: number; total: number };
+  pagination: { page: number; limit: number; totalPages: number; total: number };
 }
 
 export const portalProgramsService = {
-  async listApplicationsAdmin(params: ListApplicationsParams): Promise<PaginatedResponse> {
+  async listApplicationsAdmin(params?: ListApplicationsParams): Promise<PaginatedResponse> {
     const query = new URLSearchParams();
-    if (params.status) query.append('status', params.status);
-    if (params.search) query.append('search', params.search);
-    if (params.page) query.append('page', params.page.toString());
-    if (params.limit) query.append('limit', params.limit.toString());
+    if (params?.status) query.append('status', params.status);
+    if (params?.programId) query.append('programId', params.programId);
+    if (params?.search) query.append('search', params.search);
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.limit) query.append('limit', params.limit.toString());
 
     const queryString = query.toString();
     const url = `/portal/program-applications${queryString ? `?${queryString}` : ''}`;
