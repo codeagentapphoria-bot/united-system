@@ -96,6 +96,30 @@ const getBeneficiaryPrograms = async (
   });
 };
 
+const getBeneficiaryProgramsMap = async (
+  beneficiaryType: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT',
+  beneficiaryIds: string[]
+): Promise<Map<string, string[]>> => {
+  if (beneficiaryIds.length === 0) return new Map();
+  const pivots = await (prisma as any).beneficiaryProgramPivot.findMany({
+    where: {
+      beneficiaryType: beneficiaryType,
+      beneficiaryId: { in: beneficiaryIds },
+    },
+    select: {
+      beneficiaryId: true,
+      programId: true,
+    },
+  });
+  const map = new Map<string, string[]>();
+  for (const p of pivots) {
+    const list = map.get(p.beneficiaryId) ?? [];
+    list.push(p.programId);
+    map.set(p.beneficiaryId, list);
+  }
+  return map;
+};
+
 const seniorInclude = {
   resident: true,
   pensionTypes: {
@@ -125,12 +149,13 @@ type PWDWithRelations = any;
 type StudentWithRelations = any;
 type SoloParentWithRelations = any;
 
-const formatSeniorBeneficiary = async (record: SeniorWithRelations) => {
+const formatSeniorBeneficiary = async (record: SeniorWithRelations, preloadedProgramIds?: string[]) => {
   const { pensionTypes, resident, ...rest } = record as any;
-  const programs = await getBeneficiaryPrograms('SENIOR_CITIZEN', record.id);
+  const programIds = preloadedProgramIds ??
+    (await getBeneficiaryPrograms('SENIOR_CITIZEN', record.id)).map((p: any) => p.programId);
   return {
     ...rest,
-    governmentPrograms: programs.map((p: any) => p.programId) ?? [],
+    governmentPrograms: programIds,
     pensionTypes: pensionTypes?.map((pivot: any) => pivot.settingId) ?? [],
     pensionTypeNames: pensionTypes?.map((pivot: any) => pivot.setting?.name).filter(Boolean) ?? [],
     resident: resident
@@ -145,12 +170,13 @@ const formatSeniorBeneficiary = async (record: SeniorWithRelations) => {
   };
 };
 
-const formatPWDBeneficiary = async (record: PWDWithRelations) => {
+const formatPWDBeneficiary = async (record: PWDWithRelations, preloadedProgramIds?: string[]) => {
   const { disabilityType, resident, ...rest } = record as any;
-  const programs = await getBeneficiaryPrograms('PWD', record.id);
+  const programIds = preloadedProgramIds ??
+    (await getBeneficiaryPrograms('PWD', record.id)).map((p: any) => p.programId);
   return {
     ...rest,
-    governmentPrograms: programs.map((p: any) => p.programId) ?? [],
+    governmentPrograms: programIds,
     disabilityType: disabilityType?.id || rest.disabilityTypeId,
     disabilityTypeName: disabilityType?.name || null,
     resident: resident
@@ -165,12 +191,13 @@ const formatPWDBeneficiary = async (record: PWDWithRelations) => {
   };
 };
 
-const formatStudentBeneficiary = async (record: StudentWithRelations) => {
+const formatStudentBeneficiary = async (record: StudentWithRelations, preloadedProgramIds?: string[]) => {
   const { gradeLevel, resident, ...rest } = record as any;
-  const programs = await getBeneficiaryPrograms('STUDENT', record.id);
+  const programIds = preloadedProgramIds ??
+    (await getBeneficiaryPrograms('STUDENT', record.id)).map((p: any) => p.programId);
   return {
     ...rest,
-    programs: programs.map((p: any) => p.programId) ?? [],
+    programs: programIds,
     gradeLevel: gradeLevel?.id || rest.gradeLevelId,
     gradeLevelName: gradeLevel?.name || null,
     resident: resident
@@ -185,12 +212,13 @@ const formatStudentBeneficiary = async (record: StudentWithRelations) => {
   };
 };
 
-const formatSoloParentBeneficiary = async (record: SoloParentWithRelations) => {
+const formatSoloParentBeneficiary = async (record: SoloParentWithRelations, preloadedProgramIds?: string[]) => {
   const { category, resident, ...rest } = record as any;
-  const programs = await getBeneficiaryPrograms('SOLO_PARENT', record.id);
+  const programIds = preloadedProgramIds ??
+    (await getBeneficiaryPrograms('SOLO_PARENT', record.id)).map((p: any) => p.programId);
   return {
     ...rest,
-    assistancePrograms: programs.map((p: any) => p.programId) ?? [],
+    assistancePrograms: programIds,
     category: category?.id || rest.categoryId,
     categoryName: category?.name || null,
     resident: resident
@@ -431,8 +459,14 @@ export const socialAmeliorationService = {
       prisma.seniorCitizenBeneficiary.count({ where }),
     ]);
 
-    // Format items with programs
-    const formattedItems = await Promise.all(items.map(formatSeniorBeneficiary));
+    // Batch-fetch all programs for these beneficiaries in one query
+    const programMap = await getBeneficiaryProgramsMap(
+      'SENIOR_CITIZEN',
+      items.map((i) => i.id)
+    );
+    const formattedItems = await Promise.all(
+      items.map((item) => formatSeniorBeneficiary(item, programMap.get(item.id) ?? []))
+    );
 
     return {
       data: formattedItems,
@@ -579,8 +613,14 @@ export const socialAmeliorationService = {
       prisma.pWDBeneficiary.count({ where }),
     ]);
 
-    // Format items with programs
-    const formattedItems = await Promise.all(items.map(formatPWDBeneficiary));
+    // Batch-fetch all programs for these beneficiaries in one query
+    const programMap = await getBeneficiaryProgramsMap(
+      'PWD',
+      items.map((i) => i.id)
+    );
+    const formattedItems = await Promise.all(
+      items.map((item) => formatPWDBeneficiary(item, programMap.get(item.id) ?? []))
+    );
 
     return {
       data: formattedItems,
@@ -723,8 +763,14 @@ export const socialAmeliorationService = {
       prisma.studentBeneficiary.count({ where }),
     ]);
 
-    // Format items with programs
-    const formattedItems = await Promise.all(items.map(formatStudentBeneficiary));
+    // Batch-fetch all programs for these beneficiaries in one query
+    const programMap = await getBeneficiaryProgramsMap(
+      'STUDENT',
+      items.map((i) => i.id)
+    );
+    const formattedItems = await Promise.all(
+      items.map((item) => formatStudentBeneficiary(item, programMap.get(item.id) ?? []))
+    );
 
     return {
       data: formattedItems,
@@ -859,8 +905,14 @@ export const socialAmeliorationService = {
       prisma.soloParentBeneficiary.count({ where }),
     ]);
 
-    // Format items with programs
-    const formattedItems = await Promise.all(items.map(formatSoloParentBeneficiary));
+    // Batch-fetch all programs for these beneficiaries in one query
+    const programMap = await getBeneficiaryProgramsMap(
+      'SOLO_PARENT',
+      items.map((i) => i.id)
+    );
+    const formattedItems = await Promise.all(
+      items.map((item) => formatSoloParentBeneficiary(item, programMap.get(item.id) ?? []))
+    );
 
     return {
       data: formattedItems,
