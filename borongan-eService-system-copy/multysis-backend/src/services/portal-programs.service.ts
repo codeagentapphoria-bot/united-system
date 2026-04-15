@@ -1,6 +1,7 @@
 import { GovernmentProgramType, Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import { emitProgramApplicationNew, emitProgramApplicationReview } from './socket.service';
+import { getLibreSakaySupabase } from '../config/libre-sakay-supabase';
 
 type ProgramTypeValue = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
 
@@ -376,6 +377,54 @@ export const getApplicationAdmin = async (applicationId: string) => {
 };
 
 // ---------------------------------------------------------------------------
+// Sync a Libre Sakay beneficiary to the Libre Sakay Supabase project.
+// Called after an application for a Libre Sakay program is approved.
+// Errors are logged but never thrown — sync failure must not block approval.
+// ---------------------------------------------------------------------------
+async function syncLibreSakayBeneficiary(
+  residentUuid: string,
+  displayResidentId: string | null,
+  approvedAt: Date
+): Promise<void> {
+  // The QR code encodes displayResidentId if available, else the UUID
+  const qrId = displayResidentId || residentUuid;
+  try {
+    const supabase = getLibreSakaySupabase();
+    const { error } = await supabase
+      .from('libre_sakay_beneficiary')
+      .upsert(
+        {
+          resident_id: qrId,
+          resident_uuid: residentUuid,
+          approved_at: approvedAt.toISOString(),
+          synced_at: new Date().toISOString(),
+        },
+        { onConflict: 'resident_id' }
+      );
+    if (error) {
+      console.error('[libre-sakay-sync] Supabase upsert error:', error.message);
+    }
+  } catch (err) {
+    console.error('[libre-sakay-sync] Unexpected error:', err);
+  }
+}
+
+async function removeLibreSakayBeneficiary(residentUuid: string): Promise<void> {
+  try {
+    const supabase = getLibreSakaySupabase();
+    const { error } = await supabase
+      .from('libre_sakay_beneficiary')
+      .delete()
+      .eq('resident_uuid', residentUuid);
+    if (error) {
+      console.error('[libre-sakay-sync] Delete error:', error.message);
+    }
+  } catch (err) {
+    console.error('[libre-sakay-sync] Unexpected error on remove:', err);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // ADMIN: Approve or reject an application
 // ---------------------------------------------------------------------------
 export const reviewApplicationAdmin = async (
@@ -386,7 +435,10 @@ export const reviewApplicationAdmin = async (
 ) => {
   const application = await prisma.governmentProgramApplication.findUnique({
     where: { id: applicationId },
-    include: { program: { select: { types: true, name: true } } },
+    include: {
+      program: { select: { types: true, name: true } },
+      resident: { select: { id: true, residentId: true } },
+    },
   });
 
   if (!application) {
@@ -481,6 +533,21 @@ export const reviewApplicationAdmin = async (
     adminNotes: adminNotes || undefined,
     reviewedAt: new Date().toISOString(),
   });
+
+  // Sync to Libre Sakay Supabase if this is a Libre Sakay program
+  const isLibreSakay = application.program.name.toLowerCase().includes('libre sakay');
+  if (isLibreSakay) {
+    if (action === 'approve') {
+      await syncLibreSakayBeneficiary(
+        application.resident.id,
+        application.resident.residentId ?? null,
+        result.reviewedAt ?? new Date()
+      );
+    } else {
+      // Rejected — remove from beneficiary list if previously approved
+      await removeLibreSakayBeneficiary(application.resident.id);
+    }
+  }
 
   return result;
 };
