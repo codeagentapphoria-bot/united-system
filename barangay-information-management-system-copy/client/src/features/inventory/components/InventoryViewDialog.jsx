@@ -77,9 +77,9 @@ const InventoryViewDialog = ({
 
   const getQuantityStatus = (quantity) => {
     const qty = parseInt(quantity);
-    if (qty <= 0) return { status: 'Out of Stock', variant: 'destructive' };
-    if (qty <= 5) return { status: 'Low Stock', variant: 'default' };
-    return { status: 'In Stock', variant: 'secondary' };
+    if (qty <= 0) return { status: 'Out of Stock', variant: 'destructive', className: '' };
+    if (qty <= 5) return { status: 'Low Stock', variant: 'outline', className: 'border-warning bg-warning/10 text-warning-foreground' };
+    return { status: 'In Stock', variant: 'outline', className: 'border-success bg-success/10 text-success-foreground' };
   };
 
   const quantityStatus = getQuantityStatus(inventory.quantity);
@@ -88,7 +88,7 @@ const InventoryViewDialog = ({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+        <DialogHeader className="flex flex-row items-center justify-between pr-4">
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-primary" />
             Inventory Item Details
@@ -96,7 +96,7 @@ const InventoryViewDialog = ({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex gap-2 w-full sm:w-auto">
+              <Button variant="outline" size="sm" className="flex gap-2">
                 <MoreHorizontal className="h-4 w-4" />
                 Actions
               </Button>
@@ -116,39 +116,43 @@ const InventoryViewDialog = ({
           </DropdownMenu>
         </DialogHeader>
 
+        <DialogDescription className="sr-only">
+          View detailed information about the inventory item
+        </DialogDescription>
+
         <div className="space-y-6">
-                     {/* Item Image */}
-           {inventory.file_path && (
-             <div className="flex justify-center">
-               <Card className="max-w-md">
-                 <CardContent className="p-4">
-                   <div className="relative group cursor-pointer" onClick={() => setIsImageViewerOpen(true)}>
-                     <img
-                       src={getFileUrl(inventory.file_path)}
-                       alt={inventory.item_name}
-                       className="w-full h-48 object-cover rounded-lg transition-transform group-hover:scale-105"
-                       onError={(e) => {
-                         e.target.style.display = 'none';
-                         e.target.nextSibling.style.display = 'block';
-                       }}
-                     />
-                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
-                       <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                     </div>
-                   </div>
-                   <div className="hidden w-full h-48 bg-muted rounded-lg flex items-center justify-center">
-                     <div className="text-center text-muted-foreground">
-                       <Package className="h-12 w-12 mx-auto mb-2" />
-                       <p className="text-sm">Image not available</p>
-                     </div>
-                   </div>
-                 </CardContent>
-               </Card>
-             </div>
-           )}
+          {/* Item Image */}
+          {inventory.file_path && (
+            <div className="flex justify-center">
+              <Card className="max-w-md">
+                <CardContent className="p-4">
+                  <div className="relative group cursor-pointer" onClick={() => setIsImageViewerOpen(true)}>
+                    <img
+                      src={getFileUrl(inventory.file_path)}
+                      alt={inventory.item_name}
+                      className="w-full h-48 object-cover rounded-lg transition-transform group-hover:scale-105"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
+                      <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  </div>
+                  <div className="w-full h-48 bg-muted rounded-lg flex items-center justify-center" style={{ display: 'none' }}>
+                    <div className="text-center text-muted-foreground">
+                      <Package className="h-12 w-12 mx-auto mb-2" />
+                      <p className="text-sm">Image not available</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Basic Information */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardContent className="p-4 space-y-4">
                 <div className="flex items-center gap-2">
@@ -168,9 +172,9 @@ const InventoryViewDialog = ({
                     <Label className="text-sm font-medium text-muted-foreground">
                       Item Type
                     </Label>
-                    <Badge variant={getItemTypeBadgeVariant(inventory.item_type)} className="text-sm">
+                    <p className="text-base font-medium text-foreground">
                       {inventory.item_type || "N/A"}
-                    </Badge>
+                    </p>
                   </div>
 
                   <div>
@@ -206,9 +210,9 @@ const InventoryViewDialog = ({
                     <Label className="text-sm font-medium text-muted-foreground">
                       Stock Status
                     </Label>
-                    <Badge variant={quantityStatus.variant} className="text-sm">
+                    <p className="text-base font-medium text-foreground">
                       {quantityStatus.status}
-                    </Badge>
+                    </p>
                   </div>
 
                   <div>
@@ -235,24 +239,54 @@ const InventoryViewDialog = ({
             </Card>
           )}
 
+          {/* Record Timestamps */}
+          {(inventory.created_at || inventory.updated_at) && (
+            <Card>
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="font-semibold">Record Information</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {inventory.created_at && (
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">
+                        Created
+                      </Label>
+                      <p className="text-base text-foreground">
+                        {formatDate(inventory.created_at)}
+                      </p>
+                    </div>
+                  )}
+                  {inventory.updated_at && (
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">
+                        Last Updated
+                      </Label>
+                      <p className="text-base text-foreground">
+                        {formatDate(inventory.updated_at)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
 
-
-
-                 </div>
-       </DialogContent>
-     </Dialog>
-
-     {/* Image Viewer */}
-     {inventory.file_path && (
-       <ImageViewer
-         src={getFileUrl(inventory.file_path)}
-         alt={inventory.item_name}
-         open={isImageViewerOpen}
-         onOpenChange={setIsImageViewerOpen}
-       />
-     )}
-   </>
- );
+    {/* Image Viewer */}
+    {inventory.file_path && (
+      <ImageViewer
+        src={getFileUrl(inventory.file_path)}
+        alt={inventory.item_name}
+        open={isImageViewerOpen}
+        onOpenChange={setIsImageViewerOpen}
+      />
+    )}
+  </>
+  );
 };
 
 export default InventoryViewDialog;

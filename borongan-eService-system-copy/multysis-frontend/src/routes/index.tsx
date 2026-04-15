@@ -35,6 +35,9 @@ const ServicePage = lazy(() => import('../pages/admin/ServicePage').then(m => ({
 const SocialAmelioration = lazy(() =>
   import('../pages/admin/SocialAmelioration').then(m => ({ default: m.SocialAmelioration }))
 );
+const AdminLibreMedisina = lazy(() =>
+  import('../pages/admin/AdminLibreMedisina').then(m => ({ default: m.AdminLibreMedisina }))
+);
 const EGovReports = lazy(() => import('../pages/admin/EGovReports').then(m => ({ default: m.EGovReports })));
 const TaxProfiles = lazy(() => import('../pages/admin/TaxProfiles').then(m => ({ default: m.TaxProfiles })));
 const AdminRegistrationWorkflow = lazy(() =>
@@ -262,6 +265,16 @@ export const router = createBrowserRouter([
           <ProtectedRoute requiredRole="admin">
             <LazyWrapper>
               <ServicePage />
+            </LazyWrapper>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'libre-medisina',
+        element: (
+          <ProtectedRoute requiredRole="libre_medisina_admin">
+            <LazyWrapper>
+              <AdminLibreMedisina />
             </LazyWrapper>
           </ProtectedRoute>
         ),

@@ -48,12 +48,16 @@ export const AdminLogin: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login({ email: data.email, password: data.password }, true);
+      const user = await login({ email: data.email, password: data.password }, true);
       toast({
         title: 'Success',
         description: 'Welcome back, Admin!',
       });
-      navigate('/admin/dashboard');
+      if (user?.role === 'libre_medisina_admin') {
+        navigate('/admin/libre-medisina');
+      } else {
+        navigate('/admin/dashboard');
+      }
     } catch (err: any) {
       toast({
         variant: 'destructive',

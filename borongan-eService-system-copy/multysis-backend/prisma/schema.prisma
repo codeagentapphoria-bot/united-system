@@ -143,6 +143,7 @@ model Resident {
   studentBeneficiary       StudentBeneficiary?
   soloParentBeneficiary    SoloParentBeneficiary?
   programApplications      GovernmentProgramApplication[]
+  medicineRequests         MedicineRequest[]
 
   @@index([barangayId])
   @@index([residentId])
@@ -692,6 +693,35 @@ model GovernmentProgramApplication {
   @@map("government_program_applications")
 }
 
+// =============================================================================
+// LIBRE MEDISINA — Prescription Requests
+// Residents submit prescription images via Programs Portal.
+// Libre Medisina admin reviews, approves/rejects, and tracks pick-up.
+// =============================================================================
+
+model MedicineRequest {
+  id               String                @id @default(dbgenerated("(gen_random_uuid())::text"))
+  residentId       String                @map("resident_id")
+  prescriptionPath String                @map("prescription_path")
+  status           MedicineRequestStatus @default(SUBMITTED)
+  note             String?
+  reviewedBy       String?               @map("reviewed_by")
+  reviewedAt       DateTime?             @map("reviewed_at")
+  preparedAt       DateTime?             @map("prepared_at")
+  readyAt          DateTime?             @map("ready_at")
+  pickedUpAt       DateTime?             @map("picked_up_at")
+  completedAt      DateTime?             @map("completed_at")
+  createdAt        DateTime              @map("created_at") @default(now())
+  updatedAt        DateTime              @map("updated_at") @updatedAt
+
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+
+  @@index([residentId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("medicine_requests")
+}
+
 model BeneficiaryProgramPivot {
   id              String            @id @default(uuid())
   beneficiaryType BeneficiaryType   @map("beneficiary_type")
@@ -850,6 +880,19 @@ enum PaymentMethod {
   OTHER
 
   @@map("payment_method")
+}
+
+enum MedicineRequestStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  PREPARING
+  READY_FOR_PICKUP
+  PICKED_UP
+  DONE
+
+  @@map("medicine_request_status")
 }
 
 // =============================================================================
