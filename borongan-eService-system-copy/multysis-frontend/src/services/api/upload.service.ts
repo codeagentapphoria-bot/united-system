@@ -59,5 +59,33 @@ export const uploadService = {
     const uploadPromises = files.map((file) => this.uploadTransactionDocument(file));
     return Promise.all(uploadPromises);
   },
+
+  /**
+   * Upload a profile picture for the resident (direct upload via backend)
+   * @param file - The file to upload
+   * @returns Promise with upload response containing URL
+   */
+  async uploadResidentProfilePicture(file: File): Promise<UploadResponse> {
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      throw new Error('File size must be less than 5MB');
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Invalid file type. Allowed types: JPG, PNG, GIF, WebP');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await api.post('/upload/resident/profile-picture', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return response.data.data;
+  },
 };
 

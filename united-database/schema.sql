@@ -1178,13 +1178,14 @@ CREATE TABLE public.solo_parent_beneficiaries (
 
 
 CREATE TABLE public.government_programs (
-    id          text NOT NULL DEFAULT gen_random_uuid()::text,
-    name        text NOT NULL,
-    description text,
-    type        public.government_program_type NOT NULL,
-    is_active   boolean NOT NULL DEFAULT true,
-    created_at  timestamp without time zone DEFAULT now(),
-    updated_at  timestamp without time zone DEFAULT now()
+    id           text NOT NULL DEFAULT gen_random_uuid()::text,
+    name         text NOT NULL,
+    description  text,
+    requirements text,
+    types        public.government_program_type[],
+    is_active    boolean NOT NULL DEFAULT true,
+    created_at   timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   timestamp(3) without time zone NOT NULL
 );
 
 

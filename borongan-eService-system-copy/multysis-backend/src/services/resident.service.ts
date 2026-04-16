@@ -8,6 +8,39 @@
 import prisma from '../config/database';
 import cacheService from './cache.service';
 import { formatResidentResponse } from './auth.service';
+import { getSupabase, ESERVICE_BUCKET } from '../config/supabase';
+
+// =============================================================================
+// STORAGE HELPERS
+// =============================================================================
+
+/**
+ * Extracts the storage path from a Supabase public URL.
+ * Returns null if the URL is invalid or does not match the expected format.
+ */
+function extractStoragePath(url: string): string | null {
+  if (!url) return null;
+  const marker = `/storage/v1/object/public/${ESERVICE_BUCKET}/`;
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  return url.slice(idx + marker.length);
+}
+
+/**
+ * Deletes a file from Supabase Storage given its storage path.
+ * Logs errors but does not throw — cleanup failures should not block the update.
+ */
+async function deleteFromSupabaseStorage(path: string): Promise<void> {
+  try {
+    const supabase = getSupabase();
+    const { error } = await supabase.storage.from(ESERVICE_BUCKET).remove([path]);
+    if (error) {
+      console.error(`[residentService] Failed to delete old picture from Supabase: ${error.message}`);
+    }
+  } catch (err) {
+    console.error(`[residentService] Supabase delete error:`, err);
+  }
+}
 
 export interface ResidentFilters {
   status?: string;
@@ -215,11 +248,14 @@ export interface SelfUpdateData {
   idType?: string | null;
   idDocumentNumber?: string | null;
   acrNo?: string | null;
+  picturePath?: string | null;
 }
 
 export const updateMyProfile = async (id: string, data: SelfUpdateData) => {
   const resident = await prisma.resident.findUnique({ where: { id } });
   if (!resident) throw new Error('Resident not found');
+
+  const oldPicturePath = resident.picturePath;
 
   const updated = await prisma.resident.update({
     where: { id },
@@ -236,6 +272,16 @@ export const updateMyProfile = async (id: string, data: SelfUpdateData) => {
 
   // Invalidate cache
   await invalidateProfileCache(id);
+
+  const newPicturePath = data.picturePath;
+  const pictureChanged = newPicturePath !== undefined && newPicturePath !== oldPicturePath;
+
+  if (pictureChanged && oldPicturePath) {
+    const storagePath = extractStoragePath(oldPicturePath);
+    if (storagePath) {
+      await deleteFromSupabaseStorage(storagePath);
+    }
+  }
 
   return formatResidentResponse(updated);
 };

@@ -20,6 +20,7 @@ import { MyApplications } from '@/components/portal/MyApplications';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { residentService, type Resident } from '@/services/api/resident.service';
+import { uploadService } from '@/services/api/upload.service';
 import {
   getRegions,
   getProvincesByRegion as getPHProvinces,
@@ -50,6 +51,7 @@ import {
   FiX,
   FiUsers,
   FiExternalLink,
+  FiCamera,
 } from 'react-icons/fi';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -220,6 +222,7 @@ export const PortalProfile: React.FC = () => {
 
   const [editOpen, setEditOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [form, setForm] = useState<EditForm | null>(null);
 
   const openEdit = () => {
@@ -252,6 +255,36 @@ export const PortalProfile: React.FC = () => {
       toast({ variant: 'destructive', title: 'Save failed', description: err.message });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ variant: 'destructive', title: 'Invalid file type', description: 'Please select an image file (JPG, PNG, GIF, or WebP).' });
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({ variant: 'destructive', title: 'File too large', description: 'Image must be smaller than 5MB.' });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const result = await uploadService.uploadResidentProfilePicture(file);
+      await residentService.updateMyProfile({ picturePath: result.url });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.profile.me });
+      toast({ title: 'Photo updated', description: 'Your profile photo has been changed.' });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Upload failed', description: err.message });
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -298,11 +331,31 @@ export const PortalProfile: React.FC = () => {
         <Card>
           <CardContent className="py-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-              <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <div className="relative w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 overflow-hidden group">
                 {resident.picturePath ? (
                   <img src={resident.picturePath} alt={fullName} className="w-full h-full object-cover" />
                 ) : (
                   <FiUser size={40} className="text-primary-500" />
+                )}
+                {isUploading ? (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                  </div>
+                ) : (
+                  <label className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    <FiCamera size={20} className="text-white mb-1" />
+                    <span className="text-white text-xs font-medium">Change</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      onChange={handlePhotoChange}
+                      disabled={isUploading}
+                      className="sr-only"
+                    />
+                  </label>
                 )}
               </div>
               <div className="text-center sm:text-left flex-1">

@@ -1,6 +1,6 @@
 united-database/.env
 united-database/.env.example
-
+docs/
 .claude/
 .sisyphus/
 logs/
