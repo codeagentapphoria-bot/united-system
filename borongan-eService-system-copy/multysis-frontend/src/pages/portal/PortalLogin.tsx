@@ -73,7 +73,7 @@ export const PortalLogin: React.FC = () => {
   const handleSubmit = async (data: LoginInput) => {
     setIsLoading(true);
     try {
-      await login({ username: data.username, password: data.password });
+      await login({ credential: data.username, password: data.password });
       toast({ title: 'Welcome back!' });
       navigate('/portal');
       window.location.reload();

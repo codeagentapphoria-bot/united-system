@@ -166,7 +166,7 @@ export const DashboardTab: React.FC = () => {
 
         // Count citizens registered in "ALL" type programs (programs that apply to all beneficiary types)
         const allTypeProgramIds = allGovernmentPrograms
-          .filter(p => p.type === 'ALL' && p.isActive)
+          .filter(p => p.types.includes('ALL') && p.isActive)
           .map(p => p.id);
 
         const citizensInAllPrograms = new Set<string>();

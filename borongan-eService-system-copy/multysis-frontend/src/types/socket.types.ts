@@ -152,6 +152,7 @@ export interface AppointmentUpdatePayload {
 export interface NewTransactionPayload {
   id: string;
   residentId: string;
+  subscriberId?: string;
   transactionId: string;
   serviceId: string;
   status?: string;

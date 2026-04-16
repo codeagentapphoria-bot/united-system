@@ -106,7 +106,7 @@ export const EditGovernmentProgramModal: React.FC<EditGovernmentProgramModalProp
     try {
       const submitData: UpdateGovernmentProgramInput = {
         ...data,
-        requirements: data.requirements?.length ? JSON.stringify(data.requirements) : null,
+        requirements: data.requirements?.length ? JSON.stringify(data.requirements) : undefined,
       };
       await onSubmit(governmentProgram.id, submitData);
       form.reset();

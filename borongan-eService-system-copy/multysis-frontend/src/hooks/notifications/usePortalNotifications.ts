@@ -38,6 +38,7 @@ const EMPTY_COUNTS: SubscriberNotificationCounts = {
   pendingUpdateRequests: 0,
   unreadMessages: 0,
   statusUpdates: 0,
+  programApplicationUpdates: 0,
   total: 0,
 };
 
