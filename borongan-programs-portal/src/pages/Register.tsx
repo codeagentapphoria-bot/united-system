@@ -511,7 +511,7 @@ export const Register: React.FC = () => {
   const currentStep = STEPS[step - 1];
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral-50">
+    <div className="min-h-[100dvh] flex flex-col bg-neutral-50">
       
 
       <div className="flex flex-1 overflow-hidden">
