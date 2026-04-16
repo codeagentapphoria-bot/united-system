@@ -119,25 +119,16 @@ export async function uploadFileToSupabase(
   return uploadToSupabase(file.buffer, storagePath, file.mimetype);
 }
 
-// Helper to get full file URL (for API responses)
 export const getFileUrl = (filePath: string): string => {
-  // If already a full URL (Supabase), return as is
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
     return filePath;
   }
-  const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
-
-  let relativePath = filePath;
-  const cwd = process.cwd();
-  if (relativePath.startsWith(cwd)) {
-    relativePath = relativePath.slice(cwd.length);
+  if (filePath.includes('supabase') || filePath.includes('storage')) {
+    return filePath;
   }
-  relativePath = relativePath.replace(/\\/g, '/');
-  if (!relativePath.startsWith('/')) {
-    relativePath = `/${relativePath}`;
-  }
-
-  return `${baseUrl}${relativePath}`;
+  const supabaseUrl = process.env.SUPABASE_URL || '';
+  const bucket = process.env.ESERVICE_BUCKET || 'eservice-uploads';
+  return `${supabaseUrl}/storage/v1/object/public/${bucket}/${filePath}`;
 };
 
 export { sanitizeFilename, validateFileContent };

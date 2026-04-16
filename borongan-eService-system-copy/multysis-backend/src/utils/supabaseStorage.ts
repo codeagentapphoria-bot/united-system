@@ -59,3 +59,25 @@ function extractStoragePath(publicUrl: string): string | null {
   if (idx === -1) return null;
   return publicUrl.slice(idx + marker.length);
 }
+
+/**
+ * Generate a presigned URL for direct-to-Supabase file uploads.
+ */
+export async function createUploadPresignedUrl(
+  bucket: string,
+  path: string
+): Promise<{ uploadUrl: string; publicUrl: string }> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUploadUrl(path);
+
+  if (error) {
+    throw new Error(`Failed to create presigned URL: ${error.message}`);
+  }
+
+  const uploadUrl = data.signedUrl;
+  const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
+
+  return { uploadUrl, publicUrl };
+}

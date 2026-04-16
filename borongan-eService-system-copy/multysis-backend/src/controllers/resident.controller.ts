@@ -62,7 +62,7 @@ export const updateMyProfileController = async (req: AuthRequest, res: Response)
       'occupation', 'profession', 'employmentStatus', 'isEmployed',
       'educationAttainment', 'monthlyIncome', 'height', 'weight',
       'emergencyContactPerson', 'emergencyContactNumber',
-      'idType', 'idDocumentNumber', 'acrNo',
+      'idType', 'idDocumentNumber', 'acrNo', 'picturePath',
     ];
     const data: Record<string, any> = {};
     for (const key of allowed) {

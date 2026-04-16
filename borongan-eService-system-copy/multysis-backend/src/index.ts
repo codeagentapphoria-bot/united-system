@@ -456,12 +456,14 @@ setSocketInstance(io);
 // Start dev dashboard periodic updates
 startDevDashboardUpdates();
 
-// Start server
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 API URL: http://localhost:${PORT}/api`);
-  console.log(`🔌 WebSocket server initialized`);
+// Skip server start in test environment (supertest handles it)
+if (process.env.NODE_ENV !== 'test') {
+  // Start server
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Server is running on port ${PORT}`);
+    console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔗 API URL: http://localhost:${PORT}/api`);
+    console.log(`🔌 WebSocket server initialized`);
 
   // Verify Redis connection on startup
   import('./services/cache.service')
@@ -535,7 +537,8 @@ httpServer.listen(PORT, () => {
       });
     }
   }, 60000); // Check every minute
-});
+  });
+}
 
 // Graceful shutdown handling
 process.on('SIGTERM', () => {
