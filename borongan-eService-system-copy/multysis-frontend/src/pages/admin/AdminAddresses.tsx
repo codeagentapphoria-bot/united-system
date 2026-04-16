@@ -4,8 +4,6 @@ import React, { useEffect, useState } from 'react';
 // Third-party libraries
 import { FiDownload, FiEdit, FiPlus, FiSearch, FiSettings, FiTrash2, FiUserCheck, FiUserX } from 'react-icons/fi';
 
-//Helo
-
 // UI Components (shadcn/ui)
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
