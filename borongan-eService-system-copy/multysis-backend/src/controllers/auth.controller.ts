@@ -26,7 +26,7 @@ import { addDevLog } from '../services/dev.service';
 import { adminLogin, getCurrentUser, portalLogin } from '../services/auth.service';
 import {
   createRefreshToken,
-  findRefreshToken,
+  findRefreshTokenByJwt,
   revokeAllUserTokens,
   revokeRefreshToken,
 } from '../services/refreshToken.service';
@@ -78,10 +78,7 @@ export const adminLoginController = async (req: Request, res: Response): Promise
     setAccessTokenCookie(res, result.token);
     setRefreshTokenCookie(res, result.refreshToken);
 
-    const dbToken = await findRefreshToken(result.refreshToken);
-    if (dbToken) {
-      await createOrUpdateSession(result.user.id, 'admin', dbToken.id, req);
-    }
+    await createOrUpdateSession(result.user.id, 'admin', result.refreshTokenId, req);
 
     logSuccessfulLogin(result.user.id, 'admin', req);
     addDevLog('info', 'Admin login successful', {
@@ -111,10 +108,7 @@ export const portalLoginController = async (req: Request, res: Response): Promis
     setAccessTokenCookie(res, result.token);
     setRefreshTokenCookie(res, result.refreshToken);
 
-    const dbToken = await findRefreshToken(result.refreshToken);
-    if (dbToken) {
-      await createOrUpdateSession(result.resident.id as string, 'resident', dbToken.id, req);
-    }
+    await createOrUpdateSession(result.resident.id as string, 'resident', result.refreshTokenId, req);
 
     logSuccessfulLogin(result.resident.id as string, 'resident', req);
     addDevLog('info', 'Portal login successful', {
@@ -202,9 +196,8 @@ export const supabaseGoogleLoginController = async (req: Request, res: Response)
     setAccessTokenCookie(res, result.token);
     setRefreshTokenCookie(res, result.refreshToken);
 
-    const dbToken = await findRefreshToken(result.refreshToken);
-    if (dbToken && result.resident) {
-      await createOrUpdateSession((result.resident as any).id, 'resident', dbToken.id, req);
+    if (result.refreshTokenId && result.resident) {
+      await createOrUpdateSession((result.resident as any).id, 'resident', result.refreshTokenId, req);
     }
 
     res.status(200).json({ status: 'success', data: { resident: result.resident } });
@@ -329,7 +322,7 @@ export const refreshTokenController = async (req: AuthRequest, res: Response): P
       return;
     }
 
-    const dbToken = await findRefreshToken(refreshTokenValue);
+    const dbToken = await findRefreshTokenByJwt(refreshTokenValue);
     if (!dbToken) {
       res.status(401).json({ status: 'error', message: 'Invalid or expired refresh token' });
       return;
@@ -356,14 +349,14 @@ export const refreshTokenController = async (req: AuthRequest, res: Response): P
           };
 
     const newAccessToken = generateToken(tokenPayload);
-    const newRefreshToken = generateRefreshToken(tokenPayload);
+    const { token: newRefreshToken, jti: newJti } = generateRefreshToken(tokenPayload);
 
     await revokeRefreshToken(dbToken.id, 'Token rotated');
 
     const newDbToken = await createRefreshToken({
       userId: dbToken.userId || undefined,
       residentId: dbToken.residentId || undefined,
-      token: newRefreshToken,
+      jti: newJti,
       ...device,
     });
 

@@ -1,13 +1,13 @@
-import { compare, hash } from 'bcryptjs';
 import prisma from '../config/database';
 import { parseTimeString } from '../utils/timeParser';
+import { verifyRefreshToken } from '../utils/jwt';
 
 const REFRESH_TOKEN_EXPIRES = process.env.REFRESH_TOKEN_EXPIRES || '30d';
 
 export interface CreateRefreshTokenData {
   userId?: string;      // eservice_users.id  (admin portal)
   residentId?: string;  // residents.id        (portal residents)
-  token: string;        // Plain text token (hashed before storage)
+  jti: string;          // JWT `jti` claim (UUID) — stored as lookup key
   deviceInfo?: string;
   ipAddress?: string;
   userAgent?: string;
@@ -24,22 +24,20 @@ export interface RefreshTokenResult {
 }
 
 /**
- * Create a new refresh token in the database.
- * The token is hashed before storage for security.
+ * Persist a refresh-token row keyed by the JWT's jti claim.
+ * The signed JWT itself is the bearer credential — no secret material is stored here.
  */
 export const createRefreshToken = async (
   data: CreateRefreshTokenData
 ): Promise<RefreshTokenResult> => {
-  const hashedToken = await hash(data.token, 10);
-
   const expiresInMs = parseTimeString(REFRESH_TOKEN_EXPIRES);
   const expiresAt = new Date(Date.now() + expiresInMs);
 
   const refreshToken = await prisma.refreshToken.create({
     data: {
+      jti: data.jti,
       userId: data.userId || null,
       residentId: data.residentId || null,
-      token: hashedToken,
       deviceInfo: data.deviceInfo || null,
       ipAddress: data.ipAddress || null,
       userAgent: data.userAgent || null,
@@ -59,45 +57,36 @@ export const createRefreshToken = async (
 };
 
 /**
- * Find a refresh token by plain text value.
- * Compares against hashed tokens in the database.
- * Limits search to recent tokens to prevent expensive bcrypt scans.
+ * Validate a refresh-token JWT and look up its row by indexed jti.
+ * Returns null for invalid signature, missing jti, unknown jti, revoked, or expired rows.
  */
-export const findRefreshToken = async (token: string): Promise<RefreshTokenResult | null> => {
-  const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-  const tokens = await prisma.refreshToken.findMany({
-    where: {
-      revokedAt: null,
-      expiresAt: { gt: now },
-      createdAt: { gte: sevenDaysAgo },
-    },
-    take: 500,
-    orderBy: { createdAt: 'desc' },
-  });
-
-  for (const dbToken of tokens) {
-    try {
-      const isMatch = await compare(token, dbToken.token);
-      if (isMatch) {
-        return {
-          id: dbToken.id,
-          userId: dbToken.userId,
-          residentId: dbToken.residentId,
-          expiresAt: dbToken.expiresAt,
-          deviceInfo: dbToken.deviceInfo,
-          ipAddress: dbToken.ipAddress,
-          userAgent: dbToken.userAgent,
-        };
-      }
-    } catch {
-      continue;
-    }
+export const findRefreshTokenByJwt = async (token: string): Promise<RefreshTokenResult | null> => {
+  let jti: string;
+  try {
+    const decoded = verifyRefreshToken(token);
+    jti = decoded.jti;
+  } catch {
+    return null;
   }
 
-  return null;
+  const row = await prisma.refreshToken.findUnique({ where: { jti } });
+  if (!row) return null;
+  if (row.revokedAt) return null;
+  if (row.expiresAt <= new Date()) return null;
+
+  return {
+    id: row.id,
+    userId: row.userId,
+    residentId: row.residentId,
+    expiresAt: row.expiresAt,
+    deviceInfo: row.deviceInfo,
+    ipAddress: row.ipAddress,
+    userAgent: row.userAgent,
+  };
 };
+
+// Backward-compatible alias — will be removed in a follow-up once callers are migrated.
+export const findRefreshToken = findRefreshTokenByJwt;
 
 /**
  * Revoke a single refresh token by ID.
