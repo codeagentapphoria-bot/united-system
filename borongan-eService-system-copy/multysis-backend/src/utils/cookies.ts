@@ -24,7 +24,8 @@ const REFRESH_TOKEN_EXPIRES = process.env.REFRESH_TOKEN_EXPIRES || '30d';
  * Set access token in HTTP-only, secure cookie
  */
 export const setAccessTokenCookie = (res: Response, token: string): void => {
-  const maxAge = Math.floor(parseTimeString(ACCESS_TOKEN_EXPIRES) / 1000); // Convert to seconds
+  // Express's res.cookie maxAge is in MILLISECONDS — do not divide by 1000.
+  const maxAge = parseTimeString(ACCESS_TOKEN_EXPIRES);
 
   const cookieOptions: any = {
     httpOnly: true,
@@ -46,7 +47,8 @@ export const setAccessTokenCookie = (res: Response, token: string): void => {
  * Set refresh token in HTTP-only, secure cookie
  */
 export const setRefreshTokenCookie = (res: Response, token: string): void => {
-  const maxAge = Math.floor(parseTimeString(REFRESH_TOKEN_EXPIRES) / 1000); // Convert to seconds
+  // Express's res.cookie maxAge is in MILLISECONDS — do not divide by 1000.
+  const maxAge = parseTimeString(REFRESH_TOKEN_EXPIRES);
 
   const cookieOptions: any = {
     httpOnly: true,
