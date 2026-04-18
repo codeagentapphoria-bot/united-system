@@ -1,3 +1,7 @@
+// OpenTelemetry must be imported before any instrumented module (express/prisma/ioredis/http).
+// It's a no-op unless OTEL_EXPORTER_OTLP_ENDPOINT is set.
+import './otel';
+
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
