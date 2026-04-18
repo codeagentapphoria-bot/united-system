@@ -480,6 +480,16 @@ if (process.env.NODE_ENV !== 'test') {
       console.warn(`⚠️ Redis import failed:`, err.message);
     });
 
+  // Start audit-log queue processor (drains events produced by auth/audit paths).
+  import('./middleware/audit')
+    .then(({ initAuditProcessor }) => {
+      initAuditProcessor();
+      console.log(`📝 Audit queue processor started`);
+    })
+    .catch((err) => {
+      console.warn(`⚠️ Audit processor failed to start:`, err.message);
+    });
+
   // Log server startup
   addDevLog('info', 'Server started', {
     port: PORT,

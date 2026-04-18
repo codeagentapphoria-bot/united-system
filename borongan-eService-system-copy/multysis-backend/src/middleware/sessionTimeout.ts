@@ -1,19 +1,42 @@
 import { NextFunction, Request, Response } from 'express';
-import prisma from '../config/database';
 import { AuthRequest } from './auth';
 import { parseTimeString } from '../utils/timeParser';
 import { addDevLog } from '../services/dev.service';
+import cacheService from '../services/cache.service';
+
+// =============================================================================
+// Session state is held in Redis, not Postgres. At 80k users the sessionTimeout
+// middleware runs on every authenticated request — keeping it off the DB hot
+// path is the single biggest post-login scaling win. Graceful fallback: when
+// Redis is down, cacheService.get returns null and we fail-open (auth middleware
+// still validates the JWT).
+//
+// The legacy `sessions` table is preserved for future audit-history use but is
+// no longer written to by this module.
+// =============================================================================
 
 const IDLE_TIMEOUT = process.env.IDLE_TIMEOUT || '15m';
 const ABSOLUTE_TIMEOUT = process.env.ABSOLUTE_TIMEOUT || '6h';
 
 const IDLE_TIMEOUT_MS = parseTimeString(IDLE_TIMEOUT);
 const ABSOLUTE_TIMEOUT_MS = parseTimeString(ABSOLUTE_TIMEOUT);
+const ABSOLUTE_TIMEOUT_SEC = Math.ceil(ABSOLUTE_TIMEOUT_MS / 1000);
+
+interface RedisSession {
+  refreshTokenId: string;
+  createdAt: number; // ms epoch
+  lastActivityAt: number; // ms epoch
+  ipAddress?: string;
+  userAgent?: string;
+  deviceInfo?: string;
+}
+
+const sessionKey = (userType: 'admin' | 'resident', userId: string): string =>
+  `session:${userType}:${userId}`;
 
 /**
- * Session timeout middleware
- * Checks for idle timeout and absolute timeout
- * Updates lastActivityAt on each request
+ * Session timeout middleware.
+ * Enforces idle timeout and absolute timeout using a per-user Redis key.
  */
 export const sessionTimeout = async (
   req: AuthRequest,
@@ -22,7 +45,6 @@ export const sessionTimeout = async (
 ): Promise<void> => {
   try {
     if (!req.user) {
-      // No user, continue (will be handled by auth middleware)
       next();
       return;
     }
@@ -30,47 +52,32 @@ export const sessionTimeout = async (
     const userId = req.user.id;
     const userType = req.user.type;
 
-    // Dev users don't have sessions in database, skip session checking
+    // Dev users don't participate in session timeout bookkeeping
     if (userType === 'dev') {
       next();
       return;
     }
 
-    // Find active session for this user
-    const session = await prisma.session.findFirst({
-      where: {
-        ...(userType === 'admin' ? { userId } : { residentId: userId }),
-        expiresAt: {
-          gt: new Date(),
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      include: {
-        refreshToken: true,
-      },
-    });
+    const key = sessionKey(userType, userId);
+    const session = await cacheService.get<RedisSession>(key);
 
+    // No session row (first hit after login, TTL expired, or Redis is down) —
+    // fail-open. JWT validation in the auth middleware is still in force.
     if (!session) {
-      // No active session found, continue (session will be created on login)
       next();
       return;
     }
 
-    const now = new Date();
-    const lastActivityAt = session.lastActivityAt;
-    const createdAt = session.createdAt;
+    const now = Date.now();
 
-    // Check idle timeout
-    const idleTime = now.getTime() - lastActivityAt.getTime();
+    // Idle timeout
+    const idleTime = now - session.lastActivityAt;
     if (idleTime > IDLE_TIMEOUT_MS) {
-      // Idle timeout exceeded
+      await cacheService.del(key);
       addDevLog('warn', 'Session expired due to inactivity', {
         userId,
         userType,
-        sessionId: session.id,
-        idleTime: Math.floor(idleTime / 1000), // seconds
+        idleTime: Math.floor(idleTime / 1000),
         ip: req.ip || req.socket.remoteAddress,
         userAgent: req.get('user-agent'),
         code: 'IDLE_TIMEOUT',
@@ -83,15 +90,14 @@ export const sessionTimeout = async (
       return;
     }
 
-    // Check absolute timeout
-    const absoluteTime = now.getTime() - createdAt.getTime();
+    // Absolute timeout
+    const absoluteTime = now - session.createdAt;
     if (absoluteTime > ABSOLUTE_TIMEOUT_MS) {
-      // Absolute timeout exceeded
+      await cacheService.del(key);
       addDevLog('warn', 'Session expired (absolute timeout)', {
         userId,
         userType,
-        sessionId: session.id,
-        absoluteTime: Math.floor(absoluteTime / 1000), // seconds
+        absoluteTime: Math.floor(absoluteTime / 1000),
         ip: req.ip || req.socket.remoteAddress,
         userAgent: req.get('user-agent'),
         code: 'ABSOLUTE_TIMEOUT',
@@ -104,22 +110,21 @@ export const sessionTimeout = async (
       return;
     }
 
-    // Update lastActivityAt
-    await prisma.session.update({
-      where: { id: session.id },
-      data: { lastActivityAt: now },
-    });
+    // Refresh lastActivityAt, recompute TTL so the key auto-expires at the
+    // absolute deadline rather than sliding with every request.
+    const remainingSec = Math.max(1, ABSOLUTE_TIMEOUT_SEC - Math.floor(absoluteTime / 1000));
+    session.lastActivityAt = now;
+    await cacheService.set(key, session, remainingSec);
 
     next();
-  } catch (error) {
-    // On error, continue (don't block requests)
+  } catch {
+    // Never block requests on session middleware failure
     next();
   }
 };
 
 /**
- * Create or update session for authenticated user
- * Should be called after successful login
+ * Create or refresh the Redis session entry for a user after login / rotation.
  */
 export const createOrUpdateSession = async (
   userId: string,
@@ -127,10 +132,7 @@ export const createOrUpdateSession = async (
   refreshTokenId: string,
   req: Request
 ): Promise<void> => {
-  // Dev users don't need sessions stored in database
-  if (userType === 'dev') {
-    return;
-  }
+  if (userType === 'dev') return;
 
   try {
     const ipAddress =
@@ -142,67 +144,43 @@ export const createOrUpdateSession = async (
       platform: req.headers['sec-ch-ua-platform'] || undefined,
     });
 
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + ABSOLUTE_TIMEOUT_MS);
+    const key = sessionKey(userType, userId);
+    const now = Date.now();
 
-    // Check if session exists
-    const existingSession = await prisma.session.findFirst({
-      where: {
-        ...(userType === 'admin' ? { userId } : { residentId: userId }),
-        refreshTokenId,
-      },
-    });
+    // Preserve createdAt on rotation within the same absolute window so the
+    // timeout keeps counting from the original login, not from each rotation.
+    const existing = await cacheService.get<RedisSession>(key);
+    const createdAt =
+      existing && now - existing.createdAt < ABSOLUTE_TIMEOUT_MS ? existing.createdAt : now;
 
-    if (existingSession) {
-      // Update existing session
-      await prisma.session.update({
-        where: { id: existingSession.id },
-        data: {
-          lastActivityAt: now,
-          expiresAt,
-          ipAddress,
-          userAgent,
-          deviceInfo,
-        },
-      });
-    } else {
-      // Create new session
-      await prisma.session.create({
-        data: {
-          ...(userType === 'admin' ? { userId } : { residentId: userId }),
-          refreshTokenId,
-          ipAddress,
-          userAgent,
-          deviceInfo,
-          lastActivityAt: now,
-          expiresAt,
-        },
-      });
-    }
+    const session: RedisSession = {
+      refreshTokenId,
+      createdAt,
+      lastActivityAt: now,
+      ipAddress,
+      userAgent,
+      deviceInfo,
+    };
+
+    const remainingSec = Math.max(1, ABSOLUTE_TIMEOUT_SEC - Math.floor((now - createdAt) / 1000));
+    await cacheService.set(key, session, remainingSec);
   } catch (error) {
-    // Log error but don't throw (session creation is not critical)
-    console.error('Error creating/updating session:', error);
+    // Session bookkeeping is not critical; never fail the login on it
+    console.error('Error writing Redis session:', error);
   }
 };
 
 /**
- * Delete all sessions for a user (used during logout)
+ * Drop the Redis session entry for a user (logout / forced logout).
  */
 export const deleteUserSessions = async (
   userId?: string,
   residentId?: string
 ): Promise<void> => {
-  if (!userId && !residentId) {
-    return;
-  }
-
   try {
-    await prisma.session.deleteMany({
-      where: userId
-        ? { userId }
-        : { residentId: residentId as string },
-    });
+    if (userId) await cacheService.del(sessionKey('admin', userId));
+    if (residentId) await cacheService.del(sessionKey('resident', residentId));
   } catch (error) {
-    console.error('Error deleting user sessions:', error);
+    console.error('Error deleting Redis session:', error);
   }
 };
