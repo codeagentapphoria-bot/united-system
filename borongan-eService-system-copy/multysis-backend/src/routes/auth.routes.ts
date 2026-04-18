@@ -53,15 +53,53 @@ const authenticatedLimiter = rateLimit({
   skip: () => process.env.NODE_ENV !== 'production',
 });
 
+// Per-credential rate limit — layered on top of the IP-keyed authLimiter to blunt
+// distributed credential-stuffing (rotating IPs, single target credential). IP limit
+// runs first so an attacker from one IP burns IP budget before touching credential budget.
+// Missing credentials land in a shared bucket to deny empty-body probing.
+const credentialKey = (field: 'credential' | 'email') => (req: Request): string => {
+  const raw = (req.body && (req.body as Record<string, unknown>)[field]) as unknown;
+  if (typeof raw !== 'string' || !raw.trim()) return 'missing-credential';
+  return `${field}:${raw.trim().toLowerCase()}`;
+};
+
+const makeCredentialLimiter = (field: 'credential' | 'email') =>
+  rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour — single-credential abuse is slow by nature
+    max: 10,
+    message: {
+      status: 'error',
+      message: 'Too many login attempts for this account, please try again later',
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: credentialKey(field),
+    skip: () => process.env.NODE_ENV !== 'production',
+    handler: (req: Request, res: Response) => {
+      addDevLog('warn', 'Per-credential rate limit exceeded', {
+        field,
+        ip: req.ip,
+        path: req.originalUrl,
+      });
+      res.status(429).json({
+        status: 'error',
+        message: 'Too many login attempts for this account, please try again later',
+      });
+    },
+  });
+
+const portalCredentialLimiter = makeCredentialLimiter('credential');
+const adminCredentialLimiter = makeCredentialLimiter('email');
+
 // =============================================================================
 // Admin auth
 // =============================================================================
-router.post('/admin/login', authLimiter, adminLoginController);
+router.post('/admin/login', authLimiter, adminCredentialLimiter, adminLoginController);
 
 // =============================================================================
 // Portal resident auth  (username + password)
 // =============================================================================
-router.post('/portal/login', authLimiter, portalLoginController);
+router.post('/portal/login', authLimiter, portalCredentialLimiter, portalLoginController);
 
 // =============================================================================
 // Google OAuth (portal)

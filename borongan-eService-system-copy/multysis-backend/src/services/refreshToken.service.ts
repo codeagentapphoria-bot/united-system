@@ -128,15 +128,35 @@ export const revokeAllUserTokens = async (
 
 /**
  * Delete all expired and revoked tokens (run periodically).
+ *
+ * Deletes in batches to keep each transaction short. At 80k users × multi-device × 30d
+ * token lifetime the eligible set can run into the millions; a single deleteMany would
+ * hold a long-running transaction and block writes. Each batch caps transaction size
+ * and lets Postgres autovacuum keep up.
  */
-export const cleanupExpiredTokens = async (): Promise<number> => {
+export const cleanupExpiredTokens = async (batchSize = 10000): Promise<number> => {
   const now = new Date();
-  const result = await prisma.refreshToken.deleteMany({
-    where: {
-      OR: [{ expiresAt: { lt: now } }, { revokedAt: { not: null } }],
-    },
-  });
-  return result.count;
+  let totalDeleted = 0;
+
+  while (true) {
+    const batch = await prisma.refreshToken.findMany({
+      where: {
+        OR: [{ expiresAt: { lt: now } }, { revokedAt: { not: null } }],
+      },
+      select: { id: true },
+      take: batchSize,
+    });
+    if (batch.length === 0) break;
+
+    const result = await prisma.refreshToken.deleteMany({
+      where: { id: { in: batch.map((row) => row.id) } },
+    });
+    totalDeleted += result.count;
+
+    if (batch.length < batchSize) break;
+  }
+
+  return totalDeleted;
 };
 
 /**
