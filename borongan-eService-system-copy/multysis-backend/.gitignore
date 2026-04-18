@@ -48,7 +48,5 @@ temp/
 *.sqlite3
 *.db
 
-# Prisma
-prisma/migrations/*
-!prisma/migrations/.gitkeep
+# Prisma — migrations are tracked so `prisma migrate deploy` has them on every env
 
