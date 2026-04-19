@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { BusMap } from '@/components/libre-sakay/BusMap';
 import { BusCard } from '@/components/libre-sakay/BusCard';
 import { ApplyModal } from '@/components/libre-sakay/ApplyModal';
+import { AnnouncementBanner } from '@/components/libre-sakay/AnnouncementBanner';
 import { useBusLocations } from '@/hooks/useBusLocations';
 import { useRoutes } from '@/hooks/useRoutes';
 import { portalProgramsService, type PortalProgram } from '@/services/api/portal-programs.service';
@@ -223,6 +224,9 @@ export function LibreSakay() {
       </nav>
 
       <div className="max-w-4xl mx-auto px-4 py-5 space-y-5">
+        {/* Service announcements */}
+        <AnnouncementBanner />
+
         {/* Eligibility / application status */}
         <StatusBanner
           program={libreSakayProgram}

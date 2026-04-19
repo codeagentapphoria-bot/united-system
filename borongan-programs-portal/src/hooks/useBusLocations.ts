@@ -22,15 +22,16 @@ export function useBusLocations(refetchInterval = 30_000) {
   return useQuery<BusLocation[]>({
     queryKey: queryKeys.busLocations,
     queryFn: async () => {
+      // Query the pre-computed view that uses DISTINCT ON to return only the
+      // latest record per bus (~3 rows vs 2,140 rows from the raw table).
       const { data: locations, error: locError } = await supabase
-        .from('bus_locations')
-        .select('*, barangay:barangays(id, name)')
-        .order('recorded_at', { ascending: false });
+        .from('latest_bus_locations')
+        .select('*');
 
       if (locError) throw locError;
       if (!locations?.length) return [];
 
-      const busIds = [...new Set(locations.map(l => l.bus_id))];
+      const busIds = locations.map(l => l.bus_id);
 
       const { data: buses, error: busError } = await supabase
         .from('buses')
@@ -42,17 +43,20 @@ export function useBusLocations(refetchInterval = 30_000) {
       const busMap = new Map<string, (typeof buses)[0]>();
       for (const bus of buses ?? []) busMap.set(bus.id, bus);
 
-      // Keep only the latest location per bus
-      const latestPerBus = new Map<string, (typeof locations)[0]>();
-      for (const loc of locations) {
-        if (!latestPerBus.has(loc.bus_id)) latestPerBus.set(loc.bus_id, loc);
-      }
-
-      return Array.from(latestPerBus.values()).map(loc => {
+      return locations.map(loc => {
         const bus = busMap.get(loc.bus_id);
 
         return {
-          ...loc,
+          id: loc.id,
+          bus_id: loc.bus_id,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          speed: loc.speed,
+          heading: loc.heading,
+          recorded_at: loc.recorded_at,
+          barangay: loc.barangay_id
+            ? { id: loc.barangay_id, name: loc.barangay_name }
+            : undefined,
           bus: bus
             ? { id: bus.id, plate_number: bus.plate_number, route: bus.route ?? undefined }
             : undefined,

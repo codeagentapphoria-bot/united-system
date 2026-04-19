@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiMapPin, FiTruck } from 'react-icons/fi';
+import { FiArrowLeft, FiMapPin, FiTruck, FiClock } from 'react-icons/fi';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useRoute } from '@/hooks/useRoutes';
@@ -8,6 +8,10 @@ import { RouteMap } from '@/components/libre-sakay/RouteMap';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import type { RouteStop } from '@/hooks/useRoutes';
+import { useNextBusETA } from '@/hooks/useNextBusETA';
+import { cn } from '@/lib/utils';
+import { getRouteGeometry } from '@/lib/routing';
+import { useBusLocations } from '@/hooks/useBusLocations';
 
 interface BusOnRoute {
   id: string;
@@ -33,11 +37,59 @@ function useBusesOnRoute(routeId: string | null) {
   });
 }
 
+interface StopCardProps {
+  stop: RouteStop;
+  routeId: string;
+  index: number;
+  selectedStop: RouteStop | null;
+  onToggle: (stop: RouteStop) => void;
+}
+
+function StopCard({ stop, routeId, index, selectedStop, onToggle }: StopCardProps) {
+  const { data: etas = [], isLoading: etaLoading } = useNextBusETA(routeId, stop);
+  const nearest = etas.length > 0 ? etas.reduce((min, curr) => curr.etaMinutes < min.etaMinutes ? curr : min) : null;
+
+  return (
+    <Card
+      className={cn('border cursor-pointer transition-all', selectedStop?.id === stop.id ? 'border-primary-300 bg-primary-50 shadow-sm' : 'border-gray-100 shadow-sm hover:border-primary-200')}
+      onClick={() => onToggle(stop)}
+    >
+      <CardContent className="p-3">
+        <div className="flex items-center gap-3">
+          <div className={cn('w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold', selectedStop?.id === stop.id ? 'bg-primary-600 text-white' : 'bg-primary-100 text-primary-700')}>
+            {index + 1}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-heading-700 text-sm">{stop.name}</p>
+          </div>
+          {etaLoading ? (
+            <div className="w-14 h-5 bg-gray-100 animate-pulse rounded flex-shrink-0" />
+          ) : nearest ? (
+            <div className="flex items-center gap-1 bg-primary-50 border border-primary-100 rounded-md px-2 py-1 flex-shrink-0">
+              <FiClock size={11} className="text-primary-500" />
+              <span className="text-xs font-semibold text-primary-700">{nearest.etaMinutes} min</span>
+            </div>
+          ) : null}
+          <FiMapPin className="w-4 h-4 text-gray-300 flex-shrink-0" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function RouteDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: route, isLoading } = useRoute(id ?? null);
   const { data: buses = [], isLoading: busesLoading } = useBusesOnRoute(id ?? null);
+  const { data: allBusLocations = [] } = useBusLocations(30_000);
+  const routeBusLocations = allBusLocations.filter(b => b.bus?.route?.id === id);
+  const { data: routeGeometry } = useQuery({
+    queryKey: ['route-geometry', id, route?.stops.map(s => `${s.id}-${s.latitude}-${s.longitude}`)],
+    queryFn: () => route?.stops ? getRouteGeometry(route.stops) : null,
+    enabled: !!route?.stops?.length,
+    staleTime: 5 * 60 * 1000, // 5 minutes — route geometry doesn't change often
+  });
   const [selectedStop, setSelectedStop] = useState<RouteStop | null>(null);
 
   return (
@@ -94,6 +146,8 @@ export function RouteDetail() {
               <RouteMap
                 height="340px"
                 stops={route.stops}
+                routeGeometry={routeGeometry}
+                busLocations={routeBusLocations}
                 onStopClick={setSelectedStop}
               />
             </div>
@@ -150,33 +204,14 @@ export function RouteDetail() {
               ) : (
                 <div className="space-y-2">
                   {route.stops.map((stop, index) => (
-                    <Card
+                    <StopCard
                       key={stop.id}
-                      className={`border cursor-pointer transition-all ${
-                        selectedStop?.id === stop.id
-                          ? 'border-primary-300 bg-primary-50 shadow-sm'
-                          : 'border-gray-100 shadow-sm hover:border-primary-200'
-                      }`}
-                      onClick={() => setSelectedStop(selectedStop?.id === stop.id ? null : stop)}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${
-                              selectedStop?.id === stop.id
-                                ? 'bg-primary-600 text-white'
-                                : 'bg-primary-100 text-primary-700'
-                            }`}
-                          >
-                            {index + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-heading-700 text-sm">{stop.name}</p>
-                          </div>
-                          <FiMapPin className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                        </div>
-                      </CardContent>
-                    </Card>
+                      stop={stop}
+                      routeId={route.id}
+                      index={index}
+                      selectedStop={selectedStop}
+                      onToggle={(s) => setSelectedStop(selectedStop?.id === s.id ? null : s)}
+                    />
                   ))}
                 </div>
               )}

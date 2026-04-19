@@ -129,11 +129,13 @@ export function BusMap({
     ? buses.filter(b => b.bus?.route?.id === selectedRouteId)
     : buses;
 
+  // Only show buses with valid coordinates on the map
   const activeBuses = filteredBuses.filter(
     b => typeof b.latitude === 'number' && isFinite(b.latitude) &&
-         typeof b.longitude === 'number' && isFinite(b.longitude)
+      typeof b.longitude === 'number' && isFinite(b.longitude)
   );
-  // Always look up from live data so popup reflects latest position/speed
+  // Empty state only when there are genuinely no buses at all for the route
+  const hasAnyBuses = filteredBuses.length > 0;
   const selectedBus = activeBuses.find(b => b.id === selectedBusId) ?? null;
 
   const handleLocate = useCallback(() => {
@@ -196,7 +198,7 @@ export function BusMap({
       </Map>
 
       {/* Route filter + custom controls — outside <Map>, driven by mapRef */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
         {routes.length > 0 && (
           <Select
             value={selectedRouteId ?? 'all'}
@@ -261,7 +263,7 @@ export function BusMap({
         </div>
       )}
 
-      {!isLoading && activeBuses.length === 0 && (
+      {!isLoading && !hasAnyBuses && (
         <div className="absolute inset-0 flex items-center justify-center z-[9] pointer-events-none">
           <div className="bg-white/90 rounded-xl px-5 py-4 text-center shadow">
             <p className="font-semibold text-gray-600 text-sm">No buses currently tracked</p>

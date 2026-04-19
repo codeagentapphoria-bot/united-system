@@ -81,6 +81,10 @@ export const queryKeys = {
 
   busLocations: ['bus-locations'] as const,
 
+  announcements: {
+    active: ['announcements', 'active'] as const,
+  },
+
   routes: {
     all: ['routes'] as const,
     detail: (id: string) => ['routes', 'detail', id] as const,

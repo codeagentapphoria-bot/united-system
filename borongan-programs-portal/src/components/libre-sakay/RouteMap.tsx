@@ -1,6 +1,8 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useCallback } from 'react';
 import Map, { Marker, Source, Layer, type MapRef } from 'react-map-gl/mapbox';
 import type { RouteStop } from '@/hooks/useRoutes';
+import type { BusLocation } from '@/hooks/useBusLocations';
+import type { RouteGeometry } from '@/lib/routing';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Crosshair, ZoomIn, ZoomOut } from 'lucide-react';
 
@@ -14,7 +16,8 @@ const DEFAULT_ZOOM = 13;
 interface RouteMapProps {
   height?: string;
   stops: RouteStop[];
-  activeBusIds?: string[];
+  routeGeometry?: RouteGeometry | null;
+  busLocations?: BusLocation[];
   onStopClick?: (stop: RouteStop) => void;
 }
 
@@ -45,42 +48,93 @@ function StopPin({ stop, index, onClick }: { stop: RouteStop; index: number; onC
   );
 }
 
-export function RouteMap({ height = '350px', stops, activeBusIds = [], onStopClick }: RouteMapProps) {
+function BusMarker({ bus }: { bus: BusLocation }) {
+  const isMoving = (bus.speed ?? 0) > 5;
+  const plate = bus.bus?.plate_number ?? 'N/A';
+
+  return (
+    <div
+      style={{
+        background: isMoving ? '#16a34a' : '#e11d48',
+        width: 36,
+        height: 36,
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: '2px solid white',
+        boxShadow: '0 3px 8px rgba(0,0,0,.3)',
+        cursor: 'default',
+        color: 'white',
+        fontSize: 8,
+        fontWeight: 'bold',
+        userSelect: 'none',
+      }}
+      title={`${plate} — ${isMoving ? `Moving ${(bus.speed ?? 0).toFixed(1)} km/h` : 'Parked'}`}
+    >
+      {plate}
+    </div>
+  );
+}
+
+export function RouteMap({ height = '350px', stops, routeGeometry, busLocations = [], onStopClick }: RouteMapProps) {
   const mapRef = useRef<MapRef>(null);
-  const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
 
-  // Build GeoJSON line from stops in order
-  const routeGeoJson = stops.length >= 2 ? {
-    type: 'Feature' as const,
-    properties: {},
-    geometry: {
-      type: 'LineString' as const,
-      coordinates: stops.map(s => [s.longitude, s.latitude]),
-    },
-  } : null;
+  // Buses that have valid coordinates for rendering
+  const visibleBuses = busLocations.filter(
+    b => typeof b.latitude === 'number' && isFinite(b.latitude) &&
+      typeof b.longitude === 'number' && isFinite(b.longitude)
+  );
 
-  // Fit bounds to show all stops
+  // Use real road geometry from Mapbox if available, otherwise fall back to straight-line
+  const routeGeoJson = (() => {
+    if (routeGeometry && stops.length >= 2) return routeGeometry;
+    if (stops.length >= 2) {
+      return {
+        type: 'Feature' as const,
+        properties: {},
+        geometry: {
+          type: 'LineString' as const,
+          coordinates: stops.map(s => [s.longitude, s.latitude]),
+        },
+      };
+    }
+    return null;
+  })();
+
+  // Fit bounds to show all stops and buses
   const fitBounds = useCallback(() => {
-    if (!mapRef.current || stops.length === 0) return;
-    if (stops.length === 1) {
+    if (!mapRef.current) return;
+    const allLngs: number[] = [];
+    const allLats: number[] = [];
+
+    for (const stop of stops) {
+      allLngs.push(stop.longitude);
+      allLats.push(stop.latitude);
+    }
+    for (const bus of visibleBuses) {
+      allLngs.push(bus.longitude);
+      allLats.push(bus.latitude);
+    }
+
+    if (allLngs.length === 0) return;
+    if (allLngs.length === 1) {
       mapRef.current.flyTo({
-        center: [stops[0].longitude, stops[0].latitude],
+        center: [allLngs[0], allLats[0]],
         zoom: 15,
         duration: 1000,
       });
       return;
     }
-    const lngs = stops.map(s => s.longitude);
-    const lats = stops.map(s => s.latitude);
+
     const bounds: [[number, number], [number, number]] = [
-      [Math.min(...lngs), Math.min(...lats)],
-      [Math.max(...lngs), Math.max(...lats)],
+      [Math.min(...allLngs), Math.min(...allLats)],
+      [Math.max(...allLngs), Math.max(...allLats)],
     ];
     mapRef.current.fitBounds(bounds, { padding: 60, duration: 1000 });
-  }, [stops]);
+  }, [stops, visibleBuses]);
 
   const handleStopClick = useCallback((stop: RouteStop) => {
-    setSelectedStopId(stop.id);
     mapRef.current?.flyTo({
       center: [stop.longitude, stop.latitude],
       zoom: 16,
@@ -106,13 +160,25 @@ export function RouteMap({ height = '350px', stops, activeBusIds = [], onStopCli
               id="route-line"
               type="line"
               paint={{
-                'line-color': '#4f46e5',
+                'line-color': '#4f46e4',
                 'line-width': 4,
                 'line-opacity': 0.8,
               }}
             />
           </Source>
         )}
+
+        {/* Bus markers */}
+        {visibleBuses.map(bus => (
+          <Marker
+            key={bus.id}
+            longitude={bus.longitude}
+            latitude={bus.latitude}
+            anchor="center"
+          >
+            <BusMarker bus={bus} />
+          </Marker>
+        ))}
 
         {/* Stop markers */}
         {stops.map((stop, index) => (
