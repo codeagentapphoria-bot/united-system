@@ -16,14 +16,33 @@ import { logger } from '../utils/logger';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper to read stored user synchronously (for initial state)
+// This prevents flicker on page refresh - user is restored BEFORE first render
+const getStoredUser = (): { id: string; role: string } | null => {
+  try {
+    const stored = localStorage.getItem('auth_user_minimal');
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+};
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const queryClient = useQueryClient();
   const { storedUser, saveUser, clearUser } = useAuthStorage();
-  
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize user from localStorage IMMEDIATELY (synchronously)
+  // This prevents the flicker - isAuthenticated is true from the first render
+  const stored = getStoredUser();
+  const initialUser: User | null = stored
+    ? ({ id: stored.id, role: stored.role, name: 'Restored User', email: '' } as User)
+    : null;
+
+  const [user, setUser] = useState<User | null>(initialUser);
+  const [isLoading, setIsLoading] = useState(!!stored); // If stored user exists, don't show loading spinner
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  // Fetch current user from server (validates session)
   const { data: fetchedUser, isSuccess, isError } = useQuery({
     queryKey: queryKeys.auth.me,
     queryFn: authService.getCurrentUser,
@@ -33,36 +52,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     throwOnError: false,
   });
 
-  useEffect(() => {
-    if (isError) {
-      setUser(null);
-      clearUser();
-      setIsLoading(false);
-    }
-  }, [isError, clearUser]);
-
+  // Update user when query succeeds (refresh user data from server)
   useEffect(() => {
     if (isSuccess && fetchedUser) {
       setUser(fetchedUser);
       saveUser({ id: fetchedUser.id, role: fetchedUser.role });
     } else if (isSuccess && !fetchedUser) {
+      // Not authenticated - clear stored user and user state
       setUser(null);
       clearUser();
     }
   }, [isSuccess, fetchedUser, saveUser, clearUser]);
 
+  // Handle query error - preserve storedUser if exists (session might still be valid)
   useEffect(() => {
-    if (isSuccess) {
+    if (isError) {
+      if (storedUser) {
+        // Keep the stored user - we'll retry on next mount
+        setUser(storedUser ? { id: storedUser.id, role: storedUser.role, name: 'Restored User', email: '' } as User : null);
+      } else {
+        setUser(null);
+      }
       setIsLoading(false);
     }
-  }, [isSuccess]);
+  }, [isError, storedUser]);
 
+  // Mark loading as complete once query settles
   useEffect(() => {
-    if (storedUser && !fetchedUser && !isSuccess && !isError) {
+    if (isSuccess || isError) {
       setIsLoading(false);
     }
-  }, [storedUser, fetchedUser, isSuccess, isError]);
+  }, [isSuccess, isError]);
 
+  // Restore user from storage if query is still pending but we have stored user
   useEffect(() => {
     if (storedUser && !user) {
       setUser({

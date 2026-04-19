@@ -2,8 +2,11 @@ import { useRef, useState, useCallback } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl/mapbox';
 import type { MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { useBusLocations, type BusLocation } from '@/hooks/useBusLocations';
+import { useQueryClient } from '@tanstack/react-query';
+import { type BusLocation } from '@/hooks/useBusLocations';
+import { queryKeys } from '@/lib/query-keys';
 import { Crosshair, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 if (!MAPBOX_TOKEN) throw new Error('VITE_MAPBOX_TOKEN is not set');
@@ -20,7 +23,7 @@ function getCardinalDirection(heading: number): string {
 }
 
 function getRouteName(bus: BusLocation['bus']): string {
-  return bus?.routes?.[0]?.name ?? 'Unknown Route';
+  return bus?.route?.name ?? 'Unknown Route';
 }
 
 // ── Marker components ──────────────────────────────────────────────────────────
@@ -97,20 +100,42 @@ interface BusMapProps {
   height?: string;
   userLocation: [number, number] | null; // [lat, lng]
   onUserLocation: (pos: [number, number]) => void;
+  buses?: BusLocation[];
+  isLoading?: boolean;
+  selectedRouteId?: string | null;
+  onSelectedRouteChange?: (routeId: string | null) => void;
+  routes?: Array<{ id: string; name: string }>;
 }
 
-export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMapProps) {
+export function BusMap({
+  height = '350px',
+  userLocation,
+  onUserLocation,
+  buses = [],
+  isLoading = false,
+  selectedRouteId,
+  onSelectedRouteChange,
+  routes = [],
+}: BusMapProps) {
   const mapRef = useRef<MapRef>(null);
   const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
 
-  const { data: buses = [], isLoading, isFetching, refetch } = useBusLocations(30_000);
-  const activeBuses = buses.filter(
+  const queryClient = useQueryClient();
+
+  const filteredBuses = selectedRouteId
+    ? buses.filter(b => b.bus?.route?.id === selectedRouteId)
+    : buses;
+
+  // Only show buses with valid coordinates on the map
+  const activeBuses = filteredBuses.filter(
     b => typeof b.latitude === 'number' && isFinite(b.latitude) &&
-         typeof b.longitude === 'number' && isFinite(b.longitude)
+      typeof b.longitude === 'number' && isFinite(b.longitude)
   );
-  // Always look up from live data so popup reflects latest position/speed
+  // Empty state only when there are genuinely no buses at all for the route
+  const hasAnyBuses = filteredBuses.length > 0;
   const selectedBus = activeBuses.find(b => b.id === selectedBusId) ?? null;
 
   const handleLocate = useCallback(() => {
@@ -172,8 +197,24 @@ export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMa
         )}
       </Map>
 
-      {/* Custom controls — outside <Map>, driven by mapRef */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+      {/* Route filter + custom controls — outside <Map>, driven by mapRef */}
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
+        {routes.length > 0 && (
+          <Select
+            value={selectedRouteId ?? 'all'}
+            onValueChange={val => onSelectedRouteChange?.(val === 'all' ? null : val)}
+          >
+            <SelectTrigger className="w-36 bg-white shadow-lg text-xs h-10" aria-label="Filter by route">
+              <SelectValue placeholder="All Routes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Routes</SelectItem>
+              {routes.map(r => (
+                <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <button
           onClick={handleLocate}
           disabled={locating}
@@ -187,7 +228,7 @@ export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMa
           }
         </button>
         <button
-          onClick={() => refetch()}
+          onClick={async () => { setIsFetching(true); await queryClient.invalidateQueries({ queryKey: queryKeys.busLocations }); setIsFetching(false); }}
           disabled={isFetching}
           aria-label="Refresh buses"
           title="Refresh buses"
@@ -222,7 +263,7 @@ export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMa
         </div>
       )}
 
-      {!isLoading && activeBuses.length === 0 && (
+      {!isLoading && !hasAnyBuses && (
         <div className="absolute inset-0 flex items-center justify-center z-[9] pointer-events-none">
           <div className="bg-white/90 rounded-xl px-5 py-4 text-center shadow">
             <p className="font-semibold text-gray-600 text-sm">No buses currently tracked</p>

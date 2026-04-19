@@ -6,6 +6,8 @@ const Home = React.lazy(() => import('@/pages/Home').then((m) => ({ default: m.H
 const Login = React.lazy(() => import('@/pages/Login').then((m) => ({ default: m.Login })));
 const Register = React.lazy(() => import('@/pages/Register').then((m) => ({ default: m.Register })));
 const LibreSakay = React.lazy(() => import('@/pages/LibreSakay').then((m) => ({ default: m.LibreSakay })));
+const Routes = React.lazy(() => import('@/pages/libre-sakay/Routes').then((m) => ({ default: m.Routes })));
+const RouteDetail = React.lazy(() => import('@/pages/libre-sakay/RouteDetail').then((m) => ({ default: m.RouteDetail })));
 const ProgramDetail = React.lazy(() => import('@/pages/ProgramDetail').then((m) => ({ default: m.ProgramDetail })));
 
 const Spinner = () => (
@@ -53,6 +55,14 @@ export const router = createBrowserRouter([
   {
     path: '/libre-sakay',
     element: <ProtectedRoute>{withSuspense(<LibreSakay />)}</ProtectedRoute>,
+  },
+  {
+    path: '/libre-sakay/routes',
+    element: <ProtectedRoute>{withSuspense(<Routes />)}</ProtectedRoute>,
+  },
+  {
+    path: '/libre-sakay/routes/:id',
+    element: <ProtectedRoute>{withSuspense(<RouteDetail />)}</ProtectedRoute>,
   },
   {
     path: '/programs/:id',

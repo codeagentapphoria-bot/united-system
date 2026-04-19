@@ -27,6 +27,39 @@ export async function getRouteETA(
   }
 }
 
+/** GeoJSON LineString geometry for a route drawn along actual roads. */
+export interface RouteGeometry {
+  type: 'Feature';
+  properties: Record<string, unknown>;
+  geometry: {
+    type: 'LineString';
+    coordinates: [number, number][];
+  };
+}
+
+/**
+ * Fetch road-snapped GeoJSON geometry for a sequence of waypoints.
+ * Returns null if the token is missing or the API call fails.
+ */
+export async function getRouteGeometry(
+  stops: Array<{ latitude: number; longitude: number }>
+): Promise<RouteGeometry | null> {
+  if (!MAPBOX_TOKEN || stops.length < 2) return null;
+  try {
+    const coords = stops.map(s => `${s.longitude},${s.latitude}`).join(';');
+    const url =
+      `${MAPBOX_DIRECTIONS_URL}/${coords}` +
+      `?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data.code !== 'Ok' || !data.routes?.length) return null;
+    return data.routes[0].geometry as RouteGeometry;
+  } catch {
+    return null;
+  }
+}
+
 /** Human-readable duration — shows hours when >= 60 min */
 export function formatDuration(seconds: number): string {
   const totalMins = Math.round(seconds / 60);

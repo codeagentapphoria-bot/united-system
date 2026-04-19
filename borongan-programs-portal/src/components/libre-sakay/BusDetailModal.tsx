@@ -28,7 +28,7 @@ export function BusDetailModal({ bus, userLocation, onClose }: BusDetailModalPro
 
   const isMoving = (bus.speed ?? 0) > 5;
   const plateNumber = bus.bus?.plate_number ?? bus.bus_id;
-  const routeName = bus.bus?.routes?.[0]?.name;
+  const routeName = bus.bus?.route?.name;
   const barangayName = bus.barangay?.name;
 
   return (
