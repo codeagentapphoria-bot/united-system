@@ -92,7 +92,7 @@ export function useRoute(routeId: string | null) {
       if (error) throw error;
       if (!data) return null;
 
-      const routeStops = data.route_stops as Array<{ sequence_order: number; stops: Omit<RouteStop, 'sequence_order'> }>;
+      const routeStops = data.route_stops as unknown as Array<{ sequence_order: number; stops: Omit<RouteStop, 'sequence_order'> }>;
       const stops: RouteStop[] = (routeStops ?? [])
         .sort((a, b) => a.sequence_order - b.sequence_order)
         .map(rs => ({ ...rs.stops, sequence_order: rs.sequence_order }));
