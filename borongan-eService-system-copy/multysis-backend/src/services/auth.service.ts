@@ -50,11 +50,11 @@ export const adminLogin = async (data: AdminLoginData) => {
   };
 
   const token = generateToken(tokenPayload);
-  const refreshToken = generateRefreshToken(tokenPayload);
+  const { token: refreshToken, jti } = generateRefreshToken(tokenPayload);
 
-  await createRefreshToken({
+  const dbToken = await createRefreshToken({
     userId: user.id,
-    token: refreshToken,
+    jti,
     deviceInfo: data.deviceInfo,
     ipAddress: data.ipAddress,
     userAgent: data.userAgent,
@@ -69,6 +69,7 @@ export const adminLogin = async (data: AdminLoginData) => {
     },
     token,
     refreshToken,
+    refreshTokenId: dbToken.id,
   };
 };
 
@@ -129,11 +130,11 @@ export const portalLogin = async (data: PortalLoginData) => {
   };
 
   const token = generateToken(tokenPayload);
-  const refreshToken = generateRefreshToken(tokenPayload);
+  const { token: refreshToken, jti } = generateRefreshToken(tokenPayload);
 
-  await createRefreshToken({
+  const dbToken = await createRefreshToken({
     residentId: resident.id,
-    token: refreshToken,
+    jti,
     deviceInfo: data.deviceInfo,
     ipAddress: data.ipAddress,
     userAgent: data.userAgent,
@@ -143,6 +144,7 @@ export const portalLogin = async (data: PortalLoginData) => {
     resident: formatResidentResponse(resident),
     token,
     refreshToken,
+    refreshTokenId: dbToken.id,
   };
 };
 
@@ -165,6 +167,7 @@ export interface GoogleLoginResult {
   resident?: Record<string, unknown>;
   token?: string;
   refreshToken?: string;
+  refreshTokenId?: string;
 }
 
 export const loginWithGoogle = async (data: GoogleLoginData): Promise<GoogleLoginResult> => {
@@ -263,11 +266,11 @@ export const loginWithGoogle = async (data: GoogleLoginData): Promise<GoogleLogi
     };
 
     const token = generateToken(tokenPayload);
-    const refreshToken = generateRefreshToken(tokenPayload);
+    const { token: refreshToken, jti } = generateRefreshToken(tokenPayload);
 
-    await createRefreshToken({
+    const dbToken = await createRefreshToken({
       residentId: resident.id,
-      token: refreshToken,
+      jti,
       deviceInfo: data.deviceInfo,
       ipAddress: data.ipAddress,
       userAgent: data.userAgent,
@@ -278,6 +281,7 @@ export const loginWithGoogle = async (data: GoogleLoginData): Promise<GoogleLogi
       resident: formatResidentResponse(resident),
       token,
       refreshToken,
+      refreshTokenId: dbToken.id,
     };
   } catch (error: any) {
     console.error('Google OAuth login error:', error.message);

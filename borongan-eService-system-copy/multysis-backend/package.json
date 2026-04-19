@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc --skipLibCheck",
-    "start": "node dist/index.js",
-    "start:prod": "NODE_ENV=production node dist/index.js",
+    "start": "npx prisma migrate deploy && node dist/index.js",
+    "start:prod": "NODE_ENV=production npx prisma migrate deploy && node dist/index.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "test:e2e": "jest --config jest.e2e.config.js",
@@ -35,11 +35,16 @@
   "author": "Apphorialabs",
   "license": "MIT",
   "dependencies": {
+    "@opentelemetry/auto-instrumentations-node": "^0.73.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.215.0",
+    "@opentelemetry/resources": "^2.7.0",
+    "@opentelemetry/sdk-node": "^0.215.0",
+    "@opentelemetry/semantic-conventions": "^1.40.0",
     "@prisma/client": "^5.22.0",
     "@supabase/supabase-js": "^2.103.0",
     "aws-sdk": "^2.1550.0",
     "axios": "^1.13.6",
-    "bcryptjs": "^2.4.3",
+    "bcrypt": "^5.1.1",
     "bull": "^4.12.2",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",
@@ -69,7 +74,7 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
+    "@types/bcrypt": "^5.0.2",
     "@types/compression": "^1.7.5",
     "@types/cookie-parser": "^1.4.6",
     "@types/cors": "^2.8.17",

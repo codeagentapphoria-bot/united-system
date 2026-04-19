@@ -150,6 +150,7 @@ model Resident {
   @@index([status])
   @@index([lastName, firstName])
   @@index([username])
+  @@index([email])
   @@map("residents")
 }
 
@@ -169,6 +170,7 @@ model ResidentCredential {
 
   resident Resident @relation(fields: [residentFk], references: [id], onDelete: Cascade)
 
+  @@index([googleEmail])
   @@map("resident_credentials")
 }
 
@@ -272,9 +274,14 @@ model UserRole {
 
 model RefreshToken {
   id            String    @id @default(uuid())
+  // Opaque correlation id embedded as JWT `jti` claim. Indexed for O(1) lookup.
+  // The JWT signature is the actual integrity check; this column stores no secret material.
+  jti           String    @unique
   userId        String?   @map("user_id")        // for admin portal tokens
   residentId    String?   @map("resident_id")    // for portal resident tokens
-  token         String
+  // Legacy bcrypt-hashed token column. No longer read or written by application code.
+  // Kept nullable for one deploy cycle so rollback is possible; will be dropped in a follow-up migration.
+  token         String?
   deviceInfo    String?   @map("device_info")
   ipAddress     String?   @map("ip_address")
   userAgent     String?   @map("user_agent")
@@ -287,10 +294,10 @@ model RefreshToken {
   resident      Resident? @relation(fields: [residentId], references: [id], onDelete: Cascade)
   sessions      Session[]
 
-  @@index([userId])
-  @@index([residentId])
-  @@index([token])
+  @@index([userId, revokedAt])
+  @@index([residentId, revokedAt])
   @@index([expiresAt])
+  @@index([createdAt])
   @@map("refresh_tokens")
 }
 

@@ -1,3 +1,7 @@
+// OpenTelemetry must be imported before any instrumented module (express/prisma/ioredis/http).
+// It's a no-op unless OTEL_EXPORTER_OTLP_ENDPOINT is set.
+import './otel';
+
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -478,6 +482,16 @@ if (process.env.NODE_ENV !== 'test') {
     })
     .catch((err) => {
       console.warn(`⚠️ Redis import failed:`, err.message);
+    });
+
+  // Start audit-log queue processor (drains events produced by auth/audit paths).
+  import('./middleware/audit')
+    .then(({ initAuditProcessor }) => {
+      initAuditProcessor();
+      console.log(`📝 Audit queue processor started`);
+    })
+    .catch((err) => {
+      console.warn(`⚠️ Audit processor failed to start:`, err.message);
     });
 
   // Log server startup

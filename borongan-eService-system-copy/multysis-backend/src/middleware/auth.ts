@@ -52,7 +52,7 @@ async function rotateRefreshToken(
           role: decoded.role,
           type: 'dev',
         });
-        const newRefreshToken = generateRefreshToken({
+        const { token: newRefreshToken } = generateRefreshToken({
           id: decoded.id,
           email: decoded.email,
           role: decoded.role,
@@ -68,14 +68,14 @@ async function rotateRefreshToken(
     }
 
     // DB-backed rotation
-    const { findRefreshToken, createRefreshToken, revokeRefreshToken } =
+    const { findRefreshTokenByJwt, createRefreshToken, revokeRefreshToken } =
       await import('../services/refreshToken.service');
     const { getCurrentUser } = await import('../services/auth.service');
     const { generateToken, generateRefreshToken } = await import('../utils/jwt');
     const { setAccessTokenCookie, setRefreshTokenCookie } = await import('../utils/cookies');
     const { createOrUpdateSession } = await import('../middleware/sessionTimeout');
 
-    const dbToken = await findRefreshToken(refreshToken);
+    const dbToken = await findRefreshTokenByJwt(refreshToken);
     if (!dbToken) return null;
 
     const userId = dbToken.userId || dbToken.residentId;
@@ -100,7 +100,7 @@ async function rotateRefreshToken(
           };
 
     const newAccessToken = generateToken(tokenPayload);
-    const newRefreshToken = generateRefreshToken(tokenPayload);
+    const { token: newRefreshToken, jti: newJti } = generateRefreshToken(tokenPayload);
 
     await revokeRefreshToken(dbToken.id, 'Token rotated');
 
@@ -116,7 +116,7 @@ async function rotateRefreshToken(
     const newDbToken = await createRefreshToken({
       userId: dbToken.userId || undefined,
       residentId: dbToken.residentId || undefined,
-      token: newRefreshToken,
+      jti: newJti,
       ...deviceMeta,
     });
 
