@@ -4,6 +4,12 @@ import path from 'path';
 import winston from 'winston';
 import { AuthRequest } from './auth';
 import { addDevLog } from '../services/dev.service';
+import {
+  AuditJobData,
+  enqueueAudit,
+  setAuditHandler,
+  startAuditProcessor,
+} from '../queues/audit.queue';
 
 // Ensure logs directory exists
 const logsDir = path.join(process.cwd(), 'logs');
@@ -11,7 +17,9 @@ if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
 
-// Create Winston logger for audit logs
+// Winston sink for security audit events. Only invoked by the queue processor
+// (or the inline fallback when Redis is unreachable) — never from the request
+// path directly.
 const auditLogger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
@@ -24,56 +32,67 @@ const auditLogger = winston.createLogger({
   ],
 });
 
-// Log security events
-export const logSecurityEvent = (
-  event: string,
-  details: {
-    userId?: string;
-    userType?: string;
-    ip?: string;
-    userAgent?: string;
-    path?: string;
-    method?: string;
-    statusCode?: number;
-    error?: string;
-  }
-): void => {
-  auditLogger.info(event, {
-    ...details,
+// =============================================================================
+// Handler — the side-effectful work. Registered with the queue so every job
+// (or inline fallback call) runs through the same code path.
+// =============================================================================
+const writeAuditEntry = (data: AuditJobData): void => {
+  auditLogger.info(data.event, {
+    ...data.eventDetails,
     timestamp: new Date().toISOString(),
   });
-  // Also log security errors to dev dashboard
-  if (event === 'SECURITY_ERROR') {
-    addDevLog('error', `Security error: ${details.error || event}`, {
-      ...details,
+  if (data.event === 'SECURITY_ERROR') {
+    addDevLog('error', `Security error: ${data.eventDetails.error || data.event}`, {
+      ...data.eventDetails,
     });
   }
+  if (data.devLog) {
+    addDevLog(data.devLog.level, data.devLog.message, data.devLog.context);
+  }
+};
+setAuditHandler(writeAuditEntry);
+
+/**
+ * Start the queue processor. Called once from the server bootstrap in
+ * src/index.ts after Redis is available.
+ */
+export const initAuditProcessor = (): void => {
+  startAuditProcessor(10);
 };
 
-// Middleware to log failed login attempts
+// =============================================================================
+// Public API — unchanged signatures; now enqueues instead of writing inline.
+// =============================================================================
+
+export const logSecurityEvent = (
+  event: string,
+  details: AuditJobData['eventDetails']
+): void => {
+  void enqueueAudit({ event, eventDetails: details });
+};
+
 export const logFailedLogin = (identifier: string, req: Request, reason: string): void => {
-  logSecurityEvent('FAILED_LOGIN_ATTEMPT', {
+  const details: AuditJobData['eventDetails'] = {
     userId: identifier,
     ip: req.ip || req.socket.remoteAddress,
     userAgent: req.get('user-agent'),
     path: req.path,
     method: req.method,
     error: reason,
-  });
-  // Also log to dev dashboard
-  addDevLog('error', 'Failed login attempt', {
-    identifier,
-    ip: req.ip || req.socket.remoteAddress,
-    userAgent: req.get('user-agent'),
-    path: req.path,
-    method: req.method,
-    error: reason,
+  };
+  void enqueueAudit({
+    event: 'FAILED_LOGIN_ATTEMPT',
+    eventDetails: details,
+    devLog: {
+      level: 'error',
+      message: 'Failed login attempt',
+      context: { identifier, ...details },
+    },
   });
 };
 
-// Middleware to log permission denials
 export const logPermissionDenial = (req: AuthRequest, resource: string, action: string): void => {
-  logSecurityEvent('PERMISSION_DENIED', {
+  const details: AuditJobData['eventDetails'] = {
     userId: req.user?.id,
     userType: req.user?.type,
     ip: req.ip || req.socket.remoteAddress,
@@ -81,54 +100,52 @@ export const logPermissionDenial = (req: AuthRequest, resource: string, action: 
     path: req.path,
     method: req.method,
     error: `Access denied to ${resource} for action ${action}`,
-  });
-  // Also log to dev dashboard
-  addDevLog('error', 'Permission denied', {
-    userId: req.user?.id,
-    userType: req.user?.type,
-    resource,
-    action,
-    ip: req.ip || req.socket.remoteAddress,
-    userAgent: req.get('user-agent'),
-    path: req.path,
-    method: req.method,
+  };
+  void enqueueAudit({
+    event: 'PERMISSION_DENIED',
+    eventDetails: details,
+    devLog: {
+      level: 'error',
+      message: 'Permission denied',
+      context: { resource, action, ...details },
+    },
   });
 };
 
-// Middleware to log suspicious activities
 export const logSuspiciousActivity = (req: Request, reason: string): void => {
-  logSecurityEvent('SUSPICIOUS_ACTIVITY', {
+  const details: AuditJobData['eventDetails'] = {
     ip: req.ip || req.socket.remoteAddress,
     userAgent: req.get('user-agent'),
     path: req.path,
     method: req.method,
     error: reason,
-  });
-  // Also log to dev dashboard
-  addDevLog('error', 'Suspicious activity detected', {
-    ip: req.ip || req.socket.remoteAddress,
-    userAgent: req.get('user-agent'),
-    path: req.path,
-    method: req.method,
-    reason,
+  };
+  void enqueueAudit({
+    event: 'SUSPICIOUS_ACTIVITY',
+    eventDetails: details,
+    devLog: {
+      level: 'error',
+      message: 'Suspicious activity detected',
+      context: { reason, ...details },
+    },
   });
 };
 
-// Middleware to log successful logins
 export const logSuccessfulLogin = (userId: string, userType: string, req: Request): void => {
-  logSecurityEvent('SUCCESSFUL_LOGIN', {
-    userId,
-    userType,
-    ip: req.ip || req.socket.remoteAddress,
-    userAgent: req.get('user-agent'),
-    path: req.path,
-    method: req.method,
+  void enqueueAudit({
+    event: 'SUCCESSFUL_LOGIN',
+    eventDetails: {
+      userId,
+      userType,
+      ip: req.ip || req.socket.remoteAddress,
+      userAgent: req.get('user-agent'),
+      path: req.path,
+      method: req.method,
+    },
   });
 };
 
-// Middleware to log access to sensitive endpoints
 export const auditMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  // Log access to sensitive endpoints
   const sensitivePaths = [
     '/api/users',
     '/api/roles',
@@ -137,8 +154,8 @@ export const auditMiddleware = (req: AuthRequest, res: Response, next: NextFunct
     '/api/admin/residents',
   ];
 
-  if (sensitivePaths.some((path) => req.path.startsWith(path))) {
-    logSecurityEvent('SENSITIVE_ENDPOINT_ACCESS', {
+  if (sensitivePaths.some((p) => req.path.startsWith(p))) {
+    const details: AuditJobData['eventDetails'] = {
       userId: req.user?.id,
       userType: req.user?.type,
       ip: req.ip || req.socket.remoteAddress,
@@ -146,16 +163,15 @@ export const auditMiddleware = (req: AuthRequest, res: Response, next: NextFunct
       path: req.path,
       method: req.method,
       statusCode: res.statusCode,
-    });
-    // Also log to dev dashboard
-    addDevLog('info', 'Sensitive endpoint accessed', {
-      userId: req.user?.id,
-      userType: req.user?.type,
-      path: req.path,
-      method: req.method,
-      statusCode: res.statusCode,
-      ip: req.ip || req.socket.remoteAddress,
-      userAgent: req.get('user-agent'),
+    };
+    void enqueueAudit({
+      event: 'SENSITIVE_ENDPOINT_ACCESS',
+      eventDetails: details,
+      devLog: {
+        level: 'info',
+        message: 'Sensitive endpoint accessed',
+        context: details,
+      },
     });
   }
 

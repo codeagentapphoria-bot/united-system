@@ -1,13 +1,10 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Environment variables
 .env
-.env.local
-.env.development
-.env.production
-.env.test
+.env.*
+!.env.example
 
 # Build outputs
 dist/
@@ -48,7 +45,5 @@ temp/
 *.sqlite3
 *.db
 
-# Prisma
-prisma/migrations/*
-!prisma/migrations/.gitkeep
+# Prisma — migrations are tracked so `prisma migrate deploy` has them on every env
 

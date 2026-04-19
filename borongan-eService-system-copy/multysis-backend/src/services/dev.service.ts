@@ -44,7 +44,7 @@ export const devLogin = async (data: DevLoginData) => {
   };
 
   const token = generateToken(tokenPayload);
-  const refreshToken = generateRefreshToken(tokenPayload);
+  const { token: refreshToken } = generateRefreshToken(tokenPayload);
 
   // Note: We don't store refresh tokens for dev users in the database
   // Dev sessions are simpler and don't require refresh token management

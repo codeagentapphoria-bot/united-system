@@ -11,7 +11,7 @@
  */
 
 import request from 'supertest';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import prisma from '../../src/config/database';
 import { generateToken } from '../../src/utils/jwt';
 import app from '../../src/index';

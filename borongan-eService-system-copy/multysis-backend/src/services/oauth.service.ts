@@ -90,6 +90,7 @@ export interface GoogleLoginResult {
   resident?: Record<string, unknown>;
   token?: string;
   refreshToken?: string;
+  refreshTokenId?: string;
 }
 
 export const googlePortalLogin = async (
@@ -288,11 +289,11 @@ const _handleGoogleLogin = async (
   };
 
   const token = generateToken(tokenPayload);
-  const refreshToken = generateRefreshToken(tokenPayload);
+  const { token: refreshToken, jti } = generateRefreshToken(tokenPayload);
 
-  await createRefreshToken({
+  const dbToken = await createRefreshToken({
     residentId: resident.id,
-    token: refreshToken,
+    jti,
     deviceInfo,
     ipAddress,
     userAgent,
@@ -303,5 +304,6 @@ const _handleGoogleLogin = async (
     resident: formatResidentResponse(resident),
     token,
     refreshToken,
+    refreshTokenId: dbToken.id,
   };
 };
