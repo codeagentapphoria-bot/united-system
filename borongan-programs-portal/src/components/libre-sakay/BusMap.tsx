@@ -2,7 +2,9 @@ import { useRef, useState, useCallback } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl/mapbox';
 import type { MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { useBusLocations, type BusLocation } from '@/hooks/useBusLocations';
+import { useQueryClient } from '@tanstack/react-query';
+import { type BusLocation } from '@/hooks/useBusLocations';
+import { queryKeys } from '@/lib/query-keys';
 import { Crosshair, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
@@ -97,15 +99,19 @@ interface BusMapProps {
   height?: string;
   userLocation: [number, number] | null; // [lat, lng]
   onUserLocation: (pos: [number, number]) => void;
+  buses?: BusLocation[];
+  isLoading?: boolean;
 }
 
-export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMapProps) {
+export function BusMap({ height = '350px', userLocation, onUserLocation, buses = [], isLoading = false }: BusMapProps) {
   const mapRef = useRef<MapRef>(null);
   const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
 
-  const { data: buses = [], isLoading, isFetching, refetch } = useBusLocations(30_000);
+  const queryClient = useQueryClient();
+
   const activeBuses = buses.filter(
     b => typeof b.latitude === 'number' && isFinite(b.latitude) &&
          typeof b.longitude === 'number' && isFinite(b.longitude)
@@ -187,7 +193,7 @@ export function BusMap({ height = '350px', userLocation, onUserLocation }: BusMa
           }
         </button>
         <button
-          onClick={() => refetch()}
+          onClick={async () => { setIsFetching(true); await queryClient.invalidateQueries({ queryKey: queryKeys.busLocations }); setIsFetching(false); }}
           disabled={isFetching}
           aria-label="Refresh buses"
           title="Refresh buses"

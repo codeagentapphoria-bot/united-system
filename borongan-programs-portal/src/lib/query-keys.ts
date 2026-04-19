@@ -78,6 +78,8 @@ export const queryKeys = {
     list: (params?: Record<string, unknown>) => ['portalPrograms', 'list', params] as const,
     myApplications: ['portalPrograms', 'myApplications'] as const,
   },
+
+  busLocations: ['bus-locations'] as const,
 };
 
 export default queryKeys;

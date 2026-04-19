@@ -154,7 +154,29 @@ export function ApplyModal({ program, onClose, onSuccess }: ApplyModalProps) {
 
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+  const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'pdf'];
+
+  function validateFile(file: File): string | null {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
+      return `Invalid file type. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return `File too large. Maximum size: 5MB`;
+    }
+    return null;
+  }
+
   const handleFileChange = (label: string, file: File | null) => {
+    if (file) {
+      const error = validateFile(file);
+      if (error) {
+        setError(error);
+        return;
+      }
+    }
+    setError(null);
     setFileValues(prev => ({ ...prev, [label]: file }));
   };
 

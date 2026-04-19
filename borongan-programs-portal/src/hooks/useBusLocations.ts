@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { queryKeys } from '@/lib/query-keys';
 
 export interface BusLocation {
   id: string;
@@ -19,7 +20,7 @@ export interface BusLocation {
 
 export function useBusLocations(refetchInterval = 30_000) {
   return useQuery<BusLocation[]>({
-    queryKey: ['bus-locations'],
+    queryKey: queryKeys.busLocations,
     queryFn: async () => {
       const { data: locations, error: locError } = await supabase
         .from('bus_locations')

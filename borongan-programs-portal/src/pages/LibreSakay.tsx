@@ -8,6 +8,7 @@ import { ApplyModal } from '@/components/libre-sakay/ApplyModal';
 import { useBusLocations } from '@/hooks/useBusLocations';
 import { portalProgramsService, type PortalProgram } from '@/services/api/portal-programs.service';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { FiArrowLeft, FiCheck, FiClock, FiX, FiInfo } from 'react-icons/fi';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -136,6 +137,7 @@ function StatusBanner({ program, isLoading, isCancelling, onViewPrograms, onAppl
 export function LibreSakay() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
 
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [libreSakayProgram, setLibreSakayProgram] = useState<PortalProgram | null>(null);
@@ -176,7 +178,10 @@ export function LibreSakay() {
         await fetchLibreSakayProgram();
       }
     } catch {
-      // Silently fail — user can retry
+      toast({
+        title: 'Failed to cancel',
+        description: 'Your application could not be cancelled. Please try again.',
+      });
     } finally {
       setIsCancelling(false);
     }
@@ -227,6 +232,8 @@ export function LibreSakay() {
             height="340px"
             userLocation={userLocation}
             onUserLocation={setUserLocation}
+            buses={buses}
+            isLoading={busesLoading}
           />
         </div>
 

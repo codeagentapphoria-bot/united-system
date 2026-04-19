@@ -21,6 +21,7 @@ interface BusCardProps {
 export function BusCard({ bus, userLocation, onFocus }: BusCardProps) {
   const [eta, setEta] = useState<EtaInfo | null>(null);
   const [etaLoading, setEtaLoading] = useState(false);
+  const [etaError, setEtaError] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
   const plateNumber = bus.bus?.plate_number ?? bus.bus_id;
@@ -29,11 +30,18 @@ export function BusCard({ bus, userLocation, onFocus }: BusCardProps) {
   const barangayName = bus.barangay?.name;
 
   useEffect(() => {
-    if (!userLocation) { setEta(null); return; }
+    if (!userLocation) { setEta(null); setEtaError(false); return; }
     let cancelled = false;
     setEtaLoading(true);
+    setEtaError(false);
     getRouteETA(userLocation[0], userLocation[1], bus.latitude, bus.longitude).then(result => {
-      if (!cancelled) { setEta(result); setEtaLoading(false); }
+      if (!cancelled) {
+        setEta(result);
+        setEtaError(!result);
+        setEtaLoading(false);
+      }
+    }).catch(() => {
+      if (!cancelled) { setEtaError(true); setEtaLoading(false); }
     });
     return () => { cancelled = true; };
   }, [userLocation, bus.latitude, bus.longitude]);
@@ -77,6 +85,8 @@ export function BusCard({ bus, userLocation, onFocus }: BusCardProps) {
               {userLocation ? (
                 etaLoading ? (
                   <div className="w-16 h-8 bg-gray-100 animate-pulse rounded" />
+                ) : etaError ? (
+                  <span className="text-xs text-red-400" title="Unable to calculate ETA">Error</span>
                 ) : eta ? (
                   <div className="bg-primary-50 border border-primary-100 rounded-lg px-2.5 py-1.5 text-center min-w-[72px]">
                     <p className="text-sm font-bold text-primary-700 leading-tight">{formatDuration(eta.duration)}</p>
