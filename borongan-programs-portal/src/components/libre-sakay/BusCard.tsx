@@ -26,7 +26,7 @@ export function BusCard({ bus, userLocation, onFocus }: BusCardProps) {
 
   const plateNumber = bus.bus?.plate_number ?? bus.bus_id;
   const isMoving = (bus.speed ?? 0) > 5;
-  const routeName = bus.bus?.routes?.[0]?.name;
+  const routeName = bus.bus?.route?.name;
   const barangayName = bus.barangay?.name;
 
   useEffect(() => {

@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { type BusLocation } from '@/hooks/useBusLocations';
 import { queryKeys } from '@/lib/query-keys';
 import { Crosshair, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 if (!MAPBOX_TOKEN) throw new Error('VITE_MAPBOX_TOKEN is not set');
@@ -22,7 +23,7 @@ function getCardinalDirection(heading: number): string {
 }
 
 function getRouteName(bus: BusLocation['bus']): string {
-  return bus?.routes?.[0]?.name ?? 'Unknown Route';
+  return bus?.route?.name ?? 'Unknown Route';
 }
 
 // ── Marker components ──────────────────────────────────────────────────────────
@@ -101,9 +102,21 @@ interface BusMapProps {
   onUserLocation: (pos: [number, number]) => void;
   buses?: BusLocation[];
   isLoading?: boolean;
+  selectedRouteId?: string | null;
+  onSelectedRouteChange?: (routeId: string | null) => void;
+  routes?: Array<{ id: string; name: string }>;
 }
 
-export function BusMap({ height = '350px', userLocation, onUserLocation, buses = [], isLoading = false }: BusMapProps) {
+export function BusMap({
+  height = '350px',
+  userLocation,
+  onUserLocation,
+  buses = [],
+  isLoading = false,
+  selectedRouteId,
+  onSelectedRouteChange,
+  routes = [],
+}: BusMapProps) {
   const mapRef = useRef<MapRef>(null);
   const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
@@ -112,7 +125,11 @@ export function BusMap({ height = '350px', userLocation, onUserLocation, buses =
 
   const queryClient = useQueryClient();
 
-  const activeBuses = buses.filter(
+  const filteredBuses = selectedRouteId
+    ? buses.filter(b => b.bus?.route?.id === selectedRouteId)
+    : buses;
+
+  const activeBuses = filteredBuses.filter(
     b => typeof b.latitude === 'number' && isFinite(b.latitude) &&
          typeof b.longitude === 'number' && isFinite(b.longitude)
   );
@@ -178,8 +195,24 @@ export function BusMap({ height = '350px', userLocation, onUserLocation, buses =
         )}
       </Map>
 
-      {/* Custom controls — outside <Map>, driven by mapRef */}
+      {/* Route filter + custom controls — outside <Map>, driven by mapRef */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+        {routes.length > 0 && (
+          <Select
+            value={selectedRouteId ?? 'all'}
+            onValueChange={val => onSelectedRouteChange?.(val === 'all' ? null : val)}
+          >
+            <SelectTrigger className="w-36 bg-white shadow-lg text-xs h-10" aria-label="Filter by route">
+              <SelectValue placeholder="All Routes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Routes</SelectItem>
+              {routes.map(r => (
+                <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <button
           onClick={handleLocate}
           disabled={locating}

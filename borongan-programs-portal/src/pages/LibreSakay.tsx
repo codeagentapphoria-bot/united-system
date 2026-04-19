@@ -6,10 +6,11 @@ import { BusMap } from '@/components/libre-sakay/BusMap';
 import { BusCard } from '@/components/libre-sakay/BusCard';
 import { ApplyModal } from '@/components/libre-sakay/ApplyModal';
 import { useBusLocations } from '@/hooks/useBusLocations';
+import { useRoutes } from '@/hooks/useRoutes';
 import { portalProgramsService, type PortalProgram } from '@/services/api/portal-programs.service';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { FiArrowLeft, FiCheck, FiClock, FiX, FiInfo } from 'react-icons/fi';
+import { FiArrowLeft, FiCheck, FiClock, FiX, FiInfo, FiMap } from 'react-icons/fi';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -144,8 +145,10 @@ export function LibreSakay() {
   const [statusLoading, setStatusLoading] = useState(true);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
 
   const { data: buses = [], isLoading: busesLoading } = useBusLocations(30_000);
+  const { data: routes = [] } = useRoutes();
   const activeBuses = buses.filter(b => b.latitude && b.longitude);
 
   const fetchLibreSakayProgram = useCallback(async () => {
@@ -204,6 +207,13 @@ export function LibreSakay() {
             <span className="font-semibold text-heading-700">Libre Sakay</span>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => navigate('/libre-sakay/routes')}
+              className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-medium transition-colors px-2 py-1 rounded-md hover:bg-primary-50"
+            >
+              <FiMap size={14} />
+              View Routes
+            </button>
             <span className="flex items-center gap-1.5 text-xs text-gray-400">
               <span className={`w-2 h-2 rounded-full ${activeBuses.length > 0 ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
               {busesLoading ? 'Loading…' : `${activeBuses.length} bus${activeBuses.length !== 1 ? 'es' : ''} active`}
@@ -234,6 +244,9 @@ export function LibreSakay() {
             onUserLocation={setUserLocation}
             buses={buses}
             isLoading={busesLoading}
+            selectedRouteId={selectedRouteId}
+            onSelectedRouteChange={setSelectedRouteId}
+            routes={routes.map(r => ({ id: r.id, name: r.name }))}
           />
         </div>
 
@@ -262,7 +275,7 @@ export function LibreSakay() {
             </Card>
           ) : (
             <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-              {activeBuses.map(bus => (
+              {(selectedRouteId ? activeBuses.filter(b => b.bus?.route?.id === selectedRouteId) : activeBuses).map(bus => (
                 <BusCard
                   key={bus.id}
                   bus={bus}
