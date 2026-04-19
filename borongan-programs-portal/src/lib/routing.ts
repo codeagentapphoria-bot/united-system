@@ -1,4 +1,5 @@
-const OSRM_BASE_URL = 'https://router.project-osrm.org';
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+const MAPBOX_DIRECTIONS_URL = 'https://api.mapbox.com/directions/v5/mapbox/driving';
 
 export interface RouteResult {
   duration: number; // seconds
@@ -11,8 +12,10 @@ export async function getRouteETA(
   destLat: number,
   destLng: number
 ): Promise<RouteResult | null> {
+  if (!MAPBOX_TOKEN) return null;
   try {
-    const url = `${OSRM_BASE_URL}/route/v1/driving/${userLng},${userLat};${destLng},${destLat}?overview=false`;
+    const coords = `${userLng},${userLat};${destLng},${destLat}`;
+    const url = `${MAPBOX_DIRECTIONS_URL}/${coords}?overview=false&access_token=${MAPBOX_TOKEN}`;
     const response = await fetch(url);
     if (!response.ok) return null;
     const data = await response.json();

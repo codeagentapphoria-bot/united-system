@@ -14,10 +14,10 @@ import { Separator } from '@/components/ui/separator';
 // Custom Components
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
-    ActivateAddressModal,
-    AddAddressModal,
-    DeleteAddressModal,
-    EditAddressModal,
+  ActivateAddressModal,
+  AddAddressModal,
+  DeleteAddressModal,
+  EditAddressModal,
 } from '@/components/modals/addresses';
 
 // Hooks
@@ -73,7 +73,7 @@ export const AdminAddresses: React.FC = () => {
       address.isActive ? 'Active' : 'Inactive',
       new Date(address.createdAt).toLocaleDateString()
     ]);
-    
+
     const csvContent = [
       headers.join(','),
       ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
@@ -169,15 +169,15 @@ export const AdminAddresses: React.FC = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="text-primary-600 hover:text-primary-700 hover:bg-primary-50"
               onClick={handleDownload}
             >
               <div className="mr-2"><FiDownload size={16} /></div>
               Download List
             </Button>
-            <Button 
+            <Button
               className="bg-primary-600 hover:bg-primary-700"
               onClick={() => setIsAddModalOpen(true)}
             >
@@ -203,7 +203,7 @@ export const AdminAddresses: React.FC = () => {
                 <FiSettings size={20} />
                 Addresses List
               </CardTitle>
-              
+
               {/* Search */}
               <div className="relative mt-4">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -250,13 +250,13 @@ export const AdminAddresses: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Total count */}
               <div className="flex justify-between items-center mt-3 text-sm text-gray-600">
                 <span>Total: {addresses.length} addresses</span>
               </div>
             </CardHeader>
-            
+
             <CardContent className="flex flex-col">
               {isLoading ? (
                 <div className="text-center py-8 text-gray-500">
@@ -291,7 +291,7 @@ export const AdminAddresses: React.FC = () => {
                             </div>
                           </CardContent>
                         </Card>
-                        
+
                         {/* Pointing Arrow - Only on large screens */}
                         {selectedAddress?.id === address.id && (
                           <div className="absolute -right-4 top-1/2 -translate-y-1/2 hidden lg:block z-20">
@@ -453,14 +453,14 @@ export const AdminAddresses: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <AddAddressModal 
+      <AddAddressModal
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSubmit={handleCreateAddress}
         isLoading={isActionLoading}
       />
-      
-      <EditAddressModal 
+
+      <EditAddressModal
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSubmit={handleUpdateAddress}
@@ -468,7 +468,7 @@ export const AdminAddresses: React.FC = () => {
         isLoading={isActionLoading}
       />
 
-      <DeleteAddressModal 
+      <DeleteAddressModal
         open={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteAddress}

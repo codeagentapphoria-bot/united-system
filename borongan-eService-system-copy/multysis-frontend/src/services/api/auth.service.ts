@@ -121,7 +121,7 @@ export const authService = {
       return { resident: mockResident, token: 'mock-token' };
     }
     try {
-      const response = await api.post('/auth/portal/login', credentials);
+      const response = await api.post('/auth/portal/login', { credential: credentials.credential, password: credentials.password });
       const result = response.data.data;
       if (!result?.resident) throw new Error('Invalid response from server');
       return { resident: result.resident, token: 'stored-in-cookie' };
