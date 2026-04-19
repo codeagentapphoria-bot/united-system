@@ -94,8 +94,6 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
 
   const bgFront = toAbsUrl(cardInfo.municipality?.idBackgroundFrontPath);
   const bgBack = toAbsUrl(cardInfo.municipality?.idBackgroundBackPath);
-  const muniLogo = toAbsUrl(cardInfo.municipality?.municipalityLogoPath);
-  const brgyLogo = toAbsUrl(cardInfo.barangayLogoPath);
   const photo = toAbsUrl(r.picturePath);
 
   const fullName = [r.firstName, r.middleName ? r.middleName.charAt(0) + '.' : null, r.lastName, r.extensionName]
@@ -118,7 +116,7 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
     boxSizing: 'border-box',
   };
 
-  const watermark = (src: string): React.CSSProperties => ({
+  const watermark = (_src: string): React.CSSProperties => ({
     position: 'absolute', inset: 0, width: '100%', height: '100%',
     objectFit: 'cover', opacity: 0.18, filter: 'blur(2px)',
     transform: 'scale(1.05)', zIndex: 0, pointerEvents: 'none',

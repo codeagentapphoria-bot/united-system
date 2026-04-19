@@ -113,7 +113,7 @@ export const authService = {
         residentId: 'RES-2025-0000001',
         firstName: 'Juan',
         lastName: 'Dela Cruz',
-        username: credentials.username,
+        username: credentials.credential,
         status: 'active',
         email: null,
         createdAt: new Date().toISOString(),

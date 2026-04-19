@@ -40,7 +40,6 @@ export const PortalHeader: React.FC<PortalHeaderProps> = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isSubscriber = user?.role === 'resident';
-  const isActiveResident = isSubscriber && user?.status === 'active';
   const hasNotifications = isSubscriber && counts.total > 0;
 
   const navigationItems = [

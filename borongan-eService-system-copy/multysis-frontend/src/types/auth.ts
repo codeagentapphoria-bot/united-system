@@ -31,7 +31,7 @@ export interface AuthContextType {
   isLoading: boolean;
   isLoggingOut: boolean;
   login: (
-    credentials: { username: string; password: string } | { email: string; password: string },
+    credentials: { credential: string; password: string } | { email: string; password: string },
     isAdmin?: boolean,
     isDev?: boolean
   ) => Promise<any>;

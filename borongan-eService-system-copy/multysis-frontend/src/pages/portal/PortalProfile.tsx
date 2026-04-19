@@ -26,14 +26,13 @@ import {
   getProvincesByRegion as getPHProvinces,
   getMunicipalitiesByProvince as getPHMunicipalities,
 } from '@/constants/philippine-addresses';
-import { cn, formatDateWithoutTimezone } from '@/lib/utils';
+import { formatDateWithoutTimezone } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useMyProfile } from '@/hooks/residents/useMyProfile';
 import { useMyHousehold } from '@/hooks/portal/useMyHousehold';
 import { useMyClassifications } from '@/hooks/portal/useMyClassifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
-import { AttachmentGrid } from '@/components/common/AttachmentPreview';
 import {
   FiCalendar,
   FiEdit2,

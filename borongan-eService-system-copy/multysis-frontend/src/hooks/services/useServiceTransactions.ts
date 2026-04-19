@@ -115,7 +115,7 @@ export const useServiceTransactions = ({
           // Create a minimal transaction object from the payload
           const newTransaction: Transaction = {
             id: data.id,
-            subscriberId: data.subscriberId,
+            residentId: data.residentId,
             serviceId: data.serviceId,
             transactionType: '', // Will be filled when fetched
             transactionId: data.transactionId,
