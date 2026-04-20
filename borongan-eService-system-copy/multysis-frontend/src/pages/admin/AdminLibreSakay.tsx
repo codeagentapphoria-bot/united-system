@@ -40,6 +40,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FleetMap } from '@/components/admin/FleetMap';
 
 // =============================================================================
 // FLEET STATS
@@ -72,9 +73,9 @@ function FleetTab() {
           <p className="text-sm text-gray-500 mt-1">Parked</p>
         </CardContent>
       </Card>
-      <p className="col-span-3 text-sm text-gray-500">
-        Stats refresh every 30 seconds. Live tracking is done in the LibreSakay Driver app.
-      </p>
+      <div className="col-span-3">
+        <FleetMap />
+      </div>
     </div>
   );
 }
