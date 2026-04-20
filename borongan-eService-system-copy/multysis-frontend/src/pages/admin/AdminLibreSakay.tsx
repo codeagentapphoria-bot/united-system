@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import { useToast } from '@/hooks/use-toast';
@@ -21,30 +22,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { FleetMap } from '@/components/admin/FleetMap';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { adminMenuItems } from '@/config/admin-menu';
-import { FiMap, FiTruck, FiGitBranch, FiUsers, FiMapPin, FiNavigation } from 'react-icons/fi';
-import { cn } from '@/lib/utils';
+import { libresakayMenuItems } from '@/config/libre-sakay-menu';
+import { FiTruck, FiMapPin, FiNavigation, FiShield } from 'react-icons/fi';
 
 // =============================================================================
-// SECTION NAVIGATION CONFIG
+// DASHBOARD SECTION (fleet stats + live map)
 // =============================================================================
 
-type SectionId = 'fleet' | 'buses' | 'routes' | 'drivers' | 'stops';
-interface Section { id: SectionId; label: string; icon: React.ReactNode; }
-
-const SECTIONS: Section[] = [
-  { id: 'fleet',   label: 'Fleet',   icon: <FiMap size={18} /> },
-  { id: 'buses',   label: 'Buses',   icon: <FiTruck size={18} /> },
-  { id: 'routes',  label: 'Routes',  icon: <FiGitBranch size={18} /> },
-  { id: 'drivers', label: 'Drivers', icon: <FiUsers size={18} /> },
-  { id: 'stops',   label: 'Stops',   icon: <FiMapPin size={18} /> },
-];
-
-// =============================================================================
-// FLEET STATS
-// =============================================================================
-
-function FleetTab() {
+function DashboardSection() {
   const { data: stats } = useQuery({
     queryKey: queryKeys.libreSakay.fleet,
     queryFn: libreSakayService.getFleetStats,
@@ -95,6 +80,41 @@ function FleetTab() {
         </Card>
       </div>
       <FleetMap />
+    </div>
+  );
+}
+
+function FleetSection() {
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-gray-500">Live positions of all active buses.</p>
+      <FleetMap />
+    </div>
+  );
+}
+
+function AccessControlSection() {
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="pt-6 pb-6">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-primary-50 rounded-lg">
+              <FiShield size={22} className="text-primary-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Libre Sakay Staff Management</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Create and manage accounts for Libre Sakay staff and administrators.
+                Staff accounts have access to bus, route, driver, and stop management.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <div className="flex items-center justify-center h-48 bg-white rounded-lg border border-dashed border-gray-300">
+        <p className="text-sm text-gray-400">Staff management coming soon</p>
+      </div>
     </div>
   );
 }
@@ -1392,53 +1412,39 @@ function StopsTab() {
 // MAIN PAGE
 // =============================================================================
 
+const SECTION_TITLES: Record<string, string> = {
+  dashboard:        'Dashboard',
+  fleet:            'Live Fleet',
+  buses:            'Buses',
+  routes:           'Routes',
+  drivers:          'Drivers',
+  stops:            'Stops',
+  'access-control': 'Access Control',
+};
+
 export const AdminLibreSakay: React.FC = () => {
-  const [activeSection, setActiveSection] = useState<SectionId>('fleet');
+  const { section = 'dashboard' } = useParams<{ section: string }>();
+
+  const renderSection = () => {
+    switch (section) {
+      case 'dashboard':       return <DashboardSection />;
+      case 'fleet':           return <FleetSection />;
+      case 'buses':           return <BusesTab />;
+      case 'routes':          return <RoutesTab />;
+      case 'drivers':         return <DriversTab />;
+      case 'stops':           return <StopsTab />;
+      case 'access-control':  return <AccessControlSection />;
+      default:                return <DashboardSection />;
+    }
+  };
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
+    <DashboardLayout menuItems={libresakayMenuItems}>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Libre Sakay</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Manage fleet, buses, routes, drivers, and stops
-        </p>
+        <h1 className="text-2xl font-semibold">{SECTION_TITLES[section] ?? 'Libre Sakay'}</h1>
+        <p className="text-sm text-gray-500 mt-1">Libre Sakay Administration</p>
       </div>
-
-      <div className="flex gap-6 min-h-[600px]">
-        <aside className="w-52 flex-shrink-0">
-          <nav className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <ul>
-              {SECTIONS.map((section, idx) => (
-                <li key={section.id}>
-                  {idx > 0 && <div className="h-px bg-gray-100 mx-3" />}
-                  <button
-                    onClick={() => setActiveSection(section.id)}
-                    className={cn(
-                      'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors text-left',
-                      activeSection === section.id
-                        ? 'bg-primary-50 text-primary-600 border-r-2 border-primary-600'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
-                    )}
-                  >
-                    <span className={cn(activeSection === section.id ? 'text-primary-600' : 'text-gray-400')}>
-                      {section.icon}
-                    </span>
-                    {section.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </aside>
-
-        <div className="flex-1 min-w-0">
-          {activeSection === 'fleet'   && <FleetTab />}
-          {activeSection === 'buses'   && <BusesTab />}
-          {activeSection === 'routes'  && <RoutesTab />}
-          {activeSection === 'drivers' && <DriversTab />}
-          {activeSection === 'stops'   && <StopsTab />}
-        </div>
-      </div>
+      {renderSection()}
     </DashboardLayout>
   );
 };

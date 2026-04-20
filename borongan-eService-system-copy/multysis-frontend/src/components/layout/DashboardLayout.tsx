@@ -46,25 +46,25 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   useEffect(() => {
     if (hasInitiallyLoaded) return;
-    
     setHasInitiallyLoaded(true);
+
+    // If a static menu was explicitly provided, use it as-is — don't override with dynamic admin menu
+    if (propMenuItems && propMenuItems.length > 0) {
+      setMenuItems(propMenuItems);
+      return;
+    }
+
     getAdminMenuItems(counts)
       .then((items) => {
         if (items && items.length > 0) {
           setMenuItems(items);
         } else {
-          const fallback = propMenuItems || staticMenuItems;
-          if (fallback.length > 0) {
-            setMenuItems(fallback);
-          }
+          setMenuItems(staticMenuItems);
         }
       })
       .catch((error) => {
         console.error('Failed to load dynamic menu items:', error);
-        const fallback = propMenuItems || staticMenuItems;
-        if (fallback.length > 0) {
-          setMenuItems(fallback);
-        }
+        setMenuItems(staticMenuItems);
       });
   }, [propMenuItems]);
 
