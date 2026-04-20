@@ -179,7 +179,14 @@ function AssignDriverDialog({ open, onClose, bus, onSuccess }: { open: boolean; 
           {(bus?.driver_buses || []).map(db => (
             <div key={db.id} className="flex items-center justify-between border rounded p-2">
               <span>{db.profiles?.full_name || 'Unknown'} ({db.profiles?.phone || 'N/A'})</span>
-              <Button size="sm" variant="destructive" onClick={() => unassignMutation.mutate(db.profiles?.id)}>Remove</Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={!db.profiles?.id || unassignMutation.isPending}
+                onClick={() => { if (db.profiles?.id) unassignMutation.mutate(db.profiles.id); }}
+              >
+                Remove
+              </Button>
             </div>
           ))}
           <div className="flex gap-2">
@@ -627,7 +634,14 @@ function AssignBusDialog({ open, onClose, driver }: { open: boolean; onClose: ()
           {(driver.driver_buses || []).map(db => (
             <div key={db.id} className="flex items-center justify-between border rounded p-2">
               <span>{db.buses?.plate_number || 'Unknown'}</span>
-              <Button size="sm" variant="destructive" onClick={() => unassignMutation.mutate(db.buses?.id)}>Remove</Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={!db.buses?.id || unassignMutation.isPending}
+                onClick={() => { if (db.buses?.id) unassignMutation.mutate(db.buses.id); }}
+              >
+                Remove
+              </Button>
             </div>
           ))}
           {(driver.driver_buses || []).length === 0 && (
