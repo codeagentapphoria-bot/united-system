@@ -388,6 +388,7 @@ import transactionRoutes from './routes/transaction.routes';
 import uploadRoutes from './routes/upload.routes';
 import userRoutes from './routes/user.routes';
 import medicineRequestRoutes from './routes/medicine-request.routes';
+import libreSakayRoutes from './routes/libre-sakay.routes';
 
 // Register routes with appropriate rate limiters
 // Note: Auth routes apply their own rate limiters (defined in auth.routes.ts)
@@ -431,6 +432,7 @@ app.use('/api/payments', apiLimiter, paymentRoutes);
 app.use('/api/tax-reassessment', apiLimiter, taxReassessmentRoutes);
 app.use('/api/tax', apiLimiter, taxPreviewRoutes);
 app.use('/api/medicine-requests', apiLimiter, medicineRequestRoutes);
+app.use('/api/libre-sakay', apiLimiter, libreSakayRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

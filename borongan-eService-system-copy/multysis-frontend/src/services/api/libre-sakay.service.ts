@@ -82,6 +82,38 @@ export interface FleetBus {
   updated_at: string;
 }
 
+export interface DashboardStats {
+  total_buses: number;
+  active_routes: number;
+  total_drivers: number;
+  rides_today: number;
+  rides_this_week: number;
+  passengers_this_week: number;
+  avg_passengers_per_ride: number;
+}
+
+export interface RidesTrendPoint {
+  date: string;
+  rides: number;
+  passengers: number;
+}
+
+export interface RideLog {
+  id: string;
+  bus_id: string | null;
+  route_id: string | null;
+  driver_id: string | null;
+  started_at: string;
+  ended_at: string | null;
+  passenger_count: number;
+  status: 'in_progress' | 'completed' | 'cancelled';
+  notes: string | null;
+  created_at: string;
+  buses: { plate_number: string } | null;
+  routes: { name: string } | null;
+  driver: { full_name: string } | null;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   pagination: {
@@ -149,7 +181,10 @@ export const libreSakayService = {
     return response.data.data;
   },
 
-  async updateBus(id: string, data: Partial<{ plate_number: string; capacity: number; route_id: string | null; is_active: boolean }>): Promise<Bus> {
+  async updateBus(
+    id: string,
+    data: Partial<{ plate_number: string; capacity: number; route_id: string | null; is_active: boolean }>
+  ): Promise<Bus> {
     const response = await api.patch(`${BASE}/buses/${id}`, data);
     return response.data.data;
   },
@@ -187,7 +222,10 @@ export const libreSakayService = {
     return response.data.data;
   },
 
-  async updateRoute(id: string, data: Partial<{ name: string; description: string; is_active: boolean }>): Promise<Route> {
+  async updateRoute(
+    id: string,
+    data: Partial<{ name: string; description: string; is_active: boolean }>
+  ): Promise<Route> {
     const response = await api.patch(`${BASE}/routes/${id}`, data);
     return response.data.data;
   },
@@ -212,7 +250,10 @@ export const libreSakayService = {
     return response.data.data;
   },
 
-  async updateDriver(id: string, data: Partial<{ full_name: string; phone: string; is_active: boolean }>): Promise<Driver> {
+  async updateDriver(
+    id: string,
+    data: Partial<{ full_name: string; phone: string; is_active: boolean }>
+  ): Promise<Driver> {
     const response = await api.patch(`${BASE}/drivers/${id}`, data);
     return response.data.data;
   },
@@ -259,5 +300,30 @@ export const libreSakayService = {
 
   async reorderStopsInRoute(routeId: string, stopIds: string[]): Promise<void> {
     await api.patch(`${BASE}/routes/${routeId}/stops/reorder`, { stop_ids: stopIds });
+  },
+
+  // Dashboard
+  async getDashboardStats(): Promise<DashboardStats> {
+    const response = await api.get(`${BASE}/dashboard/stats`);
+    return response.data.data;
+  },
+
+  async getRidesTrend(days = 7): Promise<RidesTrendPoint[]> {
+    const response = await api.get(`${BASE}/ride-logs/trend`, { params: { days } });
+    return response.data.data;
+  },
+
+  // Ride Logs
+  async getRideLogs(
+    page = 1,
+    limit = 20,
+    filters?: { from?: string; to?: string; route_id?: string; driver_id?: string; bus_id?: string }
+  ): Promise<PaginatedResponse<RideLog>> {
+    const response = await api.get(`${BASE}/ride-logs`, { params: { page, limit, ...filters } });
+    return { data: response.data.data, pagination: response.data.pagination };
+  },
+
+  async deleteRideLog(id: string): Promise<void> {
+    await api.delete(`${BASE}/ride-logs/${id}`);
   },
 };

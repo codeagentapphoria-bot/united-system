@@ -35,10 +35,7 @@ interface DashboardLayoutProps {
   menuItems?: MenuItem[]; // Optional, will use dynamic if not provided
 }
 
-export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
-  children,
-  menuItems: propMenuItems,
-}) => {
+export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menuItems: propMenuItems }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(propMenuItems || staticMenuItems);
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
@@ -55,14 +52,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     }
 
     getAdminMenuItems(counts)
-      .then((items) => {
+      .then(items => {
         if (items && items.length > 0) {
           setMenuItems(items);
         } else {
           setMenuItems(staticMenuItems);
         }
       })
-      .catch((error) => {
+      .catch(error => {
         console.error('Failed to load dynamic menu items:', error);
         setMenuItems(staticMenuItems);
       });
@@ -73,7 +70,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       clearServiceCache();
       getAdminMenuItems(counts)
         .then(setMenuItems)
-        .catch((error) => {
+        .catch(error => {
           console.error('Failed to refresh menu items:', error);
         });
     };
@@ -86,17 +83,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const closeSidebar = () => setIsSidebarOpen(false);
 
   return (
-    <div className={cn("min-h-screen bg-gray-50") }>
+    <div className={cn('min-h-screen bg-gray-50')}>
       <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} menuItems={menuItems} />
-      
-      <div className={cn("lg:pl-64")}>
+
+      <div className={cn('lg:pl-64')}>
         <Header onToggleSidebar={toggleSidebar} />
-        
-        <main className={cn("p-4 md:p-6") }>
-          {children}
-        </main>
+
+        <main className={cn('p-4 md:p-6')}>{children}</main>
       </div>
     </div>
   );
 };
-

@@ -31,7 +31,11 @@ export function FleetMap() {
   const queryClient = useQueryClient();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const { data: buses = [], isLoading, isError } = useQuery({
+  const {
+    data: buses = [],
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: queryKeys.libreSakay.fleetLocations,
     queryFn: libreSakayService.getFleetLocations,
     refetchInterval: 30_000,
@@ -41,13 +45,9 @@ export function FleetMap() {
   useEffect(() => {
     const channel = supabase
       .channel('fleet-map-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'bus_locations' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.fleetLocations });
-        },
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bus_locations' }, () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.fleetLocations });
+      })
       .subscribe();
 
     channelRef.current = channel;
@@ -74,28 +74,22 @@ export function FleetMap() {
 
   return (
     <div className="rounded-lg overflow-hidden border" style={{ height: '480px' }}>
-      <MapContainer
-        center={BORONGAN_CENTER}
-        zoom={13}
-        style={{ height: '100%', width: '100%' }}
-        scrollWheelZoom
-      >
+      <MapContainer center={BORONGAN_CENTER} zoom={13} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {buses.map((bus: FleetBus) => (
-          <Marker
-            key={bus.bus_id}
-            position={[bus.latitude, bus.longitude]}
-            icon={makeBusIcon(bus.status)}
-          >
+          <Marker key={bus.bus_id} position={[bus.latitude, bus.longitude]} icon={makeBusIcon(bus.status)}>
             <Popup>
               <div className="text-sm space-y-1">
                 <p className="font-semibold">{bus.plate_number}</p>
                 {bus.route_name && <p>Route: {bus.route_name}</p>}
                 {bus.driver_name && <p>Driver: {bus.driver_name}</p>}
-                <p>Status: <span className={bus.status === 'moving' ? 'text-green-600' : 'text-orange-500'}>{bus.status}</span></p>
+                <p>
+                  Status:{' '}
+                  <span className={bus.status === 'moving' ? 'text-green-600' : 'text-orange-500'}>{bus.status}</span>
+                </p>
                 <p>Speed: {bus.speed} km/h</p>
               </div>
             </Popup>

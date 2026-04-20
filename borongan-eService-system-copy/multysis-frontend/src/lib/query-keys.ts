@@ -104,8 +104,13 @@ export const queryKeys = {
       list: (page: number, limit?: number) => ['libreSakay', 'stops', 'list', page, limit] as const,
       detail: (id: string) => ['libreSakay', 'stops', 'detail', id] as const,
     },
+    dashboardStats: ['libreSakay', 'dashboardStats'] as const,
+    ridesTrend: (days: number) => ['libreSakay', 'ridesTrend', days] as const,
+    rideLogs: {
+      all: ['libreSakay', 'rideLogs'] as const,
+      list: (page: number, filters?: object) => ['libreSakay', 'rideLogs', 'list', page, filters] as const,
+    },
   },
-
 };
 
 export default queryKeys;

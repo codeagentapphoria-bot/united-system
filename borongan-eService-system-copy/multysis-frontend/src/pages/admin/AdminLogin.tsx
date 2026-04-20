@@ -55,6 +55,8 @@ export const AdminLogin: React.FC = () => {
       });
       if (user?.role === 'libre_medisina_admin') {
         navigate('/admin/libre-medisina');
+      } else if (user?.role === 'libre_sakay_admin') {
+        navigate('/admin/libre-sakay');
       } else {
         navigate('/admin/dashboard');
       }
