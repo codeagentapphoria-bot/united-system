@@ -340,6 +340,7 @@ function ManageStopsDialog({
   route: Route;
 }) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: allStops } = useQuery({
     queryKey: queryKeys.libreSakay.stops.all,
     queryFn: libreSakayService.getAllStops,
@@ -365,7 +366,6 @@ function ManageStopsDialog({
     onError: (e: any) => { toast({ variant: 'destructive', title: 'Error', description: e.message }); },
   });
 
-  const queryClient = useQueryClient();
   const [selectedStopId, setSelectedStopId] = useState('');
   const assignedStopIds = new Set((routeStops ?? []).map((rs: RouteStopJunction) => rs.stops.id));
 
