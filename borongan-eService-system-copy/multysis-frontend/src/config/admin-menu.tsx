@@ -8,6 +8,7 @@ import {
   FiSettings,
   FiShield,
   FiTool,
+  FiTruck,
   FiUsers,
   FiClipboard
 } from 'react-icons/fi';
@@ -145,6 +146,11 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
     // Separator: Below e-help
     { type: 'separator' as const },
 
+    { path: '/admin/libre-sakay', label: 'Libre Sakay', icon: <FiTruck /> },
+
+    // Separator: Below libre-sakay
+    { type: 'separator' as const },
+
     {
       path: '/admin/general-settings',
       label: 'General Settings',
@@ -238,6 +244,8 @@ export const adminMenuItems: MenuItem[] = [
     ]
   },
   { path: '/admin/e-help', label: 'E-Help', icon: <FiHelpCircle /> },
+  { type: 'separator' as const },
+  { path: '/admin/libre-sakay', label: 'Libre Sakay', icon: <FiTruck /> },
   { type: 'separator' as const },
   {
     path: '/admin/general-settings',

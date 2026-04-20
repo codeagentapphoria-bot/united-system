@@ -29,6 +29,7 @@ interface MenuItem {
 const implementedRoutes = [
   '/admin/dashboard',
   '/admin/registration-workflow',
+  '/admin/libre-sakay',
   '/admin/e-government/social-amelioration',
   '/admin/e-government/reports',
   '/admin/general-settings/address',
