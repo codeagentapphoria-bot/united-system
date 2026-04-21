@@ -170,6 +170,7 @@ function AssignDriverDialog({
     onSuccess: () => {
       onSuccess();
       toast({ title: 'Driver unassigned successfully' });
+      onClose();
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });

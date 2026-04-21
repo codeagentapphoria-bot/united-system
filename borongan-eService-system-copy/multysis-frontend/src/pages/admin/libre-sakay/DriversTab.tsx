@@ -251,6 +251,7 @@ function AssignBusDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.drivers.all });
       toast({ title: 'Bus assigned successfully' });
+      onClose();
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -261,6 +262,7 @@ function AssignBusDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.drivers.all });
       toast({ title: 'Bus unassigned successfully' });
+      onClose();
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
