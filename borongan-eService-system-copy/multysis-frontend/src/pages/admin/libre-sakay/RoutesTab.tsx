@@ -147,8 +147,22 @@ function ManageStopsDialog({
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
     },
   });
+  const replaceMutation = useMutation({
+    mutationFn: ({ oldId, newId }: { oldId: string; newId: string }) =>
+      libreSakayService.replaceStopInRoute(route.id, oldId, newId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.routes.stops(route.id) });
+      setReplaceStopId(null);
+      setNewStopId('');
+    },
+    onError: (e: unknown) => {
+      toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
+    },
+  });
 
   const [selectedStopId, setSelectedStopId] = useState('');
+  const [replaceStopId, setReplaceStopId] = useState<string | null>(null);
+  const [newStopId, setNewStopId] = useState('');
   const assignedStopIds = new Set((routeStops ?? []).map((rs: RouteStopJunction) => rs.stops.id));
 
   const handleAssign = () => {
@@ -193,25 +207,59 @@ function ManageStopsDialog({
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => handleMove(rs.stops.id, 'up')} disabled={idx === 0}>
-                    ↑
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleMove(rs.stops.id, 'down')}
-                    disabled={idx === (routeStops?.length ?? 0) - 1}
-                  >
-                    ↓
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => removeMutation.mutate(rs.stop_id)}
-                    disabled={removeMutation.isPending}
-                  >
-                    Remove
-                  </Button>
+                  {replaceStopId === rs.stops.id ? (
+                    <>
+                      <Select value={newStopId} onValueChange={setNewStopId}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue placeholder="Replacement stop" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(allStops ?? [])
+                            .filter((s: Stop) => s.id !== rs.stops.id && !assignedStopIds.has(s.id))
+                            .map((s: Stop) => (
+                              <SelectItem key={s.id} value={s.id}>
+                                {s.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        onClick={() => replaceMutation.mutate({ oldId: rs.stops.id, newId: newStopId })}
+                        disabled={!newStopId || replaceMutation.isPending}
+                      >
+                        Confirm
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setReplaceStopId(null); setNewStopId(''); }}>
+                        ×
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button size="sm" variant="ghost" onClick={() => handleMove(rs.stops.id, 'up')} disabled={idx === 0}>
+                        ↑
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleMove(rs.stops.id, 'down')}
+                        disabled={idx === (routeStops?.length ?? 0) - 1}
+                      >
+                        ↓
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setReplaceStopId(rs.stops.id)}>
+                        Replace
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => removeMutation.mutate(rs.stop_id)}
+                        disabled={removeMutation.isPending}
+                      >
+                        Remove
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}

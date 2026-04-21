@@ -1,4 +1,5 @@
 import { getLibreSakaySupabase } from '../config/libre-sakay-supabase';
+import prisma from '../config/database';
 
 // =============================================================================
 // HELPERS
@@ -70,6 +71,97 @@ export interface PaginatedResult<T> {
   limit: number;
   totalPages: number;
 }
+
+// =============================================================================
+// FLEET LOCATIONS (security fix — moved from browser RPC to server-side)
+// =============================================================================
+
+export interface FleetLocation {
+  bus_id: string;
+  plate_number: string;
+  model: string | null;
+  capacity: number;
+  latitude: number;
+  longitude: number;
+  speed: number;
+  heading: number;
+  status: 'moving' | 'parked';
+  route_name: string | null;
+  driver_name: string | null;
+  barangay_name: string | null;
+  updated_at: string;
+}
+
+export const getFleetLocations = async (): Promise<FleetLocation[]> => {
+  // Fetch active buses with their basic info
+  const { data: buses, error: busError } = await supabase()
+    .from('buses')
+    .select('id, plate_number, model, capacity')
+    .eq('is_active', true);
+
+  if (busError) throw new Error('Failed to fetch bus fleet: ' + busError.message);
+
+  const busIds = (buses ?? []).map(b => b.id);
+  if (busIds.length === 0) return [];
+
+  // Fetch latest location per bus
+  const { data: locations, error: locError } = await supabase()
+    .from('bus_locations')
+    .select('bus_id, latitude, longitude, speed, heading, recorded_at, barangay_name')
+    .in('bus_id', busIds)
+    .order('recorded_at', { ascending: false });
+
+  if (locError) throw new Error('Failed to fetch locations: ' + locError.message);
+
+  // Deduplicate locations by bus_id (keep first = latest)
+  const seen = new Set<string>();
+  const locationMap = new Map<string, Record<string, unknown>>();
+  for (const row of locations ?? []) {
+    if (!seen.has(row.bus_id)) {
+      seen.add(row.bus_id);
+      locationMap.set(row.bus_id, row as Record<string, unknown>);
+    }
+  }
+
+  // Fetch route and driver info
+  const { data: busDetails, error: detailError } = await supabase()
+    .from('buses')
+    .select('id, route_id, routes(name), driver_buses(id, profiles(full_name))')
+    .in('id', busIds);
+
+  if (detailError) throw new Error('Failed to fetch bus details: ' + detailError.message);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const detailMap = new Map((busDetails ?? []).map((b: any) => [b.id, b]));
+
+  const result: FleetLocation[] = [];
+  for (const bus of buses ?? []) {
+    const loc = locationMap.get(bus.id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const detail = detailMap.get(bus.id) as any;
+    const speed = (loc?.speed as number) ?? 0;
+    const driver = detail?.driver_buses?.[0]?.profiles?.full_name ?? null;
+    const route = detail?.routes?.name ?? null;
+
+    result.push({
+      bus_id: bus.id,
+      plate_number: bus.plate_number,
+      model: bus.model ?? null,
+      capacity: bus.capacity ?? 0,
+      latitude: (loc?.latitude as number) ?? 0,
+      longitude: (loc?.longitude as number) ?? 0,
+      speed,
+      heading: (loc?.heading as number) ?? 0,
+      status: speed > 5 ? 'moving' : 'parked',
+      route_name: route,
+      driver_name: driver,
+      barangay_name: (loc?.barangay_name as string | null) ?? null,
+      updated_at: (loc?.recorded_at as string) ?? new Date().toISOString(),
+    });
+  }
+
+  return result;
+};
 
 // =============================================================================
 // FLEET STATS (read-only)
@@ -159,10 +251,16 @@ export const getAvailableDrivers = async () => {
   return data;
 };
 
-export const createBus = async (plate_number: string, capacity: number, route_id?: string) => {
+export const createBus = async (plate_number: string, capacity: number, route_id?: string, model?: string) => {
   const { data, error } = await supabase()
     .from('buses')
-    .insert({ plate_number, capacity, is_active: true, ...(route_id ? { route_id } : {}) })
+    .insert({
+      plate_number,
+      capacity,
+      is_active: true,
+      ...(route_id ? { route_id } : {}),
+      ...(model ? { model } : {}),
+    })
     .select()
     .single();
 
@@ -172,7 +270,7 @@ export const createBus = async (plate_number: string, capacity: number, route_id
 
 export const updateBus = async (
   id: string,
-  updates: { plate_number?: string; capacity?: number; route_id?: string | null; is_active?: boolean }
+  updates: { plate_number?: string; capacity?: number; route_id?: string | null; is_active?: boolean; model?: string | null }
 ) => {
   const { data, error } = await supabase()
     .from('buses')
@@ -375,6 +473,34 @@ export const getAllStops = async () => {
   return data;
 };
 
+export const getRoutesForStop = async (stopId: string) => {
+  const { data, error } = await supabase()
+    .from('route_stops')
+    .select('route_id, sequence_order, routes(id, name, is_active)')
+    .eq('stop_id', stopId)
+    .order('sequence_order');
+
+  if (error) throw new Error('Failed to fetch routes for stop: ' + error.message);
+
+  // Deduplicate by route
+  const seen = new Set<string>();
+  const result = [];
+  for (const row of data ?? []) {
+    if (!seen.has(row.route_id)) {
+      seen.add(row.route_id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const routeInfo = (row.routes as any) ?? {};
+      result.push({
+        route_id: row.route_id,
+        route_name: routeInfo.name ?? null,
+        route_is_active: routeInfo.is_active ?? false,
+        sequence_order: row.sequence_order,
+      });
+    }
+  }
+  return result;
+};
+
 export const getStopsByRoute = async (routeId: string) => {
   const { data, error } = await supabase()
     .from('route_stops')
@@ -458,13 +584,55 @@ export const reorderStopsInRoute = async (routeId: string, stopIds: string[]) =>
   }
 };
 
+export const replaceStopInRoute = async (routeId: string, oldStopId: string, newStopId: string) => {
+  // Get the sequence_order of the old stop
+  const { data: oldStop, error: fetchError } = await supabase()
+    .from('route_stops')
+    .select('sequence_order')
+    .eq('route_id', routeId)
+    .eq('stop_id', oldStopId)
+    .maybeSingle();
+
+  if (fetchError) throw new Error('Failed to fetch old stop: ' + fetchError.message);
+  if (!oldStop) throw new Error('Old stop not found in route');
+
+  const sequenceOrder = oldStop.sequence_order;
+
+  // Remove old stop
+  const { error: deleteError } = await supabase()
+    .from('route_stops')
+    .delete()
+    .eq('route_id', routeId)
+    .eq('stop_id', oldStopId);
+
+  if (deleteError) throw new Error('Failed to remove old stop: ' + deleteError.message);
+
+  // Insert new stop at same position
+  const { error: insertError } = await supabase()
+    .from('route_stops')
+    .insert({
+      route_id: routeId,
+      stop_id: newStopId,
+      sequence_order: sequenceOrder,
+    });
+
+  if (insertError) throw new Error('Failed to insert new stop: ' + insertError.message);
+};
+
 // =============================================================================
 // DASHBOARD STATS
 // =============================================================================
 
 export const getDashboardStats = async () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Get today's date in PHT (Asia/Manila)
+  const now = new Date();
+  const phtDateStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+  const todayPHT = `${phtDateStr}T00:00:00+08:00`;
 
   const [busCount, routeCount, driverCount, ridesToday, ridesWeek] = await Promise.all([
     supabase().from('buses').select('id', { count: 'exact', head: true }),
@@ -473,15 +641,15 @@ export const getDashboardStats = async () => {
     supabase()
       .from('ride_logs')
       .select('id', { count: 'exact', head: true })
-      .gte('started_at', today.toISOString()),
+      .gte('boarded_at', todayPHT),
     supabase()
       .from('ride_logs')
-      .select('id, passenger_count')
-      .gte('started_at', new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString()),
+      .select('id')
+      .gte('boarded_at', new Date(new Date(todayPHT).getTime() - 6 * 24 * 60 * 60 * 1000).toISOString()),
   ]);
 
   const ridesThisWeek = ridesWeek.data?.length ?? 0;
-  const passengersThisWeek = ridesWeek.data?.reduce((sum, r) => sum + (r.passenger_count ?? 0), 0) ?? 0;
+  const passengersThisWeek = 0; // ride_logs has no passenger_count column
 
   return {
     total_buses: busCount.count ?? 0,
@@ -504,38 +672,131 @@ export interface RideLogFilters {
   route_id?: string;
   driver_id?: string;
   bus_id?: string;
+  status?: string;
 }
 
 export const getRideLogs = async (page = 1, limit = 20, filters: RideLogFilters = {}): Promise<PaginatedResult<any>> => {
   const from = (page - 1) * limit;
 
+  // ride_logs columns: id, bus_id, driver_id, resident_id, is_verified, is_manual,
+  // manual_name, admin_reviewed, boarded_at, boarded_barangay, alighted_at, alighted_barangay,
+  // synced, manual_id
+  // NOTE: ride_logs has NO route_id, started_at, ended_at, passenger_count, status, or notes.
+  //       Route association is through buses(buses.route_id).
   let query = supabase()
     .from('ride_logs')
-    .select('id, bus_id, route_id, driver_id, started_at, ended_at, passenger_count, status, notes, created_at, buses(plate_number), routes(name), driver:profiles(full_name)', { count: 'exact' })
-    .order('started_at', { ascending: false })
+    .select(
+      'id, bus_id, driver_id, resident_id, boarded_at, boarded_barangay, alighted_at, alighted_barangay, is_verified, is_manual, manual_name, manual_id, synced, admin_reviewed, buses(plate_number, route_id, routes(name)), driver:profiles(full_name)',
+      { count: 'exact' }
+    )
+    .order('boarded_at', { ascending: false })
     .range(from, from + limit - 1);
 
-  if (filters.from) query = query.gte('started_at', filters.from);
-  if (filters.to) query = query.lte('started_at', filters.to + 'T23:59:59');
-  if (filters.route_id) query = query.eq('route_id', filters.route_id);
+  if (filters.from) query = query.gte('boarded_at', filters.from + 'T00:00:00+08:00');
+  if (filters.to) query = query.lte('boarded_at', filters.to + 'T23:59:59+08:00');
+  if (filters.route_id) {
+    // Filter via buses.route_id — fetch all ride_logs then filter in JS since Supabase
+    // doesn't support nested FK filtering on referenced tables in the same query
+    const { data: busesWithRoute } = await supabase()
+      .from('buses')
+      .select('id')
+      .eq('route_id', filters.route_id);
+    if (!busesWithRoute?.length) return { data: [], total: 0, page, limit, totalPages: 0 };
+    query = query.in('bus_id', busesWithRoute.map((b: { id: string }) => b.id));
+  }
   if (filters.driver_id) query = query.eq('driver_id', filters.driver_id);
   if (filters.bus_id) query = query.eq('bus_id', filters.bus_id);
 
+  if (filters.status === 'pending_review') {
+    query = query.eq('is_manual', true).eq('admin_reviewed', false);
+  } else if (filters.status === 'onboard') {
+    query = query.is('alighted_at', null);
+  } else if (filters.status === 'completed') {
+    query = query.not('alighted_at', 'is', null);
+  }
+
   const { data, error, count } = await query;
   if (error) throw new Error('Failed to fetch ride logs: ' + error.message);
+
+  // Enrich scanned (non-manual) entries with resident names from e-service DB
+  const scannedLogs = (data ?? []).filter((log: any) => !log.is_manual && log.resident_id);
+  if (scannedLogs.length > 0) {
+    // Step 1: Get resident_uuid from libre_sakay_beneficiary (Libre Sakay DB)
+    const residentIds = scannedLogs.map((log: any) => log.resident_id);
+    const { data: beneficiaries } = await supabase()
+      .from('libre_sakay_beneficiary')
+      .select('resident_id, resident_uuid')
+      .in('resident_id', residentIds);
+
+    if (beneficiaries && beneficiaries.length > 0) {
+      const residentUuidMap = new Map(beneficiaries.map((b: any) => [b.resident_id, b.resident_uuid]));
+      const residentUuids = [...new Set([...residentUuidMap.values()])];
+
+      // Step 2: Get resident names from e-service DB (Prisma) via UUID mapping
+      const residents = await prisma.resident.findMany({
+        where: { id: { in: residentUuids } },
+        select: { id: true, residentId: true, firstName: true, lastName: true },
+      });
+      const nameMap = new Map(residents.map((r: any) => [r.id, r]));
+
+      // Step 3: Attach resident info to each scanned log
+      for (const log of scannedLogs) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const row = log as any;
+        const uuid = residentUuidMap.get(row.resident_id);
+        const resident = uuid ? nameMap.get(uuid) : null;
+        row.resident = resident
+          ? { residentId: (resident as any).residentId, firstName: (resident as any).firstName, lastName: (resident as any).lastName }
+          : null;
+      }
+
+      // Step 4: Fallback — for scanned logs where beneficiary mapping was not found,
+      // directly query e-service DB using residentId (display ID like "BRGN-2026-0010001")
+      const unfoundLogs = scannedLogs.filter((log: any) => !log.resident);
+      if (unfoundLogs.length > 0) {
+        const unfoundIds = unfoundLogs.map((log: any) => log.resident_id);
+        const fallbackResidents = await prisma.resident.findMany({
+          where: { residentId: { in: unfoundIds } },
+          select: { residentId: true, firstName: true, lastName: true },
+        });
+        const fallbackMap = new Map(fallbackResidents.map((r: any) => [r.residentId, r]));
+
+        for (const log of unfoundLogs) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const row = log as any;
+          const fallback = fallbackMap.get(row.resident_id);
+          if (fallback) {
+            row.resident = {
+              residentId: fallback.residentId,
+              firstName: fallback.firstName,
+              lastName: fallback.lastName,
+            };
+          }
+        }
+      }
+    }
+  }
 
   return { data: data ?? [], total: count ?? 0, page, limit, totalPages: Math.ceil((count ?? 0) / limit) };
 };
 
 export const getRidesTrend = async (days = 7): Promise<{ date: string; rides: number; passengers: number }[]> => {
-  const since = new Date();
+  const now = new Date();
+  // Get "today" in PHT
+  const phtTodayStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+  
+  const since = new Date(`${phtTodayStr}T00:00:00+08:00`);
   since.setDate(since.getDate() - (days - 1));
-  since.setHours(0, 0, 0, 0);
 
   const { data, error } = await supabase()
     .from('ride_logs')
-    .select('started_at, passenger_count')
-    .gte('started_at', since.toISOString());
+    .select('boarded_at')
+    .gte('boarded_at', since.toISOString());
 
   if (error) throw new Error('Failed to fetch rides trend: ' + error.message);
 
@@ -543,14 +804,27 @@ export const getRidesTrend = async (days = 7): Promise<{ date: string; rides: nu
   for (let i = 0; i < days; i++) {
     const d = new Date(since);
     d.setDate(d.getDate() + i);
-    byDay[d.toISOString().slice(0, 10)] = { rides: 0, passengers: 0 };
+    const dStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(d);
+    byDay[dStr] = { rides: 0, passengers: 0 };
   }
 
   for (const row of data ?? []) {
-    const day = (row.started_at as string).slice(0, 10);
+    const boardedAt = new Date(row.boarded_at as string);
+    const day = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(boardedAt);
     if (byDay[day]) {
       byDay[day].rides++;
-      byDay[day].passengers += row.passenger_count ?? 0;
+      // ride_logs has no passenger_count — each ride = 1 passenger for now
+      byDay[day].passengers += 1;
     }
   }
 
@@ -560,4 +834,13 @@ export const getRidesTrend = async (days = 7): Promise<{ date: string; rides: nu
 export const deleteRideLog = async (id: string): Promise<void> => {
   const { error } = await supabase().from('ride_logs').delete().eq('id', id);
   if (error) throw new Error('Failed to delete ride log: ' + error.message);
+};
+
+export const reviewRideLog = async (id: string): Promise<void> => {
+  const { error } = await supabase()
+    .from('ride_logs')
+    .update({ admin_reviewed: true })
+    .eq('id', id)
+    .eq('is_manual', true);
+  if (error) throw new Error('Failed to review ride log: ' + error.message);
 };

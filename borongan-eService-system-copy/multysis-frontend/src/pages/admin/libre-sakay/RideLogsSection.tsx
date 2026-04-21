@@ -4,7 +4,7 @@ import { queryKeys } from '@/lib/query-keys';
 import { useToast } from '@/hooks/use-toast';
 import { libreSakayService } from '@/services/api/libre-sakay.service';
 import type { RideLog } from './types';
-import { RIDE_STATUS_STYLES, LoadingRows, EmptyState } from './shared';
+import { LoadingRows, EmptyState } from './shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -29,24 +29,13 @@ export function RideLogsSection() {
   const [page, setPage] = useState(1);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [routeId, setRouteId] = useState('all');
-  const [driverId, setDriverId] = useState('all');
+  const [status, setStatus] = useState('all');
   const [appliedFilters, setAppliedFilters] = useState<{
     from?: string;
     to?: string;
-    route_id?: string;
-    driver_id?: string;
+    status?: string;
   }>({});
 
-  const { data: routes } = useQuery({
-    queryKey: queryKeys.libreSakay.routes.all,
-    queryFn: libreSakayService.getAvailableRoutes,
-  });
-
-  const { data: driversData } = useQuery({
-    queryKey: queryKeys.libreSakay.drivers.list(1, 100),
-    queryFn: () => libreSakayService.getDrivers(1, 100),
-  });
 
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.libreSakay.rideLogs.list(page, appliedFilters),
@@ -65,21 +54,30 @@ export function RideLogsSection() {
     },
   });
 
+  const reviewMutation = useMutation({
+    mutationFn: (id: string) => libreSakayService.reviewRideLog(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.rideLogs.all });
+      toast({ title: 'Ride log marked as reviewed' });
+    },
+    onError: (e: unknown) => {
+      toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
+    },
+  });
+
   const applyFilters = () => {
     setPage(1);
     setAppliedFilters({
       from: fromDate || undefined,
       to: toDate || undefined,
-      route_id: routeId === 'all' ? undefined : routeId || undefined,
-      driver_id: driverId === 'all' ? undefined : driverId || undefined,
+      status: status === 'all' ? undefined : status,
     });
   };
 
   const clearFilters = () => {
     setFromDate('');
     setToDate('');
-    setRouteId('all');
-    setDriverId('all');
+    setStatus('all');
     setPage(1);
     setAppliedFilters({});
   };
@@ -90,13 +88,21 @@ export function RideLogsSection() {
   const from = (page - 1) * 20 + 1;
   const to = Math.min(page * 20, total);
 
-  const formatDuration = (start: string, end: string | null) => {
+  const formatDuration = (start: string, end: string | null | undefined) => {
     if (!end) return '—';
     const mins = Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60_000);
     return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
   };
 
   const hasActiveFilters = Object.values(appliedFilters).some(Boolean);
+
+  const getLogTime = (dateStr: string) => {
+    const dt = new Date(dateStr);
+    return {
+      date: dt.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' }),
+      time: dt.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Manila' }),
+    };
+  };
 
   return (
     <div className="space-y-4">
@@ -113,34 +119,16 @@ export function RideLogsSection() {
               <Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="w-36" />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">Route</label>
-              <Select value={routeId} onValueChange={setRouteId}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="All routes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All routes</SelectItem>
-                  {(routes ?? []).map(r => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">Driver</label>
-              <Select value={driverId} onValueChange={setDriverId}>
+              <label className="text-xs font-medium text-gray-500 block mb-1">Status</label>
+              <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger className="w-44">
-                  <SelectValue placeholder="All drivers" />
+                  <SelectValue placeholder="All Logs" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All drivers</SelectItem>
-                  {(driversData?.data ?? []).map(d => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.full_name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">All Logs</SelectItem>
+                  <SelectItem value="pending_review">Needs Review</SelectItem>
+                  <SelectItem value="onboard">Currently Onboard</SelectItem>
+                  <SelectItem value="completed">Completed Rides</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -164,72 +152,139 @@ export function RideLogsSection() {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Ride History</CardTitle>
+          <CardTitle className="text-base font-semibold">Passenger Ride Logs</CardTitle>
         </CardHeader>
         <Table>
           <TableHeader>
-            <TableRow>
+              <TableRow>
+              <TableHead>Passenger</TableHead>
               <TableHead>Bus</TableHead>
-              <TableHead>Route</TableHead>
-              <TableHead>Driver</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead>Boarded At</TableHead>
+              <TableHead>Alighted At</TableHead>
               <TableHead>Duration</TableHead>
-              <TableHead>Passengers</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <LoadingRows cols={8} />
+              <LoadingRows cols={6} />
             ) : logs.length === 0 ? (
               <EmptyState
                 icon={<FiList />}
                 title="No ride logs yet"
-                description="Ride logs will appear here as drivers complete routes."
+                description="Ride logs will appear here as passengers board and alight."
               />
             ) : (
-              logs.map(log => (
-                <TableRow key={log.id}>
-                  <TableCell className="font-medium">{log.buses?.plate_number ?? '—'}</TableCell>
-                  <TableCell>{log.routes?.name ?? '—'}</TableCell>
-                  <TableCell>{log.driver?.full_name ?? '—'}</TableCell>
-                  <TableCell className="text-sm text-gray-500">
-                    {new Date(log.started_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
-                  </TableCell>
-                  <TableCell className="text-sm">{formatDuration(log.started_at, log.ended_at)}</TableCell>
-                  <TableCell>{log.passenger_count}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${RIDE_STATUS_STYLES[log.status]}`}
-                    >
-                      {log.status === 'in_progress'
-                        ? 'In Progress'
-                        : log.status === 'completed'
-                          ? 'Completed'
-                          : 'Cancelled'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                          <FiMoreVertical size={15} />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-red-600 focus:text-red-600"
-                          onClick={() => deleteMutation.mutate(log.id)}
-                        >
-                          <FiTrash2 className="mr-2" size={13} /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
+              logs.map(log => {
+                const bTime = getLogTime(log.boarded_at);
+                const aTime = log.alighted_at ? getLogTime(log.alighted_at) : null;
+                const passengerName = log.is_manual ? (log.manual_name || 'Manual Entry') : (log.resident ? `${log.resident.firstName} ${log.resident.lastName}` : 'Unresolved Resident');
+                const passengerId = log.is_manual ? log.manual_id : log.resident_id;
+
+                return (
+                  <TableRow key={log.id} className="group hover:bg-gray-50/50 transition-colors">
+                    {/* Passenger */}
+                    <TableCell>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900">{passengerName}</span>
+                          {log.is_manual && !log.admin_reviewed && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wider">
+                              Review
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
+                          {passengerId && <span>{passengerId}</span>}
+                          {log.is_manual && (
+                             <span className="px-1 bg-amber-50 text-amber-600 rounded">MANUAL</span>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    {/* Bus */}
+                    <TableCell>
+                      <div className="inline-flex items-center px-2 py-1 bg-gray-100 rounded text-xs font-bold text-gray-700">
+                        {log.buses?.plate_number ?? '—'}
+                      </div>
+                    </TableCell>
+                    {/* Boarded At */}
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-900 leading-tight">
+                          {log.boarded_barangay || 'Unknown'}
+                        </span>
+                        <span className="text-[11px] text-gray-500 mt-0.5">
+                          {bTime.date} • {bTime.time}
+                        </span>
+                      </div>
+                    </TableCell>
+                    {/* Alighted At */}
+                    <TableCell>
+                      {aTime ? (
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-900 leading-tight">
+                            {log.alighted_barangay || 'Unknown'}
+                          </span>
+                          <span className="text-[11px] text-gray-500 mt-0.5">
+                            {aTime.date} • {aTime.time}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">Still onboard...</span>
+                      )}
+                    </TableCell>
+                    {/* Duration */}
+                    <TableCell>
+                      <span className={`text-sm font-medium ${log.alighted_at ? 'text-gray-700' : 'text-blue-600 animate-pulse'}`}>
+                        {formatDuration(log.boarded_at, log.alighted_at)}
+                      </span>
+                    </TableCell>
+                    {/* Status badge */}
+                    <TableCell>
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          log.alighted_at
+                            ? 'bg-green-50 text-green-700 border border-green-100'
+                            : 'bg-blue-50 text-blue-700 border border-blue-100'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${log.alighted_at ? 'bg-green-500' : 'bg-blue-500 animate-ping'}`} />
+                        {log.alighted_at ? 'Completed' : 'Onboard'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                            <FiMoreVertical size={15} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {log.is_manual && !log.admin_reviewed && (
+                            <>
+                              <DropdownMenuItem
+                                className="text-amber-600 focus:text-amber-600"
+                                onClick={() => reviewMutation.mutate(log.id)}
+                              >
+                                <span className="mr-2">✓</span> Mark Reviewed
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
+                          <DropdownMenuItem
+                            className="text-red-600 focus:text-red-600"
+                            onClick={() => deleteMutation.mutate(log.id)}
+                          >
+                            <FiTrash2 className="mr-2" size={13} /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

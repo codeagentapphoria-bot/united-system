@@ -12,6 +12,7 @@ export const getBusByIdValidation: ValidationChain[] = [
 export const createBusValidation: ValidationChain[] = [
   body('plate_number').notEmpty().trim().withMessage('Plate number is required'),
   body('capacity').isInt({ min: 1 }).withMessage('Capacity must be a positive integer'),
+  body('model').optional().isString().trim(),
   body('route_id').optional().isUUID().withMessage('Invalid route ID'),
 ];
 
@@ -19,6 +20,7 @@ export const updateBusValidation: ValidationChain[] = [
   param('id').notEmpty().withMessage('Invalid bus ID'),
   body('plate_number').optional().notEmpty().trim(),
   body('capacity').optional().isInt({ min: 1 }),
+  body('model').optional().isString().trim(),
   body('route_id').optional(),
   body('is_active').optional().isBoolean(),
 ];
@@ -89,4 +91,14 @@ export const assignStopToRouteValidation: ValidationChain[] = [
 export const reorderStopsValidation: ValidationChain[] = [
   param('routeId').notEmpty().withMessage('Invalid route ID'),
   body('stop_ids').isArray({ min: 1 }).withMessage('stop_ids must be a non-empty array'),
+];
+
+export const replaceStopInRouteValidation: ValidationChain[] = [
+  param('routeId').notEmpty().withMessage('Invalid route ID'),
+  body('old_stop_id').notEmpty().withMessage('old_stop_id is required'),
+  body('new_stop_id').notEmpty().withMessage('new_stop_id is required'),
+];
+
+export const reviewRideLogValidation: ValidationChain[] = [
+  param('id').notEmpty().withMessage('Invalid ride log ID'),
 ];

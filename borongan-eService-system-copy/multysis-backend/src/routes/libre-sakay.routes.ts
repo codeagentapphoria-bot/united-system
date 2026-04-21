@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { verifyAdmin } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 import {
-  getFleetStatsController,
+  getFleetStatsController, getFleetLocationsController,
   getBusesController, getBusByIdController, getAvailableRoutesController,
   getAvailableDriversController, createBusController, updateBusController,
   deleteBusController, assignDriverController, unassignDriverController,
@@ -12,9 +12,11 @@ import {
   updateDriverController, deleteDriverController, assignBusController, unassignBusController,
   getAllStopsController, getStopsByRouteController, createStopController,
   updateStopController, deleteStopController, assignStopToRouteController,
-  removeStopFromRouteController, reorderStopsController,
+  removeStopFromRouteController, reorderStopsController, replaceStopInRouteController,
+  getRoutesForStopController,
   getDashboardStatsController,
   getRideLogsController, getRidesTrendController, deleteRideLogController,
+  reviewRideLogController,
 } from '../controllers/libre-sakay.controller';
 import {
   getBusesValidation, getBusByIdValidation, createBusValidation,
@@ -22,7 +24,8 @@ import {
   getRoutesValidation, createRouteValidation, updateRouteValidation,
   getDriversValidation, createDriverValidation, updateDriverValidation,
   createStopValidation, updateStopValidation, assignStopToRouteValidation,
-  reorderStopsValidation,
+  reorderStopsValidation, replaceStopInRouteValidation,
+  reviewRideLogValidation,
 } from '../validations/libre-sakay.schema';
 
 const router = Router();
@@ -34,6 +37,7 @@ router.get('/dashboard/stats', getDashboardStatsController);
 
 // Fleet
 router.get('/fleet/stats', getFleetStatsController);
+router.get('/fleet/locations', getFleetLocationsController);
 
 // Buses
 router.get('/buses', validate(getBusesValidation), getBusesController);
@@ -65,16 +69,19 @@ router.delete('/drivers/:driverId/buses', unassignBusController);
 
 // Stops
 router.get('/stops', getAllStopsController);
+router.get('/stops/:stopId/routes', getRoutesForStopController);
 router.post('/stops', validate(createStopValidation), createStopController);
 router.patch('/stops/:id', validate(updateStopValidation), updateStopController);
 router.delete('/stops/:id', deleteStopController);
 router.post('/routes/:routeId/stops', validate(assignStopToRouteValidation), assignStopToRouteController);
 router.delete('/routes/:routeId/stops', removeStopFromRouteController);
 router.patch('/routes/:routeId/stops/reorder', validate(reorderStopsValidation), reorderStopsController);
+router.patch('/routes/:routeId/stops/replace', validate(replaceStopInRouteValidation), replaceStopInRouteController);
 
 // Ride Logs
 router.get('/ride-logs', getRideLogsController);
 router.get('/ride-logs/trend', getRidesTrendController);
 router.delete('/ride-logs/:id', deleteRideLogController);
+router.patch('/ride-logs/:id/review', validate(reviewRideLogValidation), reviewRideLogController);
 
 export default router;

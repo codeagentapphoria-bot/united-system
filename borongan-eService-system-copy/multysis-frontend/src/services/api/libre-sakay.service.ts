@@ -1,5 +1,4 @@
 import api from './auth.service';
-import { supabase } from '@/lib/supabase';
 
 // =============================================================================
 // TYPES
@@ -71,6 +70,8 @@ export interface FleetStats {
 export interface FleetBus {
   bus_id: string;
   plate_number: string;
+  model: string | null;
+  capacity: number;
   latitude: number;
   longitude: number;
   speed: number;
@@ -101,17 +102,21 @@ export interface RidesTrendPoint {
 export interface RideLog {
   id: string;
   bus_id: string | null;
-  route_id: string | null;
   driver_id: string | null;
-  started_at: string;
-  ended_at: string | null;
-  passenger_count: number;
-  status: 'in_progress' | 'completed' | 'cancelled';
-  notes: string | null;
-  created_at: string;
-  buses: { plate_number: string } | null;
-  routes: { name: string } | null;
+  resident_id: string | null;
+  is_verified: boolean;
+  is_manual: boolean;
+  manual_name: string | null;
+  admin_reviewed: boolean;
+  boarded_at: string;
+  boarded_barangay: string | null;
+  alighted_at: string | null;
+  alighted_barangay: string | null;
+  synced: boolean;
+  manual_id: string | null;
+  buses: { plate_number: string; route_id: string | null; routes: { name: string } | null } | null;
   driver: { full_name: string } | null;
+  resident: { residentId: string | null; firstName: string; lastName: string } | null;
 }
 
 export interface PaginatedResponse<T> {
@@ -138,21 +143,8 @@ export const libreSakayService = {
   },
 
   async getFleetLocations(): Promise<FleetBus[]> {
-    const { data, error } = await supabase.rpc('get_fleet_data');
-    if (error) throw new Error(error.message);
-    return (data ?? []).map((row: Record<string, unknown>) => ({
-      bus_id: row.bus_id as string,
-      plate_number: row.plate_number as string,
-      latitude: row.latitude as number,
-      longitude: row.longitude as number,
-      speed: row.speed as number,
-      heading: row.heading as number,
-      status: ((row.speed as number) > 5 ? 'moving' : 'parked') as 'moving' | 'parked',
-      route_name: row.route_name as string | null,
-      driver_name: row.driver_name as string | null,
-      barangay_name: row.barangay_name as string | null,
-      updated_at: row.updated_at as string,
-    }));
+    const response = await api.get(`${BASE}/fleet/locations`);
+    return response.data.data;
   },
 
   // Buses
@@ -176,14 +168,14 @@ export const libreSakayService = {
     return response.data.data;
   },
 
-  async createBus(data: { plate_number: string; capacity: number; route_id?: string }): Promise<Bus> {
+  async createBus(data: { plate_number: string; capacity: number; model?: string; route_id?: string }): Promise<Bus> {
     const response = await api.post(`${BASE}/buses`, data);
     return response.data.data;
   },
 
   async updateBus(
     id: string,
-    data: Partial<{ plate_number: string; capacity: number; route_id: string | null; is_active: boolean }>
+    data: Partial<{ plate_number: string; capacity: number; model: string | null; route_id: string | null; is_active: boolean }>
   ): Promise<Bus> {
     const response = await api.patch(`${BASE}/buses/${id}`, data);
     return response.data.data;
@@ -276,6 +268,11 @@ export const libreSakayService = {
     return response.data.data;
   },
 
+  async getRoutesForStop(stopId: string): Promise<{ route_id: string; route_name: string | null; route_is_active: boolean; sequence_order: number }[]> {
+    const response = await api.get(`${BASE}/stops/${stopId}/routes`);
+    return response.data.data;
+  },
+
   async createStop(data: { name: string; latitude: number; longitude: number }): Promise<Stop> {
     const response = await api.post(`${BASE}/stops`, data);
     return response.data.data;
@@ -302,6 +299,10 @@ export const libreSakayService = {
     await api.patch(`${BASE}/routes/${routeId}/stops/reorder`, { stop_ids: stopIds });
   },
 
+  async replaceStopInRoute(routeId: string, oldStopId: string, newStopId: string): Promise<void> {
+    await api.patch(`${BASE}/routes/${routeId}/stops/replace`, { old_stop_id: oldStopId, new_stop_id: newStopId });
+  },
+
   // Dashboard
   async getDashboardStats(): Promise<DashboardStats> {
     const response = await api.get(`${BASE}/dashboard/stats`);
@@ -317,7 +318,7 @@ export const libreSakayService = {
   async getRideLogs(
     page = 1,
     limit = 20,
-    filters?: { from?: string; to?: string; route_id?: string; driver_id?: string; bus_id?: string }
+    filters?: { from?: string; to?: string; route_id?: string; driver_id?: string; bus_id?: string; status?: string }
   ): Promise<PaginatedResponse<RideLog>> {
     const response = await api.get(`${BASE}/ride-logs`, { params: { page, limit, ...filters } });
     return { data: response.data.data, pagination: response.data.pagination };
@@ -325,5 +326,9 @@ export const libreSakayService = {
 
   async deleteRideLog(id: string): Promise<void> {
     await api.delete(`${BASE}/ride-logs/${id}`);
+  },
+
+  async reviewRideLog(id: string): Promise<void> {
+    await api.patch(`${BASE}/ride-logs/${id}/review`);
   },
 };

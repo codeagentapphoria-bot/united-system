@@ -103,6 +103,7 @@ export const queryKeys = {
       all: ['libreSakay', 'stops'] as const,
       list: (page: number, limit?: number) => ['libreSakay', 'stops', 'list', page, limit] as const,
       detail: (id: string) => ['libreSakay', 'stops', 'detail', id] as const,
+      routes: (id: string) => ['libreSakay', 'stops', 'routes', id] as const,
     },
     dashboardStats: ['libreSakay', 'dashboardStats'] as const,
     ridesTrend: (days: number) => ['libreSakay', 'ridesTrend', days] as const,

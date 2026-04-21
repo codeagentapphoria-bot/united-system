@@ -38,6 +38,7 @@ function BusFormDialog({
   const { toast } = useToast();
   const [plate, setPlate] = useState(bus?.plate_number ?? '');
   const [capacity, setCapacity] = useState(bus?.capacity?.toString() ?? '50');
+  const [model, setModel] = useState(bus?.model ?? '');
   const [routeId, setRouteId] = useState(bus?.route_id ?? 'none');
   const mutation = useMutation({
     mutationFn: bus
@@ -61,10 +62,12 @@ function BusFormDialog({
     if (bus) {
       setPlate(bus.plate_number);
       setCapacity(bus.capacity.toString());
+      setModel(bus.model ?? '');
       setRouteId(bus.route_id ?? 'none');
     } else {
       setPlate('');
       setCapacity('50');
+      setModel('');
       setRouteId('none');
     }
   }, [bus, open]);
@@ -79,6 +82,10 @@ function BusFormDialog({
           <div>
             <label className="text-sm font-medium">Plate Number</label>
             <Input value={plate} onChange={e => setPlate(e.target.value)} placeholder="ABC 1234" />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Model</label>
+            <Input value={model} onChange={e => setModel(e.target.value)} placeholder="e.g., Toyota Coaster" />
           </div>
           <div>
             <label className="text-sm font-medium">Capacity</label>
@@ -105,16 +112,17 @@ function BusFormDialog({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            onClick={() =>
-              mutation.mutate({
-                plate_number: plate,
-                capacity: parseInt(capacity),
-                route_id: routeId === 'none' ? undefined : routeId || undefined,
-              })
-            }
-            disabled={mutation.isPending}
-          >
+            <Button
+              onClick={() =>
+                mutation.mutate({
+                  plate_number: plate,
+                  capacity: parseInt(capacity),
+                  model: model || undefined,
+                  route_id: routeId === 'none' ? undefined : routeId || undefined,
+                })
+              }
+              disabled={mutation.isPending}
+            >
             {mutation.isPending ? 'Saving...' : 'Save'}
           </Button>
         </DialogFooter>

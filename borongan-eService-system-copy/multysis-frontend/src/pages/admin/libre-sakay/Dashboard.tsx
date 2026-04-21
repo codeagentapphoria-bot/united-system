@@ -94,7 +94,7 @@ export function DashboardSection() {
 
   const trendData = (trend ?? []).map(p => ({
     ...p,
-    label: new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    label: new Date(p.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' }),
   }));
 
   return (

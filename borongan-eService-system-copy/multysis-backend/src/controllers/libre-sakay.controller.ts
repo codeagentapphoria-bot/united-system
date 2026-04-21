@@ -1,15 +1,15 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import {
-  getFleetStats,
+  getFleetStats, getFleetLocations,
   getBuses, getBusById, getAvailableRoutes, getAvailableDrivers,
   createBus, updateBus, deleteBus, assignDriverToBus, unassignDriverFromBus,
   getRoutes, getRouteById, getRouteWithStops, createRoute, updateRoute, deleteRoute,
   getDrivers, getDriverById, createDriver, updateDriver, deleteDriver,
   assignBusToDriver, unassignBusFromDriver,
   getAllStops, getStopsByRoute, createStop, updateStop, deleteStop,
-  assignStopToRoute, removeStopFromRoute, reorderStopsInRoute,
-  getDashboardStats, getRideLogs, getRidesTrend, deleteRideLog,
+  assignStopToRoute, removeStopFromRoute, reorderStopsInRoute, replaceStopInRoute, getRoutesForStop,
+  getDashboardStats, getRideLogs, getRidesTrend, deleteRideLog, reviewRideLog,
 } from '../services/libre-sakay.service';
 
 // Helper to send paginated response
@@ -29,6 +29,15 @@ export const getFleetStatsController = async (_req: AuthRequest, res: Response):
   try {
     const stats = await getFleetStats();
     res.status(200).json({ status: 'success', data: stats });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+export const getFleetLocationsController = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const locations = await getFleetLocations();
+    res.status(200).json({ status: 'success', data: locations });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: error.message });
   }
@@ -79,8 +88,8 @@ export const getAvailableDriversController = async (_req: AuthRequest, res: Resp
 
 export const createBusController = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { plate_number, capacity, route_id } = req.body;
-    const bus = await createBus(plate_number, capacity, route_id);
+    const { plate_number, capacity, route_id, model } = req.body;
+    const bus = await createBus(plate_number, capacity, route_id, model);
     res.status(201).json({ status: 'success', data: bus });
   } catch (error: any) {
     res.status(400).json({ status: 'error', message: error.message });
@@ -274,6 +283,15 @@ export const getAllStopsController = async (_req: AuthRequest, res: Response): P
   }
 };
 
+export const getRoutesForStopController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const routes = await getRoutesForStop(req.params.stopId);
+    res.status(200).json({ status: 'success', data: routes });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
 export const getStopsByRouteController = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const stops = await getStopsByRoute(req.params.routeId);
@@ -341,6 +359,16 @@ export const reorderStopsController = async (req: AuthRequest, res: Response): P
   }
 };
 
+export const replaceStopInRouteController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { old_stop_id, new_stop_id } = req.body;
+    await replaceStopInRoute(req.params.routeId, old_stop_id, new_stop_id);
+    res.status(200).json({ status: 'success' });
+  } catch (error: any) {
+    res.status(400).json({ status: 'error', message: error.message });
+  }
+};
+
 // =============================================================================
 // DASHBOARD STATS
 // =============================================================================
@@ -365,9 +393,9 @@ export const getRideLogsController = async (req: AuthRequest, res: Response): Pr
     const filters = {
       from: req.query.from as string | undefined,
       to: req.query.to as string | undefined,
-      route_id: req.query.route_id as string | undefined,
       driver_id: req.query.driver_id as string | undefined,
       bus_id: req.query.bus_id as string | undefined,
+      status: req.query.status as string | undefined,
     };
     const result = await getRideLogs(page, limit, filters);
     paginated(result.data, result.total, result.page, result.limit, res);
@@ -390,6 +418,15 @@ export const deleteRideLogController = async (req: AuthRequest, res: Response): 
   try {
     await deleteRideLog(req.params.id);
     res.status(204).send();
+  } catch (error: any) {
+    res.status(400).json({ status: 'error', message: error.message });
+  }
+};
+
+export const reviewRideLogController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    await reviewRideLog(req.params.id);
+    res.status(200).json({ status: 'success' });
   } catch (error: any) {
     res.status(400).json({ status: 'error', message: error.message });
   }

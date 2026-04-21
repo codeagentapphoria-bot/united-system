@@ -174,6 +174,13 @@ export function StopsTab() {
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editStop, setEditStop] = useState<Stop | undefined>();
+  const [viewRoutesStop, setViewRoutesStop] = useState<Stop | undefined>();
+
+  const { data: stopRoutes } = useQuery({
+    queryKey: queryKeys.libreSakay.stops.routes(viewRoutesStop?.id ?? ''),
+    queryFn: () => libreSakayService.getRoutesForStop(viewRoutesStop!.id),
+    enabled: !!viewRoutesStop,
+  });
 
   const { data: stops, isLoading } = useQuery({
     queryKey: queryKeys.libreSakay.stops.all,
@@ -247,6 +254,9 @@ export function StopsTab() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setViewRoutesStop(stop)}>
+                          <FiMapPin className="mr-2" size={13} /> View Routes
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setEditStop(stop)}>
                           <FiEdit2 className="mr-2" size={13} /> Edit
                         </DropdownMenuItem>
@@ -280,6 +290,32 @@ export function StopsTab() {
           onSuccess={() => queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.stops.all })}
         />
       )}
+      <Dialog open={!!viewRoutesStop} onOpenChange={() => setViewRoutesStop(undefined)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Routes via {viewRoutesStop?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {!stopRoutes && (
+              <p className="text-sm text-gray-400 text-center py-4">Loading routes...</p>
+            )}
+            {stopRoutes?.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-4">No routes pass through this stop.</p>
+            )}
+            {stopRoutes?.map(r => (
+              <div key={r.route_id} className="flex items-center justify-between border rounded p-2">
+                <span className="text-sm">{r.route_name ?? 'Unknown route'}</span>
+                <span className={`text-xs px-2 py-0.5 rounded ${r.route_is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                  {r.route_is_active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewRoutesStop(undefined)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

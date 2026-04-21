@@ -84,6 +84,8 @@ export function FleetMap() {
             <Popup>
               <div className="text-sm space-y-1">
                 <p className="font-semibold">{bus.plate_number}</p>
+                {bus.model && <p>Model: {bus.model}</p>}
+                {bus.capacity > 0 && <p>Capacity: {bus.capacity} seats</p>}
                 {bus.route_name && <p>Route: {bus.route_name}</p>}
                 {bus.driver_name && <p>Driver: {bus.driver_name}</p>}
                 <p>
@@ -91,6 +93,8 @@ export function FleetMap() {
                   <span className={bus.status === 'moving' ? 'text-green-600' : 'text-orange-500'}>{bus.status}</span>
                 </p>
                 <p>Speed: {bus.speed} km/h</p>
+                {bus.heading != null && bus.heading !== 0 && <p>Heading: {bus.heading}°</p>}
+                {bus.barangay_name && <p>Location: {bus.barangay_name}</p>}
               </div>
             </Popup>
           </Marker>
