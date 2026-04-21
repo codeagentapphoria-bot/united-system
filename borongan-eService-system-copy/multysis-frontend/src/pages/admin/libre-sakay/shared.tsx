@@ -87,5 +87,6 @@ export const SECTION_TITLES: Record<string, string> = {
   drivers: 'Drivers',
   stops: 'Stops',
   'ride-logs': 'Ride Logs',
+  applications: 'Beneficiaries & Application',
   'access-control': 'Access Control',
 };

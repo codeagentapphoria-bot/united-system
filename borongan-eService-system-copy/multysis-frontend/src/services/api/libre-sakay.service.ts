@@ -237,7 +237,7 @@ export const libreSakayService = {
     return response.data.data;
   },
 
-  async createDriver(data: { email: string; full_name: string; phone: string; password: string }): Promise<any> {
+  async createDriver(data: { email: string; full_name: string; phone: string; password: string }): Promise<Driver> {
     const response = await api.post(`${BASE}/drivers`, data);
     return response.data.data;
   },
@@ -252,6 +252,10 @@ export const libreSakayService = {
 
   async deleteDriver(id: string): Promise<void> {
     await api.delete(`${BASE}/drivers/${id}`);
+  },
+
+  async hardDeleteDriver(id: string): Promise<void> {
+    await api.delete(`${BASE}/drivers/${id}/permanent`);
   },
 
   async assignBusToDriver(driverId: string, busId: string): Promise<void> {

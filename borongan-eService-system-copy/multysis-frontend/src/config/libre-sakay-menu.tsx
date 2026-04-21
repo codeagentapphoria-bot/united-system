@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiHome, FiMap, FiTruck, FiGitBranch, FiUsers, FiMapPin, FiShield, FiList } from 'react-icons/fi';
+import { FiHome, FiMap, FiTruck, FiGitBranch, FiUsers, FiMapPin, FiShield, FiList, FiUserCheck } from 'react-icons/fi';
 
 interface MenuItem {
   path?: string;
@@ -13,6 +13,7 @@ interface MenuItem {
 
 export const libresakayMenuItems: MenuItem[] = [
   { path: '/admin/libre-sakay/dashboard', label: 'Dashboard', icon: <FiHome /> },
+  { path: '/admin/libre-sakay/applications', label: 'Beneficiary & Apps', icon: <FiUserCheck /> },
   { path: '/admin/libre-sakay/fleet', label: 'Fleet', icon: <FiMap /> },
   { path: '/admin/libre-sakay/buses', label: 'Buses', icon: <FiTruck /> },
   { path: '/admin/libre-sakay/routes', label: 'Routes', icon: <FiGitBranch /> },

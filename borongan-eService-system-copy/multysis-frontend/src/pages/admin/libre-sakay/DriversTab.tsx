@@ -19,9 +19,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { DeleteConfirmModal } from '@/components/modals/libre-sakay/DeleteConfirmModal';
+import { DeactivateDriverModal } from '@/components/modals/libre-sakay/DeactivateDriverModal';
 
 // =============================================================================
-// DRIVER FORM DIALOG
+// DRIVER FORM DIALOG (with password confirmation)
 // =============================================================================
 
 function DriverFormDialog({
@@ -38,11 +40,16 @@ function DriverFormDialog({
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
   const mutation = useMutation({
-    mutationFn: (data: unknown) => libreSakayService.createDriver(data as Parameters<typeof libreSakayService.createDriver>[0]),
+    mutationFn: (data: unknown) =>
+      libreSakayService.createDriver(data as Parameters<typeof libreSakayService.createDriver>[0]),
     onSuccess: () => {
       onSuccess();
       onClose();
+      toast({ title: 'Driver created successfully' });
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -55,8 +62,31 @@ function DriverFormDialog({
       setName('');
       setPhone('');
       setPassword('');
+      setConfirmPassword('');
+      setPasswordError('');
     }
   }, [open]);
+
+  const handleConfirmPassword = (value: string) => {
+    setConfirmPassword(value);
+    if (value !== password && value.length > 0) {
+      setPasswordError('Passwords do not match');
+    } else {
+      setPasswordError('');
+    }
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    if (confirmPassword.length > 0 && value !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+    } else {
+      setPasswordError('');
+    }
+  };
+
+  const isFormValid =
+    email && name && phone && password && confirmPassword && !passwordError && password === confirmPassword;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -79,7 +109,22 @@ function DriverFormDialog({
           </div>
           <div>
             <label className="text-sm font-medium">Password</label>
-            <Input type="password" value={password} onChange={e => setPassword(e.target.value)} />
+            <Input
+              type="password"
+              value={password}
+              onChange={e => handlePasswordChange(e.target.value)}
+              placeholder="Minimum 6 characters"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Confirm Password</label>
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={e => handleConfirmPassword(e.target.value)}
+              placeholder="Re-enter password"
+            />
+            {passwordError && <p className="text-xs text-red-500 mt-1">{passwordError}</p>}
           </div>
         </div>
         <DialogFooter>
@@ -88,7 +133,7 @@ function DriverFormDialog({
           </Button>
           <Button
             onClick={() => mutation.mutate({ email, full_name: name, phone, password })}
-            disabled={mutation.isPending || !email || !name || !phone || !password}
+            disabled={mutation.isPending || !isFormValid}
           >
             {mutation.isPending ? 'Creating...' : 'Create Driver'}
           </Button>
@@ -118,10 +163,12 @@ function EditDriverDialog({
   const [phone, setPhone] = useState(driver.phone ?? '');
   const [isActive, setIsActive] = useState(driver.is_active);
   const mutation = useMutation({
-    mutationFn: (data: unknown) => libreSakayService.updateDriver(driver.id, data as Parameters<typeof libreSakayService.updateDriver>[1]),
+    mutationFn: (data: unknown) =>
+      libreSakayService.updateDriver(driver.id, data as Parameters<typeof libreSakayService.updateDriver>[1]),
     onSuccess: () => {
       onSuccess();
       onClose();
+      toast({ title: 'Driver updated successfully' });
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -203,6 +250,7 @@ function AssignBusDialog({
     mutationFn: (busId: string) => libreSakayService.assignBusToDriver(driver.id, busId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.drivers.all });
+      toast({ title: 'Bus assigned successfully' });
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -212,6 +260,7 @@ function AssignBusDialog({
     mutationFn: (busId: string) => libreSakayService.unassignBusFromDriver(driver.id, busId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.drivers.all });
+      toast({ title: 'Bus unassigned successfully' });
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -296,16 +345,44 @@ export function DriversTab() {
   const [editDriver, setEditDriver] = useState<Driver | undefined>();
   const [assignDriver, setAssignDriver] = useState<Driver | undefined>();
 
+  // Deactivate / Reactivate modal
+  const [deactivateModal, setDeactivateModal] = useState<{ open: boolean; driver: Driver | null }>({
+    open: false,
+    driver: null,
+  });
+
+  // Permanent delete modal
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; driver: Driver | null }>({
+    open: false,
+    driver: null,
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.libreSakay.drivers.list(page),
     queryFn: () => libreSakayService.getDrivers(page, 20),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => libreSakayService.deleteDriver(id),
+  // Toggle deactivate/reactivate
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      libreSakayService.updateDriver(id, { is_active: isActive }),
+    onSuccess: (_, { isActive }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.drivers.all });
+      toast({ title: isActive ? 'Driver deactivated' : 'Driver reactivated' });
+      setDeactivateModal({ open: false, driver: null });
+    },
+    onError: (e: unknown) => {
+      toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
+    },
+  });
+
+  // Hard delete (permanent)
+  const hardDeleteMutation = useMutation({
+    mutationFn: (id: string) => libreSakayService.hardDeleteDriver(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.drivers.all });
-      toast({ title: 'Driver deactivated' });
+      toast({ title: 'Driver deleted permanently' });
+      setDeleteModal({ open: false, driver: null });
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -317,6 +394,20 @@ export function DriversTab() {
   const total = pagination?.total ?? drivers.length;
   const from = (page - 1) * 20 + 1;
   const to = Math.min(page * 20, total);
+
+  // Derive isDeactivating from the modal driver state before resetting
+  const handleDeactivateConfirm = () => {
+    const driver = deactivateModal.driver;
+    if (!driver) return;
+    const isDeactivating = driver.is_active === true;
+    toggleMutation.mutate({ id: driver.id, isActive: !isDeactivating });
+  };
+
+  const handleDeleteConfirm = () => {
+    const driver = deleteModal.driver;
+    if (!driver) return;
+    hardDeleteMutation.mutate(driver.id);
+  };
 
   return (
     <div className="space-y-4">
@@ -365,9 +456,9 @@ export function DriversTab() {
                   <TableCell className="text-sm text-gray-500">{driver.email}</TableCell>
                   <TableCell>{driver.phone ?? <span className="text-gray-400 text-xs">—</span>}</TableCell>
                   <TableCell>
-                    {(driver.driver_buses || []).map(db => db.buses?.plate_number || 'Unknown').join(', ') || (
-                      <span className="text-gray-400 text-xs">None</span>
-                    )}
+                    {(driver.driver_buses || [])
+                      .map(db => db.buses?.plate_number || 'Unknown')
+                      .join(', ') || <span className="text-gray-400 text-xs">None</span>}
                   </TableCell>
                   <TableCell>
                     <StatusBadge active={driver.is_active} />
@@ -387,11 +478,19 @@ export function DriversTab() {
                           <FiTruck className="mr-2" size={13} /> Manage Buses
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
+                        {/* Deactivate / Reactivate */}
+                        <DropdownMenuItem
+                          className={driver.is_active ? 'text-amber-600 focus:text-amber-600' : 'text-green-600 focus:text-green-600'}
+                          onClick={() => setDeactivateModal({ open: true, driver })}
+                        >
+                          {driver.is_active ? 'Deactivate Driver' : 'Reactivate Driver'}
+                        </DropdownMenuItem>
+                        {/* Permanent delete */}
                         <DropdownMenuItem
                           className="text-red-600 focus:text-red-600"
-                          onClick={() => deleteMutation.mutate(driver.id)}
+                          onClick={() => setDeleteModal({ open: true, driver })}
                         >
-                          <FiTrash2 className="mr-2" size={13} /> Deactivate
+                          <FiTrash2 className="mr-2" size={13} /> Delete Permanently
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -441,8 +540,33 @@ export function DriversTab() {
         />
       )}
       {assignDriver && (
-        <AssignBusDialog open={!!assignDriver} onClose={() => setAssignDriver(undefined)} driver={assignDriver} />
+        <AssignBusDialog
+          open={!!assignDriver}
+          onClose={() => setAssignDriver(undefined)}
+          driver={assignDriver}
+        />
       )}
+
+      {/* Deactivate / Reactivate confirmation modal */}
+      <DeactivateDriverModal
+        open={deactivateModal.open}
+        onClose={() => setDeactivateModal({ open: false, driver: null })}
+        onConfirm={handleDeactivateConfirm}
+        driverName={deactivateModal.driver?.full_name ?? ''}
+        isDeactivating={deactivateModal.driver?.is_active === true}
+        isLoading={toggleMutation.isPending}
+      />
+
+      {/* Permanent delete confirmation modal */}
+      <DeleteConfirmModal
+        open={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, driver: null })}
+        onConfirm={handleDeleteConfirm}
+        itemName={deleteModal.driver?.full_name ?? ''}
+        itemType="Driver"
+        description="This will permanently remove the driver and cannot be undone."
+        isLoading={hardDeleteMutation.isPending}
+      />
     </div>
   );
 }

@@ -20,8 +20,10 @@ export function AccessControlSection() {
           </div>
         </CardContent>
       </Card>
-      <div className="flex items-center justify-center h-48 bg-white rounded-lg border border-dashed border-gray-300">
-        <p className="text-sm text-gray-400">Staff management coming soon</p>
+      <div className="flex flex-col items-center justify-center h-48 bg-white rounded-lg border border-gray-200">
+        <FiShield size={32} className="text-gray-300 mb-3" />
+        <p className="text-sm font-medium text-gray-500">Access control is not available in this version</p>
+        <p className="text-xs text-gray-400 mt-1">Contact your system administrator to manage staff permissions</p>
       </div>
     </div>
   );

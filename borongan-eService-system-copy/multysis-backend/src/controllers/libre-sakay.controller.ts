@@ -5,7 +5,7 @@ import {
   getBuses, getBusById, getAvailableRoutes, getAvailableDrivers,
   createBus, updateBus, deleteBus, assignDriverToBus, unassignDriverFromBus,
   getRoutes, getRouteById, getRouteWithStops, createRoute, updateRoute, deleteRoute,
-  getDrivers, getDriverById, createDriver, updateDriver, deleteDriver,
+  getDrivers, getDriverById, createDriver, updateDriver, deleteDriver, deleteDriverPermanent,
   assignBusToDriver, unassignBusFromDriver,
   getAllStops, getStopsByRoute, createStop, updateStop, deleteStop,
   assignStopToRoute, removeStopFromRoute, reorderStopsInRoute, replaceStopInRoute, getRoutesForStop,
@@ -244,6 +244,15 @@ export const updateDriverController = async (req: AuthRequest, res: Response): P
 export const deleteDriverController = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     await deleteDriver(req.params.id);
+    res.status(204).send();
+  } catch (error: any) {
+    res.status(400).json({ status: 'error', message: error.message });
+  }
+};
+
+export const deleteDriverPermanentController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    await deleteDriverPermanent(req.params.id);
     res.status(204).send();
   } catch (error: any) {
     res.status(400).json({ status: 'error', message: error.message });

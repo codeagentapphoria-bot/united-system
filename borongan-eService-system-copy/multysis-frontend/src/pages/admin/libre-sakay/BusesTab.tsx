@@ -19,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { DeleteConfirmModal } from '@/components/modals/libre-sakay/DeleteConfirmModal';
 
 // =============================================================================
 // BUS FORM DIALOG
@@ -47,6 +48,7 @@ function BusFormDialog({
     onSuccess: () => {
       onSuccess();
       onClose();
+      toast({ title: bus ? 'Bus updated successfully' : 'Bus created successfully' });
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -156,6 +158,7 @@ function AssignDriverDialog({
     mutationFn: (driverId: string) => libreSakayService.assignDriverToBus(bus.id, driverId),
     onSuccess: () => {
       onSuccess();
+      toast({ title: 'Driver assigned successfully' });
       onClose();
     },
     onError: (e: unknown) => {
@@ -166,6 +169,7 @@ function AssignDriverDialog({
     mutationFn: (driverId: string) => libreSakayService.unassignDriverFromBus(bus.id, driverId),
     onSuccess: () => {
       onSuccess();
+      toast({ title: 'Driver unassigned successfully' });
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -242,6 +246,7 @@ export function BusesTab() {
   const [editBus, setEditBus] = useState<Bus | undefined>();
   const [showForm, setShowForm] = useState(false);
   const [assignBus, setAssignBus] = useState<Bus | undefined>();
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; bus: Bus | null }>({ open: false, bus: null });
 
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.libreSakay.buses.list(page),
@@ -252,6 +257,7 @@ export function BusesTab() {
     mutationFn: (id: string) => libreSakayService.deleteBus(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.buses.all });
+      setDeleteModal({ open: false, bus: null });
       toast({ title: 'Bus deleted' });
     },
     onError: (e: unknown) => {
@@ -354,7 +360,7 @@ export function BusesTab() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-red-600 focus:text-red-600"
-                          onClick={() => deleteMutation.mutate(bus.id)}
+                          onClick={() => setDeleteModal({ open: true, bus })}
                         >
                           <FiTrash2 className="mr-2" size={13} /> Delete
                         </DropdownMenuItem>
@@ -406,6 +412,19 @@ export function BusesTab() {
           onSuccess={() => queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.buses.all })}
         />
       )}
+
+      <DeleteConfirmModal
+        open={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, bus: null })}
+        onConfirm={() => {
+          const bus = deleteModal.bus;
+          if (bus) deleteMutation.mutate(bus.id);
+        }}
+        itemName={deleteModal.bus?.plate_number ?? ''}
+        itemType="Bus"
+        description="This will permanently remove the bus and cannot be undone."
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

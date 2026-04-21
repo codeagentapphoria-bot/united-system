@@ -36,6 +36,7 @@ const implementedRoutes = [
   '/admin/libre-sakay/drivers',
   '/admin/libre-sakay/stops',
   '/admin/libre-sakay/ride-logs',
+  '/admin/libre-sakay/applications',
   '/admin/libre-sakay/access-control',
   '/admin/e-government/social-amelioration',
   '/admin/e-government/reports',

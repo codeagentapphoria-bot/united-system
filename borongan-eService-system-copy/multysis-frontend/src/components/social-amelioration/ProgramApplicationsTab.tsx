@@ -71,9 +71,10 @@ interface ResidentPreviewDialogProps {
   appId: string | null;
   open: boolean;
   onClose: () => void;
+  programId?: string;
 }
 
-const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, open, onClose }) => {
+const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, open, onClose, programId }) => {
   const { toast } = useToast();
   const [detail, setDetail] = useState<AdminProgramApplicationDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -192,10 +193,12 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Application Details</p>
               <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100 text-sm">
-                <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-gray-500">Program</span>
-                  <span className="font-medium text-heading-700">{detail.program.name}</span>
-                </div>
+                {!programId && (
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="text-gray-500">Program</span>
+                    <span className="font-medium text-heading-700">{detail.program.name}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-gray-500">Applied</span>
                   <span className="font-medium text-heading-700">
@@ -301,9 +304,10 @@ interface ReviewDialogProps {
   onClose: () => void;
   onReview: (action: 'approve' | 'reject', notes?: string) => Promise<void>;
   isLoading: boolean;
+  programId?: string;
 }
 
-const ReviewDialog: React.FC<ReviewDialogProps> = ({ application, open, onClose, onReview, isLoading }) => {
+const ReviewDialog: React.FC<ReviewDialogProps> = ({ application, open, onClose, onReview, isLoading, programId }) => {
   const [notes, setNotes] = useState('');
 
   if (!application) return null;
@@ -330,10 +334,12 @@ const ReviewDialog: React.FC<ReviewDialogProps> = ({ application, open, onClose,
               <span className="text-gray-500">Applicant: </span>
               <span className="font-medium text-heading-700">{fullName}</span>
             </div>
-            <div>
-              <span className="text-gray-500">Program: </span>
-              <span className="font-medium text-heading-700">{application.program.name}</span>
-            </div>
+            {!programId && (
+              <div>
+                <span className="text-gray-500">Program: </span>
+                <span className="font-medium text-heading-700">{application.program.name}</span>
+              </div>
+            )}
             <div>
               <span className="text-gray-500">Barangay: </span>
               <span className="font-medium">{application.resident.barangay?.barangayName || '—'}</span>
@@ -390,14 +396,17 @@ const ReviewDialog: React.FC<ReviewDialogProps> = ({ application, open, onClose,
 // ProgramApplicationsTab
 // ---------------------------------------------------------------------------
 
-export const ProgramApplicationsTab: React.FC = () => {
+export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatus?: string }> = ({
+  programId,
+  initialStatus = 'pending',
+}) => {
   const { toast } = useToast();
 
   const [applications, setApplications] = useState<AdminProgramApplication[]>([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
-  const [statusFilter, setStatusFilter] = useState<string>('pending');
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
   const [localSearch, setLocalSearch] = useState('');
   const debouncedSearch = useDebounce(localSearch, 300);
 
@@ -414,6 +423,7 @@ export const ProgramApplicationsTab: React.FC = () => {
       try {
         const result = await portalProgramsService.listApplicationsAdmin({
           status: statusFilter || undefined,
+          programId: programId,
           search: debouncedSearch || undefined,
           page,
           limit: 20,
@@ -430,7 +440,7 @@ export const ProgramApplicationsTab: React.FC = () => {
         setIsLoading(false);
       }
     },
-    [statusFilter, debouncedSearch, toast]
+    [statusFilter, debouncedSearch, toast, programId]
   );
 
   useEffect(() => {
@@ -540,24 +550,35 @@ export const ProgramApplicationsTab: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="flex flex-col items-start sm:items-end gap-1.5">
-                    <p className="text-sm font-medium text-heading-700">{app.program.name}</p>
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1 flex-wrap">
-                        {app.program.types.map(t => (
-                          <span key={t} className="text-xs bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">
-                            {TYPE_LABELS[t]}
-                          </span>
-                        ))}
+                  {!programId && (
+                    <div className="flex flex-col items-start sm:items-end gap-1.5">
+                      <p className="text-sm font-medium text-heading-700">{app.program.name}</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1 flex-wrap">
+                          {app.program.types.map(t => (
+                            <span key={t} className="text-xs bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">
+                              {TYPE_LABELS[t]}
+                            </span>
+                          ))}
+                        </div>
+                        {statusConf && (
+                          <Badge className={cn('flex items-center gap-1 text-xs shrink-0', statusConf.className)}>
+                            {statusConf.icon}
+                            {statusConf.label}
+                          </Badge>
+                        )}
                       </div>
-                      {statusConf && (
-                        <Badge className={cn('flex items-center gap-1 text-xs shrink-0', statusConf.className)}>
-                          {statusConf.icon}
-                          {statusConf.label}
-                        </Badge>
-                      )}
                     </div>
-                  </div>
+                  )}
+
+                  {programId && statusConf && (
+                    <div className="flex flex-col items-start sm:items-end shrink-0">
+                      <Badge className={cn('flex items-center gap-1 text-xs', statusConf.className)}>
+                        {statusConf.icon}
+                        {statusConf.label}
+                      </Badge>
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
                     <Button
@@ -626,6 +647,7 @@ export const ProgramApplicationsTab: React.FC = () => {
           setIsPreviewOpen(false);
           setPreviewAppId(null);
         }}
+        programId={programId}
       />
 
       {/* Review Dialog */}
@@ -639,6 +661,7 @@ export const ProgramApplicationsTab: React.FC = () => {
         }}
         onReview={handleReview}
         isLoading={isReviewing}
+        programId={programId}
       />
     </div>
   );

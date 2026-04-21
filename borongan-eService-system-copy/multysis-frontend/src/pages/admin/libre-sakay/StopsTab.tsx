@@ -18,6 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { DeleteConfirmModal } from '@/components/modals/libre-sakay/DeleteConfirmModal';
 
 // =============================================================================
 // STOP FORM DIALOG
@@ -36,11 +37,14 @@ function StopFormDialog({
   const [name, setName] = useState('');
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
+  const [latError, setLatError] = useState('');
+  const [lngError, setLngError] = useState('');
   const mutation = useMutation({
     mutationFn: (data: unknown) => libreSakayService.createStop(data as Parameters<typeof libreSakayService.createStop>[0]),
     onSuccess: () => {
       onSuccess();
       onClose();
+      toast({ title: 'Stop created successfully' });
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -52,6 +56,8 @@ function StopFormDialog({
       setName('');
       setLat('');
       setLng('');
+      setLatError('');
+      setLngError('');
     }
   }, [open]);
 
@@ -69,10 +75,12 @@ function StopFormDialog({
           <div>
             <label className="text-sm font-medium">Latitude</label>
             <Input type="number" step="any" value={lat} onChange={e => setLat(e.target.value)} />
+            {latError && <p className="text-xs text-red-500 mt-1">{latError}</p>}
           </div>
           <div>
             <label className="text-sm font-medium">Longitude</label>
             <Input type="number" step="any" value={lng} onChange={e => setLng(e.target.value)} />
+            {lngError && <p className="text-xs text-red-500 mt-1">{lngError}</p>}
           </div>
         </div>
         <DialogFooter>
@@ -80,8 +88,30 @@ function StopFormDialog({
             Cancel
           </Button>
           <Button
-            onClick={() => mutation.mutate({ name, latitude: parseFloat(lat), longitude: parseFloat(lng) })}
-            disabled={mutation.isPending || !name || !lat || !lng}
+            onClick={() => {
+              const latVal = parseFloat(lat);
+              const lngVal = parseFloat(lng);
+              let valid = true;
+
+              if (!lat || isNaN(latVal) || latVal < -90 || latVal > 90) {
+                setLatError('Latitude must be between -90 and 90');
+                valid = false;
+              } else {
+                setLatError('');
+              }
+
+              if (!lng || isNaN(lngVal) || lngVal < -180 || lngVal > 180) {
+                setLngError('Longitude must be between -180 and 180');
+                valid = false;
+              } else {
+                setLngError('');
+              }
+
+              if (!valid) return;
+
+              mutation.mutate({ name, latitude: latVal, longitude: lngVal });
+            }}
+            disabled={mutation.isPending || !name || !lat || !lng || !!latError || !!lngError}
           >
             {mutation.isPending ? 'Creating...' : 'Create'}
           </Button>
@@ -110,11 +140,14 @@ function EditStopDialog({
   const [name, setName] = useState(stop.name);
   const [lat, setLat] = useState(stop.latitude.toString());
   const [lng, setLng] = useState(stop.longitude.toString());
+  const [latError, setLatError] = useState('');
+  const [lngError, setLngError] = useState('');
   const mutation = useMutation({
     mutationFn: (data: unknown) => libreSakayService.updateStop(stop.id, data as Parameters<typeof libreSakayService.updateStop>[1]),
     onSuccess: () => {
       onSuccess();
       onClose();
+      toast({ title: 'Stop updated successfully' });
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -126,6 +159,8 @@ function EditStopDialog({
       setName(stop.name);
       setLat(stop.latitude.toString());
       setLng(stop.longitude.toString());
+      setLatError('');
+      setLngError('');
     }
   }, [stop]);
 
@@ -143,10 +178,12 @@ function EditStopDialog({
           <div>
             <label className="text-sm font-medium">Latitude</label>
             <Input type="number" step="any" value={lat} onChange={e => setLat(e.target.value)} />
+            {latError && <p className="text-xs text-red-500 mt-1">{latError}</p>}
           </div>
           <div>
             <label className="text-sm font-medium">Longitude</label>
             <Input type="number" step="any" value={lng} onChange={e => setLng(e.target.value)} />
+            {lngError && <p className="text-xs text-red-500 mt-1">{lngError}</p>}
           </div>
         </div>
         <DialogFooter>
@@ -154,8 +191,30 @@ function EditStopDialog({
             Cancel
           </Button>
           <Button
-            onClick={() => mutation.mutate({ name, latitude: parseFloat(lat), longitude: parseFloat(lng) })}
-            disabled={mutation.isPending || !name || !lat || !lng}
+            onClick={() => {
+              const latVal = parseFloat(lat);
+              const lngVal = parseFloat(lng);
+              let valid = true;
+
+              if (!lat || isNaN(latVal) || latVal < -90 || latVal > 90) {
+                setLatError('Latitude must be between -90 and 90');
+                valid = false;
+              } else {
+                setLatError('');
+              }
+
+              if (!lng || isNaN(lngVal) || lngVal < -180 || lngVal > 180) {
+                setLngError('Longitude must be between -180 and 180');
+                valid = false;
+              } else {
+                setLngError('');
+              }
+
+              if (!valid) return;
+
+              mutation.mutate({ name, latitude: latVal, longitude: lngVal });
+            }}
+            disabled={mutation.isPending || !name || !lat || !lng || !!latError || !!lngError}
           >
             {mutation.isPending ? 'Saving...' : 'Save'}
           </Button>
@@ -175,6 +234,7 @@ export function StopsTab() {
   const [showForm, setShowForm] = useState(false);
   const [editStop, setEditStop] = useState<Stop | undefined>();
   const [viewRoutesStop, setViewRoutesStop] = useState<Stop | undefined>();
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; stop: Stop | null }>({ open: false, stop: null });
 
   const { data: stopRoutes } = useQuery({
     queryKey: queryKeys.libreSakay.stops.routes(viewRoutesStop?.id ?? ''),
@@ -191,6 +251,7 @@ export function StopsTab() {
     mutationFn: (id: string) => libreSakayService.deleteStop(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.stops.all });
+      setDeleteModal({ open: false, stop: null });
       toast({ title: 'Stop deleted' });
     },
     onError: (e: unknown) => {
@@ -263,7 +324,7 @@ export function StopsTab() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-red-600 focus:text-red-600"
-                          onClick={() => deleteMutation.mutate(stop.id)}
+                          onClick={() => setDeleteModal({ open: true, stop })}
                         >
                           <FiTrash2 className="mr-2" size={13} /> Delete
                         </DropdownMenuItem>
@@ -316,6 +377,19 @@ export function StopsTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DeleteConfirmModal
+        open={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, stop: null })}
+        onConfirm={() => {
+          const stop = deleteModal.stop;
+          if (stop) deleteMutation.mutate(stop.id);
+        }}
+        itemName={deleteModal.stop?.name ?? ''}
+        itemType="Stop"
+        description="This will permanently remove the stop and cannot be undone."
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

@@ -408,18 +408,19 @@ export const getDriverById = async (id: string) => {
 };
 
 export const createDriver = async (email: string, full_name: string, phone: string, password: string) => {
-  // 1. Create auth user
+  // 1. Create auth user (auto-confirm email — same as manual creation in Supabase dashboard with "Send email to verify" disabled)
   const { data: authData, error: authError } = await supabase().auth.admin.createUser({
     email,
     password,
+    email_confirm: true,
     user_metadata: { full_name, role: 'driver' },
   });
   if (authError || !authData.user) throw new Error('Failed to create auth user: ' + (authError?.message ?? 'unknown'));
 
-  // 2. Update profile
+  // 2. Update profile with email included
   const { error: profileError } = await supabase()
     .from('profiles')
-    .update({ full_name, phone, role: 'driver', is_active: true })
+    .update({ email, full_name, phone, role: 'driver', is_active: true })
     .eq('id', authData.user.id);
   if (profileError) throw new Error('Failed to update profile: ' + profileError.message);
 
@@ -444,6 +445,26 @@ export const deleteDriver = async (id: string) => {
   // Soft delete — set is_active = false
   const { error } = await supabase().from('profiles').update({ is_active: false }).eq('id', id);
   if (error) throw new Error('Failed to delete driver: ' + error.message);
+};
+
+export const deleteDriverPermanent = async (id: string) => {
+  // Hard delete — permanently removes the driver record
+  // Also remove driver-bus assignments first to avoid FK issues
+
+  // 1. Remove driver-bus assignments
+  const { error: assignmentError } = await supabase()
+    .from('driver_buses')
+    .delete()
+    .eq('driver_id', id);
+  if (assignmentError) throw new Error('Failed to remove driver assignments: ' + assignmentError.message);
+
+  // 2. Delete Supabase Auth user (orphaned otherwise)
+  const { error: authError } = await supabase().auth.admin.deleteUser(id);
+  if (authError) throw new Error('Failed to delete auth user: ' + authError.message);
+
+  // 3. Delete profile record
+  const { error } = await supabase().from('profiles').delete().eq('id', id);
+  if (error) throw new Error('Failed to permanently delete driver: ' + error.message);
 };
 
 export const assignBusToDriver = async (driverId: string, busId: string) => {

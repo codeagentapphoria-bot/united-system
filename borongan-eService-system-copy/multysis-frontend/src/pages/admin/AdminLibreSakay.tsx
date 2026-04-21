@@ -11,6 +11,7 @@ import {
   DriversTab,
   StopsTab,
   RideLogsSection,
+  ApplicationsSection,
   AccessControlSection,
   SECTION_TITLES,
 } from './libre-sakay';
@@ -34,6 +35,8 @@ export const AdminLibreSakay: React.FC = () => {
         return <StopsTab />;
       case 'ride-logs':
         return <RideLogsSection />;
+      case 'applications':
+        return <ApplicationsSection />;
       case 'access-control':
         return <AccessControlSection />;
       default:

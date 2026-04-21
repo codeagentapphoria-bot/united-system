@@ -6,6 +6,7 @@ export { RoutesTab } from './RoutesTab';
 export { DriversTab } from './DriversTab';
 export { StopsTab } from './StopsTab';
 export { RideLogsSection } from './RideLogsSection';
+export { ApplicationsSection } from './ApplicationsSection';
 export { AccessControlSection } from './AccessControlSection';
 
 // Shared utilities (re-exported for use by tests or external consumers)

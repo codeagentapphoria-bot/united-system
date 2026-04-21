@@ -20,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { DeleteConfirmModal } from '@/components/modals/libre-sakay/DeleteConfirmModal';
 
 // =============================================================================
 // ROUTE FORM DIALOG
@@ -46,6 +47,7 @@ function RouteFormDialog({
     onSuccess: () => {
       onSuccess();
       onClose();
+      toast({ title: route ? 'Route updated successfully' : 'Route created successfully' });
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -123,6 +125,7 @@ function ManageStopsDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.routes.stops(route.id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.routes.all });
+      toast({ title: 'Stop assigned to route' });
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -133,6 +136,7 @@ function ManageStopsDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.routes.stops(route.id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.routes.all });
+      toast({ title: 'Stop removed from route' });
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -142,6 +146,7 @@ function ManageStopsDialog({
     mutationFn: (orderedIds: string[]) => libreSakayService.reorderStopsInRoute(route.id, orderedIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.routes.stops(route.id) });
+      toast({ title: 'Stops reordered' });
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -152,6 +157,7 @@ function ManageStopsDialog({
       libreSakayService.replaceStopInRoute(route.id, oldId, newId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.routes.stops(route.id) });
+      toast({ title: 'Stop replaced successfully' });
       setReplaceStopId(null);
       setNewStopId('');
     },
@@ -309,6 +315,7 @@ export function RoutesTab() {
   const [editRoute, setEditRoute] = useState<Route | undefined>();
   const [showForm, setShowForm] = useState(false);
   const [manageRoute, setManageRoute] = useState<Route | undefined>();
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; route: Route | null }>({ open: false, route: null });
 
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.libreSakay.routes.list(page),
@@ -319,6 +326,7 @@ export function RoutesTab() {
     mutationFn: (id: string) => libreSakayService.deleteRoute(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.routes.all });
+      setDeleteModal({ open: false, route: null });
       toast({ title: 'Route deleted' });
     },
     onError: (e: unknown) => {
@@ -329,7 +337,10 @@ export function RoutesTab() {
   const toggleMutation = useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
       libreSakayService.updateRoute(id, { is_active }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.routes.all }),
+    onSuccess: (_, { is_active }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.routes.all });
+      toast({ title: is_active ? 'Route activated' : 'Route deactivated' });
+    },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
     },
@@ -434,7 +445,7 @@ export function RoutesTab() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-red-600 focus:text-red-600"
-                          onClick={() => deleteMutation.mutate(route.id)}
+                          onClick={() => setDeleteModal({ open: true, route })}
                         >
                           <FiTrash2 className="mr-2" size={13} /> Delete
                         </DropdownMenuItem>
@@ -481,6 +492,19 @@ export function RoutesTab() {
       {manageRoute && (
         <ManageStopsDialog open={!!manageRoute} onClose={() => setManageRoute(undefined)} route={manageRoute} />
       )}
+
+      <DeleteConfirmModal
+        open={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, route: null })}
+        onConfirm={() => {
+          const route = deleteModal.route;
+          if (route) deleteMutation.mutate(route.id);
+        }}
+        itemName={deleteModal.route?.name ?? ''}
+        itemType="Route"
+        description="This will permanently remove the route and cannot be undone."
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

@@ -9,7 +9,8 @@ import {
   getRoutesController, getRouteByIdController, getRouteWithStopsController,
   createRouteController, updateRouteController, deleteRouteController,
   getDriversController, getDriverByIdController, createDriverController,
-  updateDriverController, deleteDriverController, assignBusController, unassignBusController,
+  updateDriverController, deleteDriverController, deleteDriverPermanentController,
+  assignBusController, unassignBusController,
   getAllStopsController, getStopsByRouteController, createStopController,
   updateStopController, deleteStopController, assignStopToRouteController,
   removeStopFromRouteController, reorderStopsController, replaceStopInRouteController,
@@ -63,6 +64,8 @@ router.get('/drivers', validate(getDriversValidation), getDriversController);
 router.get('/drivers/:id', getDriverByIdController);
 router.post('/drivers', validate(createDriverValidation), createDriverController);
 router.patch('/drivers/:id', validate(updateDriverValidation), updateDriverController);
+// NOTE: permanent delete MUST be before /drivers/:id to avoid Express matching it first
+router.delete('/drivers/:id/permanent', deleteDriverPermanentController);
 router.delete('/drivers/:id', deleteDriverController);
 router.post('/drivers/:driverId/buses', assignBusController);
 router.delete('/drivers/:driverId/buses', unassignBusController);

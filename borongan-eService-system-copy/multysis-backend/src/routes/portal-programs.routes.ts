@@ -63,7 +63,7 @@ router.get(
   verifyAdmin,
   validate([
     query('status').optional().isIn(['pending', 'approved', 'rejected', 'cancelled']),
-    query('programId').optional().isUUID(),
+    query('programId').optional().isString(),
     query('page').optional().isInt({ min: 1 }).toInt(),
     query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
     query('search').optional().trim().isLength({ max: 200 }),
