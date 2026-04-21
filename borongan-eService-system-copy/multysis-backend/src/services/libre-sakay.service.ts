@@ -104,24 +104,16 @@ export const getFleetLocations = async (): Promise<FleetLocation[]> => {
   const busIds = (buses ?? []).map(b => b.id);
   if (busIds.length === 0) return [];
 
-  // Fetch latest location per bus
+  // Fetch latest location per bus using the pre-built view (already deduplicated, includes barangay_name)
   const { data: locations, error: locError } = await supabase()
-    .from('bus_locations')
+    .from('latest_bus_locations')
     .select('bus_id, latitude, longitude, speed, heading, recorded_at, barangay_name')
-    .in('bus_id', busIds)
-    .order('recorded_at', { ascending: false });
+    .in('bus_id', busIds);
 
   if (locError) throw new Error('Failed to fetch locations: ' + locError.message);
 
-  // Deduplicate locations by bus_id (keep first = latest)
-  const seen = new Set<string>();
-  const locationMap = new Map<string, Record<string, unknown>>();
-  for (const row of locations ?? []) {
-    if (!seen.has(row.bus_id)) {
-      seen.add(row.bus_id);
-      locationMap.set(row.bus_id, row as Record<string, unknown>);
-    }
-  }
+  // No deduplication needed — the view already returns one row per bus
+  const locationMap = new Map((locations ?? []).map(row => [row.bus_id, row as Record<string, unknown>]));
 
   // Fetch route and driver info
   const { data: busDetails, error: detailError } = await supabase()
