@@ -2,8 +2,10 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import { libreSakayService } from '@/services/api/libre-sakay.service';
+import { portalProgramsService } from '@/services/api/portal-programs.service';
 import { DONUT_COLORS } from './shared';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   BarChart,
   Bar,
@@ -17,7 +19,8 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { FiTruck, FiGitBranch, FiUsers, FiActivity } from 'react-icons/fi';
+import { FiTruck, FiGitBranch, FiUsers, FiActivity, FiUserCheck } from 'react-icons/fi';
+import { cn } from '@/lib/utils';
 
 // =============================================================================
 // STAT CARD
@@ -66,6 +69,13 @@ function StatCard({
 // DASHBOARD SECTION
 // =============================================================================
 
+const APP_STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  pending: { label: 'Pending', className: 'bg-yellow-100 text-yellow-700' },
+  approved: { label: 'Approved', className: 'bg-green-100 text-green-700' },
+  rejected: { label: 'Rejected', className: 'bg-red-100 text-red-700' },
+  cancelled: { label: 'Cancelled', className: 'bg-gray-100 text-gray-500' },
+};
+
 export function DashboardSection() {
   const { data: dashStats, isLoading: statsLoading } = useQuery({
     queryKey: queryKeys.libreSakay.dashboardStats,
@@ -82,6 +92,27 @@ export function DashboardSection() {
   const { data: trend } = useQuery({
     queryKey: queryKeys.libreSakay.ridesTrend(7),
     queryFn: () => libreSakayService.getRidesTrend(7),
+    retry: false,
+  });
+
+  const { data: pendingData } = useQuery({
+    queryKey: ['libre-sakay', 'pending-apps'],
+    queryFn: () =>
+      portalProgramsService.listApplicationsAdmin({
+        status: 'pending',
+        programId: 'gp-all-libre-sakay',
+        limit: 1,
+      }),
+    retry: false,
+  });
+
+  const { data: recentApps, isLoading: recentLoading } = useQuery({
+    queryKey: ['libre-sakay', 'recent-apps'],
+    queryFn: () =>
+      portalProgramsService.listApplicationsAdmin({
+        programId: 'gp-all-libre-sakay',
+        limit: 5,
+      }),
     retry: false,
   });
 
@@ -128,6 +159,12 @@ export function DashboardSection() {
           icon={<FiActivity size={20} />}
           color="orange"
           loading={statsLoading}
+        />
+        <StatCard
+          title="Pending Applications"
+          value={pendingData?.pagination.total ?? 0}
+          icon={<FiUserCheck size={20} />}
+          color="violet"
         />
       </div>
 
@@ -220,6 +257,56 @@ export function DashboardSection() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Row 4: Recent Applications */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold">Recent Applications</CardTitle>
+            <a
+              href="/admin/libre-sakay/applications"
+              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+            >
+              View All →
+            </a>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {recentLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />
+              ))}
+            </div>
+          ) : recentApps?.data.length === 0 ? (
+            <div className="py-8 text-center text-sm text-gray-400">No applications yet</div>
+          ) : (
+            <div className="space-y-2">
+              {recentApps?.data.map(app => {
+                const fullName = [app.resident.firstName, app.resident.middleName, app.resident.lastName]
+                  .filter(Boolean)
+                  .join(' ');
+                const statusConf =
+                  APP_STATUS_CONFIG[app.status] ?? { label: app.status, className: 'bg-gray-100 text-gray-600' };
+                return (
+                  <div
+                    key={app.id}
+                    className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
+                  >
+                    <div className="flex-1 min-w-0 mr-4">
+                      <p className="text-sm font-medium text-heading-700 truncate">{fullName}</p>
+                      <p className="text-xs text-gray-500">{app.program.name}</p>
+                    </div>
+                    <Badge className={cn('text-xs shrink-0', statusConf.className)}>
+                      {statusConf.label}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
