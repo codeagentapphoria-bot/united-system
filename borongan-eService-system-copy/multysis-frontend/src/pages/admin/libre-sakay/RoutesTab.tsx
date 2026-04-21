@@ -259,7 +259,9 @@ function ManageStopsDialog({
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => removeMutation.mutate(rs.stop_id)}
+                        onClick={() => {
+                          if (rs.stop_id) removeMutation.mutate(rs.stop_id);
+                        }}
                         disabled={removeMutation.isPending}
                       >
                         Remove

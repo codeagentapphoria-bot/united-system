@@ -575,6 +575,8 @@ export const assignStopToRoute = async (routeId: string, stopId: string) => {
 };
 
 export const removeStopFromRoute = async (routeId: string, stopId: string) => {
+  if (!stopId) throw new Error('stopId is required');
+  if (!routeId) throw new Error('routeId is required');
   const { error } = await supabase()
     .from('route_stops')
     .delete()
