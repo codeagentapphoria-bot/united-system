@@ -303,7 +303,7 @@ export const getRoutesForStopController = async (req: AuthRequest, res: Response
 
 export const getStopsByRouteController = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const stops = await getStopsByRoute(req.params.routeId);
+    const stops = await getStopsByRoute(req.params.id);
     res.status(200).json({ status: 'success', data: stops });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: error.message });
