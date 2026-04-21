@@ -278,16 +278,17 @@ export function StopsTab() {
         </CardHeader>
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-10">#</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Coordinates</TableHead>
-              <TableHead className="w-10" />
-            </TableRow>
+              <TableRow>
+                <TableHead className="w-10">#</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Coordinates</TableHead>
+                <TableHead className="text-center">Routes</TableHead>
+                <TableHead className="w-10" />
+              </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <LoadingRows cols={4} />
+              <LoadingRows cols={5} />
             ) : !stops?.length ? (
               <EmptyState
                 icon={<FiMapPin />}
@@ -306,6 +307,15 @@ export function StopsTab() {
                   <TableCell className="font-medium">{stop.name}</TableCell>
                   <TableCell className="font-mono text-xs text-gray-500">
                     {stop.latitude.toFixed(5)}, {stop.longitude.toFixed(5)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {stop.route_count && stop.route_count > 0 ? (
+                      <span className="inline-flex items-center justify-center min-w-[1.5rem] rounded-full bg-blue-100 text-blue-700 text-xs font-medium px-2 py-0.5">
+                        {stop.route_count}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-xs">0</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

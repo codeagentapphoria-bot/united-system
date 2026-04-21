@@ -478,12 +478,32 @@ export const unassignBusFromDriver = async (driverId: string, busId: string) => 
 // =============================================================================
 
 export const getAllStops = async () => {
-  const { data, error } = await supabase()
+  const { data: stops, error } = await supabase()
     .from('stops')
-    .select('id, name, latitude, longitude')
+    .select('id, name, latitude, longitude, created_at')
     .order('name');
+
   if (error) throw new Error('Failed to fetch stops: ' + error.message);
-  return data;
+
+  const stopIds = (stops ?? []).map(s => s.id);
+  if (stopIds.length === 0) return [];
+
+  const { data: routeStopCounts, error: countError } = await supabase()
+    .from('route_stops')
+    .select('stop_id')
+    .in('stop_id', stopIds);
+
+  if (countError) throw new Error('Failed to fetch route counts: ' + countError.message);
+
+  const countMap = new Map<string, number>();
+  for (const rs of routeStopCounts ?? []) {
+    countMap.set(rs.stop_id, (countMap.get(rs.stop_id) ?? 0) + 1);
+  }
+
+  return (stops ?? []).map(stop => ({
+    ...stop,
+    route_count: countMap.get(stop.id) ?? 0,
+  }));
 };
 
 export const getRoutesForStop = async (stopId: string) => {

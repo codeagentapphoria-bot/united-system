@@ -52,6 +52,7 @@ export interface Stop {
   latitude: number;
   longitude: number;
   created_at: string;
+  route_count?: number;
 }
 
 export interface RouteStopJunction {
