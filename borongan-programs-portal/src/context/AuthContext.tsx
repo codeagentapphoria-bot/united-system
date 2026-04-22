@@ -55,18 +55,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [isSuccess, fetchedUser, saveUser, clearUser]);
 
-  // Handle query error - preserve storedUser if exists (session might still be valid)
+  // Handle query error - server's 401 is authoritative, clear stale localStorage cache
+  // A 401 from /auth/me means the session is invalid regardless of localStorage
   useEffect(() => {
     if (isError) {
-      if (storedUser) {
-        // Keep the stored user - we'll retry on next mount
-        setUser(storedUser ? { id: storedUser.id, role: storedUser.role, name: 'Restored User', email: '' } as User : null);
-      } else {
-        setUser(null);
-      }
+      setUser(null);
+      clearUser();
       setIsLoading(false);
     }
-  }, [isError, storedUser]);
+  }, [isError, clearUser]);
 
   // Mark loading as complete once query settles
   useEffect(() => {
