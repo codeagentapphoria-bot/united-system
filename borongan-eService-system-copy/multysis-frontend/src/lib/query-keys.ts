@@ -80,6 +80,38 @@ export const queryKeys = {
     stats: ['medicineRequests', 'stats'] as const,
   },
 
+  libreSakay: {
+    fleet: ['libreSakay', 'fleet'] as const,
+    fleetLocations: ['libreSakay', 'fleetLocations'] as const,
+    buses: {
+      all: ['libreSakay', 'buses'] as const,
+      list: (page: number, limit?: number) => ['libreSakay', 'buses', 'list', page, limit] as const,
+      detail: (id: string) => ['libreSakay', 'buses', 'detail', id] as const,
+    },
+    routes: {
+      all: ['libreSakay', 'routes'] as const,
+      list: (page: number, limit?: number) => ['libreSakay', 'routes', 'list', page, limit] as const,
+      detail: (id: string) => ['libreSakay', 'routes', 'detail', id] as const,
+      stops: (id: string) => ['libreSakay', 'routes', 'stops', id] as const,
+    },
+    drivers: {
+      all: ['libreSakay', 'drivers'] as const,
+      list: (page: number, limit?: number) => ['libreSakay', 'drivers', 'list', page, limit] as const,
+      detail: (id: string) => ['libreSakay', 'drivers', 'detail', id] as const,
+    },
+    stops: {
+      all: ['libreSakay', 'stops'] as const,
+      list: (page: number, limit?: number) => ['libreSakay', 'stops', 'list', page, limit] as const,
+      detail: (id: string) => ['libreSakay', 'stops', 'detail', id] as const,
+      routes: (id: string) => ['libreSakay', 'stops', 'routes', id] as const,
+    },
+    dashboardStats: ['libreSakay', 'dashboardStats'] as const,
+    ridesTrend: (days: number) => ['libreSakay', 'ridesTrend', days] as const,
+    rideLogs: {
+      all: ['libreSakay', 'rideLogs'] as const,
+      list: (page: number, filters?: object) => ['libreSakay', 'rideLogs', 'list', page, filters] as const,
+    },
+  },
 };
 
 export default queryKeys;

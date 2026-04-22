@@ -29,6 +29,15 @@ interface MenuItem {
 const implementedRoutes = [
   '/admin/dashboard',
   '/admin/registration-workflow',
+  '/admin/libre-sakay/dashboard',
+  '/admin/libre-sakay/fleet',
+  '/admin/libre-sakay/buses',
+  '/admin/libre-sakay/routes',
+  '/admin/libre-sakay/drivers',
+  '/admin/libre-sakay/stops',
+  '/admin/libre-sakay/ride-logs',
+  '/admin/libre-sakay/applications',
+  '/admin/libre-sakay/access-control',
   '/admin/e-government/social-amelioration',
   '/admin/e-government/reports',
   '/admin/general-settings/address',
@@ -85,8 +94,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
   // Initialize all categories as collapsed by default
   useEffect(() => {
     const allCategories = new Set<string>();
-    menuItems.forEach((item) => {
-      item.submenuItems?.forEach((sub) => {
+    menuItems.forEach(item => {
+      item.submenuItems?.forEach(sub => {
         if (sub.category) allCategories.add(sub.category);
       });
     });
@@ -95,13 +104,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
 
   // Auto-expand submenus when their submenu items are active
   useEffect(() => {
-    menuItems.forEach((item) => {
+    menuItems.forEach(item => {
       if (item.hasSubmenu && item.submenuItems && item.label) {
-        const hasActiveSubmenu = item.submenuItems.some(
-          (subItem) => location.pathname === subItem.path
-        );
+        const hasActiveSubmenu = item.submenuItems.some(subItem => location.pathname === subItem.path);
         if (hasActiveSubmenu) {
-          setExpandedMenus((prev) => {
+          setExpandedMenus(prev => {
             if (!prev.includes(item.label!)) {
               return [...prev, item.label!];
             }
@@ -110,12 +117,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
 
           // Auto-expand category if a service in it is active
           const activeSubItem = item.submenuItems.find(
-            (subItem) => location.pathname === subItem.path && subItem.category
+            subItem => location.pathname === subItem.path && subItem.category
           );
           if (activeSubItem?.category) {
-            setCollapsedCategories((prev) =>
-              prev.filter(cat => cat !== activeSubItem.category)
-            );
+            setCollapsedCategories(prev => prev.filter(cat => cat !== activeSubItem.category));
           }
         }
       }
@@ -123,33 +128,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
   }, [location.pathname, menuItems]);
 
   const toggleSubmenu = (label: string) => {
-    setExpandedMenus((prev) =>
-      prev.includes(label) ? prev.filter((item) => item !== label) : [...prev, label]
-    );
+    setExpandedMenus(prev => (prev.includes(label) ? prev.filter(item => item !== label) : [...prev, label]));
   };
 
   const toggleCategory = (categoryName: string) => {
-    setCollapsedCategories((prev) =>
-      prev.includes(categoryName)
-        ? prev.filter((item) => item !== categoryName)
-        : [...prev, categoryName]
+    setCollapsedCategories(prev =>
+      prev.includes(categoryName) ? prev.filter(item => item !== categoryName) : [...prev, categoryName]
     );
   };
 
   // Helper function to check if any submenu item is active
   const isSubmenuActive = (item: MenuItem): boolean => {
     if (!item.hasSubmenu || !item.submenuItems) return false;
-    return item.submenuItems.some((subItem) => location.pathname === subItem.path);
+    return item.submenuItems.some(subItem => location.pathname === subItem.path);
   };
   return (
     <>
       {/* Mobile overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />}
 
       {/* Sidebar */}
       <aside
@@ -162,22 +158,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-5 border-b border-gray-200 h-[90px]">
             <div className="flex items-center space-x-3">
-              <img
-                src="/logo-white.svg"
-                alt="City of Borongan Logo"
-                className="h-8 w-auto"
-              />
+              <img src="/logo-white.svg" alt="City of Borongan Logo" className="h-8 w-auto" />
               <div>
                 <h2 className="text-sm font-bold text-primary md:text-md lg:text-lg">City of Borongan</h2>
                 <p className="text-xs text-gray-500 md:text-xs lg:text-sm">Local Government System</p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="lg:hidden"
-            >
+            <Button variant="ghost" size="icon" onClick={onClose} className="lg:hidden">
               <FiX size={20} />
             </Button>
           </div>
@@ -225,11 +212,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
                                   {item.badgeCount > 99 ? '99+' : item.badgeCount}
                                 </Badge>
                               )}
-                              {isExpanded ? (
-                                <FiChevronDown size={16} />
-                              ) : (
-                                <FiChevronRight size={16} />
-                              )}
+                              {isExpanded ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
                             </div>
                           </button>
 
@@ -259,7 +242,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
                                         className="w-full flex items-center justify-between px-3 py-2 text-sm text-primary-700 bg-primary-50 rounded-md mt-2 first:mt-0 hover:bg-primary-100 transition-colors"
                                       >
                                         <span className="flex items-center gap-2">
-                                          <span className={cn('transition-transform', isCategoryCollapsed && 'rotate-[-90deg]')}>
+                                          <span
+                                            className={cn(
+                                              'transition-transform',
+                                              isCategoryCollapsed && 'rotate-[-90deg]'
+                                            )}
+                                          >
                                             <FiChevronDown size={14} />
                                           </span>
                                           {categoryName}
@@ -271,7 +259,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
 
                                 // Hide service items if their category is collapsed
                                 const serviceCategory = subItem.category;
-                                const isParentCategoryCollapsed = serviceCategory && collapsedCategories.includes(serviceCategory);
+                                const isParentCategoryCollapsed =
+                                  serviceCategory && collapsedCategories.includes(serviceCategory);
 
                                 if (isParentCategoryCollapsed) {
                                   return null;
@@ -384,9 +373,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
 
           {/* Footer */}
           <div className="p-4 border-t border-gray-200">
-            <p className="text-xs text-gray-500 text-center">
-              © 2026 City of Borongan
-            </p>
+            <p className="text-xs text-gray-500 text-center">© 2026 City of Borongan</p>
           </div>
         </div>
       </aside>

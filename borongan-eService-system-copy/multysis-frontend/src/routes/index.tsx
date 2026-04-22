@@ -38,6 +38,9 @@ const SocialAmelioration = lazy(() =>
 const AdminLibreMedisina = lazy(() =>
   import('../pages/admin/AdminLibreMedisina').then(m => ({ default: m.AdminLibreMedisina }))
 );
+const AdminLibreSakay = lazy(() =>
+  import('../pages/admin/AdminLibreSakay').then(m => ({ default: m.AdminLibreSakay }))
+);
 const EGovReports = lazy(() => import('../pages/admin/EGovReports').then(m => ({ default: m.EGovReports })));
 const TaxProfiles = lazy(() => import('../pages/admin/TaxProfiles').then(m => ({ default: m.TaxProfiles })));
 const AdminRegistrationWorkflow = lazy(() =>
@@ -278,6 +281,25 @@ export const router = createBrowserRouter([
             </LazyWrapper>
           </ProtectedRoute>
         ),
+      },
+      {
+        path: 'libre-sakay',
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/admin/libre-sakay/dashboard" replace />,
+          },
+          {
+            path: ':section',
+            element: (
+              <ProtectedRoute requiredRole="libre_sakay_admin">
+                <LazyWrapper>
+                  <AdminLibreSakay />
+                </LazyWrapper>
+              </ProtectedRoute>
+            ),
+          },
+        ],
       },
     ],
   },

@@ -9,10 +9,9 @@ import {
   FiShield,
   FiTool,
   FiUsers,
-  FiClipboard
+  FiClipboard,
 } from 'react-icons/fi';
-import { SlWallet } from "react-icons/sl";
-
+import { SlWallet } from 'react-icons/sl';
 
 interface MenuItem {
   path?: string;
@@ -35,7 +34,13 @@ interface NotificationCounts {
 
 export const getAdminMenuItems = async (notificationCounts?: NotificationCounts): Promise<MenuItem[]> => {
   // Get dynamic services for e-government submenu
-  let dynamicSubmenuItems: { path: string; label: string; badgeCount?: number; isCategoryHeader?: boolean; category?: string }[] = [];
+  let dynamicSubmenuItems: {
+    path: string;
+    label: string;
+    badgeCount?: number;
+    isCategoryHeader?: boolean;
+    category?: string;
+  }[] = [];
 
   try {
     const { getDynamicServices } = await import('@/utils/dynamic-menu');
@@ -43,9 +48,15 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
     const menuEntries = buildEGovernmentSubmenu(dynamicServices);
 
     // Transform menu entries (with sections) to flat submenu items with category headers
-    const transformedItems: { path: string; label: string; badgeCount?: number; isCategoryHeader?: boolean; category?: string }[] = [];
+    const transformedItems: {
+      path: string;
+      label: string;
+      badgeCount?: number;
+      isCategoryHeader?: boolean;
+      category?: string;
+    }[] = [];
 
-    menuEntries.forEach((entry) => {
+    menuEntries.forEach(entry => {
       if (entry.type === 'section') {
         // Add category header
         transformedItems.push({
@@ -56,7 +67,7 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
         });
 
         // Add items in this category
-        entry.items.forEach((item) => {
+        entry.items.forEach(item => {
           // Find the service to get badge count
           const pathParts = item.path.split('/');
           const servicePath = pathParts[pathParts.length - 1];
@@ -67,7 +78,7 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
           });
 
           const badgeCount = matchingService
-            ? (notificationCounts?.pendingApplicationsByService?.[matchingService.code] || 0)
+            ? notificationCounts?.pendingApplicationsByService?.[matchingService.code] || 0
             : 0;
 
           transformedItems.push({
@@ -113,7 +124,7 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
         { path: '/admin/e-government/billings', label: 'Billings' },
         { path: '/admin/e-government/miscellaneous-fee', label: 'Miscellaneous Fee' },
         { path: '/admin/e-government/qr-scanner', label: 'QR Scanner' },
-      ]
+      ],
     },
     { path: '/admin/e-bills-payment', label: 'E-Bills Payment', icon: <FiCreditCard /> },
     { path: '/admin/e-services', label: 'E-Services', icon: <FiTool /> },
@@ -122,9 +133,7 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
       label: 'E-News',
       icon: <FiMessageSquare />,
       hasSubmenu: true,
-      submenuItems: [
-        { path: '/admin/e-news/articles', label: 'Articles' },
-      ]
+      submenuItems: [{ path: '/admin/e-news/articles', label: 'Articles' }],
     },
     {
       path: '/admin/e-wallet-services',
@@ -138,7 +147,7 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
         { path: '/admin/e-wallet-services/receive-funds', label: 'Receive Funds' },
         { path: '/admin/e-wallet-services/mobile-load', label: 'Mobile Load' },
         { path: '/admin/e-wallet-services/wallet-support', label: 'Wallet Support' },
-      ]
+      ],
     },
     { path: '/admin/e-help', label: 'E-Help', icon: <FiHelpCircle /> },
 
@@ -170,7 +179,7 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
         { path: '/admin/general-settings/opt-modules', label: 'OPT Modules' },
         { path: '/admin/general-settings/government-program', label: 'Government Program' },
         { path: '/admin/general-settings/tax-profiles', label: 'Tax Profiles' },
-      ]
+      ],
     },
     {
       path: '/admin/access-control',
@@ -181,7 +190,7 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
         { path: '/admin/access-control/role-management', label: 'Role Management' },
         { path: '/admin/access-control/permissions', label: 'Permissions' },
         { path: '/admin/access-control/user-management', label: 'User Management' },
-      ]
+      ],
     },
 
     // Separator: Below access control
@@ -210,7 +219,7 @@ export const adminMenuItems: MenuItem[] = [
       { path: '/admin/e-government/billings', label: 'Billings' },
       { path: '/admin/e-government/miscellaneous-fee', label: 'Miscellaneous Fee' },
       { path: '/admin/e-government/qr-scanner', label: 'QR Scanner' },
-    ]
+    ],
   },
   { path: '/admin/e-bills-payment', label: 'E-Bills Payment', icon: <FiCreditCard /> },
   { path: '/admin/e-services', label: 'E-Services', icon: <FiTool /> },
@@ -219,9 +228,7 @@ export const adminMenuItems: MenuItem[] = [
     label: 'E-News',
     icon: <FiMessageSquare />,
     hasSubmenu: true,
-    submenuItems: [
-      { path: '/admin/e-news/articles', label: 'Articles' },
-    ]
+    submenuItems: [{ path: '/admin/e-news/articles', label: 'Articles' }],
   },
   {
     path: '/admin/e-wallet-services',
@@ -235,7 +242,7 @@ export const adminMenuItems: MenuItem[] = [
       { path: '/admin/e-wallet-services/receive-funds', label: 'Receive Funds' },
       { path: '/admin/e-wallet-services/mobile-load', label: 'Mobile Load' },
       { path: '/admin/e-wallet-services/wallet-support', label: 'Wallet Support' },
-    ]
+    ],
   },
   { path: '/admin/e-help', label: 'E-Help', icon: <FiHelpCircle /> },
   { type: 'separator' as const },
@@ -264,7 +271,7 @@ export const adminMenuItems: MenuItem[] = [
       { path: '/admin/general-settings/opt-modules', label: 'OPT Modules' },
       { path: '/admin/general-settings/government-program', label: 'Government Program' },
       { path: '/admin/general-settings/tax-profiles', label: 'Tax Profiles' },
-    ]
+    ],
   },
   {
     path: '/admin/access-control',
@@ -275,7 +282,7 @@ export const adminMenuItems: MenuItem[] = [
       { path: '/admin/access-control/role-management', label: 'Role Management' },
       { path: '/admin/access-control/permissions', label: 'Permissions' },
       { path: '/admin/access-control/user-management', label: 'User Management' },
-    ]
+    ],
   },
   { type: 'separator' as const },
   { path: '/admin/city-announcement', label: 'City Announcement', icon: <FiMessageSquare /> },
