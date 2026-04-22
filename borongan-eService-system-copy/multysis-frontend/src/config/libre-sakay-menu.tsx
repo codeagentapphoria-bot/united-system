@@ -20,6 +20,6 @@ export const libresakayMenuItems: MenuItem[] = [
   { path: '/admin/libre-sakay/drivers', label: 'Drivers', icon: <FiUsers /> },
   { path: '/admin/libre-sakay/stops', label: 'Stops', icon: <FiMapPin /> },
   { path: '/admin/libre-sakay/ride-logs', label: 'Ride Logs', icon: <FiList /> },
-  { type: 'separator' as const },
-  { path: '/admin/libre-sakay/access-control', label: 'Access Control', icon: <FiShield /> },
+ // { type: 'separator' as const },
+ // { path: '/admin/libre-sakay/access-control', label: 'Access Control', icon: <FiShield /> },
 ];
