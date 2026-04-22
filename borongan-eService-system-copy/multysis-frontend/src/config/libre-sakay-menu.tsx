@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiHome, FiMap, FiTruck, FiGitBranch, FiUsers, FiMapPin, FiShield, FiList, FiUserCheck } from 'react-icons/fi';
+import { FiHome, FiMap, FiTruck, FiGitBranch, FiUsers, FiMapPin, FiList, FiUserCheck } from 'react-icons/fi';
 
 interface MenuItem {
   path?: string;
