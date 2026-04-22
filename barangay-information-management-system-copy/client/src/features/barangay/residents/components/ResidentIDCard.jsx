@@ -231,10 +231,17 @@ const ResidentIDCard = ({
             <FrontLeftPanel />
 
             {/* Right panel */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "12px 14px 10px 24px", position: "relative", backgroundColor: "#f8fafc" }}>
-              
-              {/* Blue Tint Gradient Overlay */}
-              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(29,78,216,0.06) 0%, rgba(30,64,175,0.08) 50%, rgba(37,99,235,0.05) 100%)", zIndex: 0 }} />
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "12px 14px 10px 24px", position: "relative", overflow: "hidden" }}>
+
+              {/* City Hall Background with Blue Tint */}
+              <img
+                src={cityHallBg}
+                alt=""
+                aria-hidden
+                style={{ position: "absolute", inset: 0, width: "130%", height: "130%", objectFit: "cover", zIndex: 0, opacity: 0.08, transform: "translate(-11%, -8%)" }}
+              />
+              {/* Blue Tint Overlay */}
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(29,78,216,0.15) 0%, rgba(30,64,175,0.18) 50%, rgba(37,99,235,0.12) 100%)", zIndex: 0 }} />
 
 
               {/* Header */}
@@ -335,10 +342,17 @@ const ResidentIDCard = ({
             <BackLeftPanel />
 
               {/* Right panel */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", backgroundColor: "#f8fafc" }}>
-              
-              {/* Blue Tint Gradient Overlay */}
-              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(29,78,216,0.06) 0%, rgba(30,64,175,0.08) 50%, rgba(37,99,235,0.05) 100%)", zIndex: 0 }} />
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
+
+              {/* City Hall Background with Blue Tint */}
+              <img
+                src={cityHallBg}
+                alt=""
+                aria-hidden
+                style={{ position: "absolute", inset: 0, width: "130%", height: "130%", objectFit: "cover", zIndex: 0, opacity: 0.08, transform: "translate(-11%, -8%)" }}
+              />
+              {/* Blue Tint Overlay */}
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(29,78,216,0.15) 0%, rgba(30,64,175,0.18) 50%, rgba(37,99,235,0.12) 100%)", zIndex: 0 }} />
 
               <div style={{ padding: "12px 14px", flex: 1, display: "flex", flexDirection: "column", gap: 10, zIndex: 1 }}>
                 {/* Emergency contact */}

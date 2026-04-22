@@ -207,16 +207,16 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
             <FrontLeftPanel />
 
             {/* Right panel */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '12px 14px 10px 24px', position: 'relative', backgroundColor: '#f8fafc' }}>
-
-              {/* Guilloche Pattern Background */}
-              <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.04, zIndex: 0 }}>
-                <pattern id="guilloche" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
-                  <path d="M0,15 Q7.5,0 15,15 T30,15" fill="none" stroke="#1d4ed8" strokeWidth="0.5" />
-                  <path d="M0,15 Q7.5,30 15,15 T30,15" fill="none" stroke="#1d4ed8" strokeWidth="0.5" />
-                </pattern>
-                <rect x="0" y="0" width="100%" height="100%" fill="url(#guilloche)" />
-              </svg>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '12px 14px 10px 24px', position: 'relative', overflow: 'hidden' }}>
+              {/* City Hall Background with Blue Tint */}
+              <img
+                src="/assets/City Hall of Borongan in midday sun.png"
+                alt=""
+                aria-hidden
+                style={{ position: 'absolute', inset: 0, width: '130%', height: '130%', objectFit: 'cover', zIndex: 0, opacity: 0.08, transform: 'translate(-0%, -0%)' }}
+              />
+              {/* Blue Tint Overlay */}
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(29,78,216,0.15) 0%, rgba(30,64,175,0.18) 50%, rgba(37,99,235,0.12) 100%)', zIndex: 0 }} />
 
 
 
@@ -318,9 +318,16 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
             <BackLeftPanel />
 
             {/* Right panel */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', backgroundColor: '#f8fafc' }}>
-
-
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+              {/* City Hall Background with Blue Tint */}
+              <img
+                src="/assets/City Hall of Borongan in midday sun.png"
+                alt=""
+                aria-hidden
+                style={{ position: 'absolute', inset: 0, width: '130%', height: '130%', objectFit: 'cover', zIndex: 0, opacity: 0.08, transform: 'translate(-0%, 0%)' }}
+              />
+              {/* Blue Tint Overlay */}
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(29,78,216,0.15) 0%, rgba(30,64,175,0.18) 50%, rgba(37,99,235,0.12) 100%)', zIndex: 0 }} />
 
               <div style={{ padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, zIndex: 1 }}>
                 {/* Emergency contact */}
