@@ -38,13 +38,9 @@ interface DashboardLayoutProps {
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menuItems: propMenuItems }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(propMenuItems || staticMenuItems);
-  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
   const { counts } = useAdminNotifications();
 
   useEffect(() => {
-    if (hasInitiallyLoaded) return;
-    setHasInitiallyLoaded(true);
-
     // If a static menu was explicitly provided, use it as-is — don't override with dynamic admin menu
     if (propMenuItems && propMenuItems.length > 0) {
       setMenuItems(propMenuItems);
@@ -63,7 +59,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menu
         console.error('Failed to load dynamic menu items:', error);
         setMenuItems(staticMenuItems);
       });
-  }, [propMenuItems]);
+  }, [propMenuItems, counts]);
 
   useEffect(() => {
     const handleServiceChange = () => {
