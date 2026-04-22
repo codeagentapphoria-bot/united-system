@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { formatDateLong, getAge, formatLabel } from "./utils";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import lguLogo from "@/assets/images/borongan-city-seal.png";
+import cityHallBg from "@/assets/city-hall-borongan.jpg";
+import { User as UserIcon, Users, CalendarDays, IdCard, MapPin, ShieldCheck, Building2, HeartHandshake, Lock } from "lucide-react";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "";
 const ESERVICE_SERVER_URL = import.meta.env.VITE_ESERVICE_SERVER_URL || "http://localhost:3000";
@@ -9,7 +11,7 @@ const ESERVICE_SERVER_URL = import.meta.env.VITE_ESERVICE_SERVER_URL || "http://
 // CR80 landscape — 85.6 mm × 54 mm
 const CARD_W = 380;
 const CARD_H = 240;
-const PANEL_W = 108;
+const PANEL_W = 115; // slightly wider for wave
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -75,53 +77,75 @@ const PersonIcon = () => (
   </svg>
 );
 
-// Unified "City of Borongan" left panel — same as program portal
-
-const LeftPanel = ({ bgImg }) => {
-  const watermark = {
-    position: "absolute", inset: 0, width: "100%", height: "100%",
-    objectFit: "cover", opacity: 0.12, filter: "blur(2px)",
-    transform: "scale(1.05)", zIndex: 0, pointerEvents: "none",
-  };
-
-  return (
+// ── FRONT LEFT PANEL ─────────────────────────────────────────────────────
+const FrontLeftPanel = () => (
+  <div style={{
+    width: PANEL_W, flexShrink: 0,
+    background: "linear-gradient(160deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%)",
+    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+    padding: "14px 8px 10px", gap: 0, position: "relative",
+    zIndex: 1
+  }}>
+    {/* City seal */}
     <div style={{
-      width: PANEL_W, flexShrink: 0,
-      background: "linear-gradient(160deg, #1e40af 0%, #1d4ed8 60%, #2563eb 100%)",
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      padding: "14px 8px 10px", gap: 0, position: "relative",
+      width: 56, height: 56, borderRadius: "50%", padding: 4,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.25)", marginBottom: 8, flexShrink: 0,
+      backgroundColor: "#fff", position: "relative", zIndex: 2
     }}>
-      {bgImg && <img src={bgImg} alt="" aria-hidden style={watermark} />}
-
-      {/* City seal */}
-      <div style={{
-        width: 56, height: 56, borderRadius: "50%", padding: 4,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.25)", marginBottom: 8, flexShrink: 0,
-        position: "relative", zIndex: 1,
-      }}>
-        <img
-          src={lguLogo}
-          alt="City of Borongan"
-          style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "50%" }}
-        />
-      </div>
-
-      <div style={{ color: "white", fontSize: 7.5, fontWeight: 800, letterSpacing: 0.8, textAlign: "center", lineHeight: 1.2, position: "relative", zIndex: 1 }}>
-        CITY OF
-      </div>
-      <div style={{ color: "white", fontSize: 9, fontWeight: 800, letterSpacing: 0.8, textAlign: "center", lineHeight: 1.2, marginBottom: 4, position: "relative", zIndex: 1 }}>
-        BORONGAN
-      </div>
-
-      <div style={{ width: "55%", height: 1, backgroundColor: "rgba(255,255,255,0.35)", margin: "6px 0", position: "relative", zIndex: 1 }} />
-
-      <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 6.5, textAlign: "center", letterSpacing: 0.5, position: "relative", zIndex: 1 }}>
-        EASTERN SAMAR
-      </div>
+      <img
+        src={lguLogo}
+        alt="City of Borongan"
+        style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "50%" }}
+      />
     </div>
-  );
-};
+
+    <div style={{ color: "#eab308", fontSize: 6.5, fontWeight: 800, letterSpacing: 0.8, textAlign: "center", lineHeight: 1.2, position: "relative", zIndex: 2 }}>
+      CITY OF
+    </div>
+    <div style={{ color: "white", fontSize: 10, fontWeight: 900, letterSpacing: 0.8, textAlign: "center", lineHeight: 1.2, marginBottom: 4, position: "relative", zIndex: 2 }}>
+      BORONGAN
+    </div>
+
+    <div style={{ color: "#eab308", fontSize: 5.5, textAlign: "center", letterSpacing: 0.5, position: "relative", zIndex: 2 }}>
+      EASTERN SAMAR
+    </div>
+
+    {/* SVG Wave Border */}
+    <svg style={{ position: "absolute", right: -1, top: 0, height: "100%", width: 24, zIndex: 2 }} viewBox="0 0 24 240" preserveAspectRatio="none">
+      <path d="M0,0 Q24,60 12,120 T24,240 L0,240 Z" fill="#1d4ed8" />
+      <path d="M0,0 Q24,60 12,120 T24,240" fill="none" stroke="#eab308" strokeWidth="2.5" />
+    </svg>
+  </div>
+);
+
+// ── BACK LEFT PANEL ──────────────────────────────────────────────────────
+const BackLeftPanel = () => (
+  <div style={{
+    width: 90, flexShrink: 0,
+    backgroundColor: "#1e3a8a",
+    display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "center",
+    padding: "20px 10px", gap: 14, position: "relative",
+    zIndex: 1
+  }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, color: "white" }}>
+      <ShieldCheck size={14} />
+      <span style={{ fontSize: 7, fontWeight: 600, letterSpacing: 0.5 }}>SAFE</span>
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, color: "white" }}>
+      <Users size={14} />
+      <span style={{ fontSize: 7, fontWeight: 600, letterSpacing: 0.5 }}>CONNECTED</span>
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, color: "white" }}>
+      <Building2 size={14} />
+      <span style={{ fontSize: 7, fontWeight: 600, letterSpacing: 0.5 }}>EMPOWERED</span>
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, color: "white" }}>
+      <HeartHandshake size={14} />
+      <span style={{ fontSize: 7, fontWeight: 600, letterSpacing: 0.5, lineHeight: 1.2 }}>SERVING<br/>WITH HEART</span>
+    </div>
+  </div>
+);
 
 // ---------------------------------------------------------------------------
 // Main component
@@ -154,9 +178,7 @@ const ResidentIDCard = ({
     return <div className="text-center text-destructive py-8">{idTabError}</div>;
   }
 
-  const bgFront = toAbsUrl(municipalityData?.id_background_front_path);
-  const bgBack  = toAbsUrl(municipalityData?.id_background_back_path);
-  const photo   = toAbsUrl(viewResident?.picture_path);
+  const photo = toAbsUrl(viewResident?.picture_path);
 
   const fullName = [
     viewResident?.first_name ? formatLabel(viewResident.first_name) : "",
@@ -164,6 +186,8 @@ const ResidentIDCard = ({
     viewResident?.last_name ? formatLabel(viewResident.last_name) : "",
     viewResident?.suffix || "",
   ].filter(Boolean).join(" ").toUpperCase();
+
+  const titleCaseName = fullName.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 
   const address = [
     viewResident?.house_number,
@@ -186,12 +210,6 @@ const ResidentIDCard = ({
     boxSizing: "border-box",
   };
 
-  const watermarkStyle = {
-    position: "absolute", inset: 0, width: "100%", height: "100%",
-    objectFit: "cover", opacity: 0.18, filter: "blur(2px)",
-    transform: "scale(1.05)", zIndex: 0, pointerEvents: "none",
-  };
-
   return (
     <div className="flex flex-col items-center gap-3">
       {/* Flip card */}
@@ -210,30 +228,34 @@ const ResidentIDCard = ({
 
           {/* ══════════════ FRONT ══════════════════════════════════════════ */}
           <div className="id-card-front" style={shellStyle}>
-            <LeftPanel bgImg={bgFront} />
+            <FrontLeftPanel />
 
             {/* Right panel */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "12px 14px", position: "relative" }}>
-              {bgFront && <img src={bgFront} alt="" aria-hidden style={watermarkStyle} />}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "12px 14px 10px 24px", position: "relative", backgroundColor: "#f8fafc" }}>
+              
+              {/* Blue Tint Gradient Overlay */}
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(29,78,216,0.06) 0%, rgba(30,64,175,0.08) 50%, rgba(37,99,235,0.05) 100%)", zIndex: 0 }} />
+
 
               {/* Header */}
-              <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "2px solid #1d4ed8", paddingBottom: 6, marginBottom: 10 }}>
+              <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "2.5px solid #1d4ed8", paddingBottom: 4, marginBottom: 10 }}>
                 <div>
-                  <div style={{ fontSize: 7, color: "#6b7280", letterSpacing: 1, textTransform: "uppercase" }}>
+                  <div style={{ fontSize: 6.5, color: "#4b5563", letterSpacing: 1.5, textTransform: "uppercase" }}>
                     Republic of the Philippines
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 2, color: "#1d4ed8", lineHeight: 1 }}>
-                    BORONGANON ID
+                  <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: 1.5, color: "#1e3a8a", lineHeight: 1.1 }}>
+                    BORONGAN ID
                   </div>
                 </div>
+                <div style={{ position: "absolute", bottom: -2.5, right: 0, height: 2.5, width: 40, backgroundColor: "#eab308" }} />
               </div>
 
               {/* Body */}
               <div style={{ position: "relative", zIndex: 1, display: "flex", gap: 12, flex: 1 }}>
                 {/* Photo */}
                 <div style={{
-                  width: 70, height: 88, flexShrink: 0, borderRadius: 5, overflow: "hidden",
-                  border: "2px solid #1d4ed8", backgroundColor: "#f3f4f6",
+                  width: 70, height: 88, flexShrink: 0, borderRadius: 6, overflow: "hidden",
+                  border: "2px solid #1d4ed8", backgroundColor: "#e5e7eb",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   {photo
@@ -242,40 +264,67 @@ const ResidentIDCard = ({
                 </div>
 
                 {/* Info */}
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 11, color: "#111827", letterSpacing: 0.3, lineHeight: 1.2 }}>
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                  <div style={{ fontWeight: 900, fontSize: 11, color: "#111827", letterSpacing: 0.3, lineHeight: 1.2 }}>
                     {fullName || "N/A"}
                   </div>
-                  <div style={{ fontFamily: "monospace", fontSize: 9, color: "#1d4ed8", fontWeight: 700, letterSpacing: 0.5 }}>
+                  <div style={{ fontFamily: "monospace", fontSize: 8, color: "#1d4ed8", fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>
                     ID No. {viewResident?.resident_id || "—"}
                   </div>
 
-                  <div style={{ height: 1, backgroundColor: "#e5e7eb", margin: "2px 0" }} />
-
-                  {/* Personal info grid */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 10px" }}>
-                    {[
-                      ["SEX", formatLabel(viewResident?.sex || "")],
-                      ["CIVIL STATUS", formatLabel(viewResident?.civil_status || "")],
-                      ["DATE OF BIRTH", formatDateLong(viewResident?.birthdate)],
-                      ["AGE", getAge(viewResident?.birthdate)],
-                    ].map(([label, value]) => (
-                      <div key={label}>
-                        <div style={{ fontSize: 6.5, color: "#6b7280", letterSpacing: 0.5 }}>{label}</div>
-                        <div style={{ fontSize: 8, fontWeight: 700, color: "#111827" }}>{value || "N/A"}</div>
+                  {/* 2-col personal info grid with icons */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 6px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <UserIcon size={11} color="#1d4ed8" />
+                      <div>
+                        <div style={{ fontSize: 5, color: "#6b7280", letterSpacing: 0.5 }}>SEX</div>
+                        <div style={{ fontSize: 7.5, fontWeight: 700, color: "#111827", lineHeight: 1 }}>{formatLabel(viewResident?.sex || "")}</div>
                       </div>
-                    ))}
-                  </div>
-
-                  <div style={{ height: 1, backgroundColor: "#f3f4f6", margin: "2px 0" }} />
-
-                  {/* Address */}
-                  <div>
-                    <div style={{ fontSize: 6.5, color: "#6b7280", letterSpacing: 0.5 }}>ADDRESS</div>
-                    <div style={{ fontSize: 8, fontWeight: 600, color: "#111827", lineHeight: 1.35 }}>
-                      {address || "N/A"}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <Users size={11} color="#1d4ed8" />
+                      <div>
+                        <div style={{ fontSize: 5, color: "#6b7280", letterSpacing: 0.5 }}>CIVIL STATUS</div>
+                        <div style={{ fontSize: 7.5, fontWeight: 700, color: "#111827", lineHeight: 1 }}>{formatLabel(viewResident?.civil_status || "")}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <CalendarDays size={11} color="#1d4ed8" />
+                      <div>
+                        <div style={{ fontSize: 5, color: "#6b7280", letterSpacing: 0.5 }}>DATE OF BIRTH</div>
+                        <div style={{ fontSize: 7.5, fontWeight: 700, color: "#111827", lineHeight: 1 }}>{formatDateLong(viewResident?.birthdate)}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <IdCard size={11} color="#1d4ed8" />
+                      <div>
+                        <div style={{ fontSize: 5, color: "#6b7280", letterSpacing: 0.5 }}>AGE</div>
+                        <div style={{ fontSize: 7.5, fontWeight: 700, color: "#111827", lineHeight: 1 }}>{getAge(viewResident?.birthdate)}</div>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Address */}
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 4, marginTop: 4 }}>
+                    <MapPin size={11} color="#1d4ed8" style={{ marginTop: 1, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 5, color: "#6b7280", letterSpacing: 0.5 }}>ADDRESS</div>
+                      <div style={{ fontSize: 7.5, fontWeight: 700, color: "#111827", lineHeight: 1.2 }}>
+                        {address || "N/A"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Signature Block */}
+              <div style={{ position: "absolute", bottom: 12, right: 14, textAlign: "center", zIndex: 1 }}>
+                <div style={{ fontFamily: 'cursive, "Brush Script MT", "Dancing Script", sans-serif', fontSize: 13, color: "#111827", marginBottom: -2, whiteSpace: "nowrap" }}>
+                  {titleCaseName}
+                </div>
+                <div style={{ width: 90, borderTop: "1px solid #374151", margin: "0 auto", marginBottom: 2 }} />
+                <div style={{ fontSize: 5, color: "#4b5563", fontWeight: 600, letterSpacing: 0.5 }}>
+                  CARDHOLDER'S SIGNATURE
                 </div>
               </div>
             </div>
@@ -283,53 +332,63 @@ const ResidentIDCard = ({
 
           {/* ══════════════ BACK ═══════════════════════════════════════════ */}
           <div className="id-card-back" style={{ ...shellStyle, transform: "rotateY(180deg)" }}>
-            <LeftPanel bgImg={bgBack} />
+            <BackLeftPanel />
 
-            {/* Right panel */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "12px 14px", position: "relative", justifyContent: "space-between" }}>
-              {bgBack && <img src={bgBack} alt="" aria-hidden style={watermarkStyle} />}
+              {/* Right panel */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", backgroundColor: "#f8fafc" }}>
+              
+              {/* Blue Tint Gradient Overlay */}
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(29,78,216,0.06) 0%, rgba(30,64,175,0.08) 50%, rgba(37,99,235,0.05) 100%)", zIndex: 0 }} />
 
-              {/* Emergency contact */}
-              <div style={{ position: "relative", zIndex: 1 }}>
-                <div style={{ fontSize: 7, fontWeight: 700, color: "#374151", letterSpacing: 0.8, marginBottom: 4 }}>
-                  IN CASE OF EMERGENCY, NOTIFY:
-                </div>
-                <div style={{ border: "1px solid #93c5fd", borderRadius: 5, padding: "5px 8px", backgroundColor: "rgba(239,246,255,0.7)" }}>
-                  <div style={{ fontSize: 8, color: "#374151" }}>
-                    Name: <span style={{ fontWeight: 700 }}>{emergency.name?.toUpperCase() || "N/A"}</span>
+              <div style={{ padding: "12px 14px", flex: 1, display: "flex", flexDirection: "column", gap: 10, zIndex: 1 }}>
+                {/* Emergency contact */}
+                <div>
+                  <div style={{ fontSize: 7, fontWeight: 700, color: "#1e3a8a", letterSpacing: 0.8, marginBottom: 4 }}>
+                    IN CASE OF EMERGENCY, NOTIFY:
                   </div>
-                  <div style={{ fontSize: 8, color: "#374151", marginTop: 1 }}>
-                    Contact: <span style={{ fontWeight: 700 }}>{emergency.contact || "N/A"}</span>
+                  <div style={{ border: "1px solid #93c5fd", borderRadius: 6, padding: "6px 10px", backgroundColor: "#eff6ff", width: "75%" }}>
+                    <div style={{ fontSize: 8.5, color: "#111827" }}>
+                      Name: <span style={{ fontWeight: 800 }}>{emergency.name?.toUpperCase() || "N/A"}</span>
+                    </div>
+                    <div style={{ fontSize: 8.5, color: "#111827", marginTop: 2 }}>
+                      Contact: <span style={{ fontWeight: 800 }}>{emergency.contact || "N/A"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* QR + certification */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ padding: 4, backgroundColor: "white", border: "1px solid #e5e7eb", borderRadius: 6, flexShrink: 0 }}>
+                    {qrCodeUrl && (
+                      <img src={qrCodeUrl} alt="QR Code" style={{ width: 50, height: 50, imageRendering: "crisp-edges" }} />
+                    )}
+                  </div>
+                  <div style={{ fontSize: 6.5, color: "#4b5563", lineHeight: 1.5, textAlign: "justify", paddingRight: 40 }}>
+                    This certifies that the bearer is a bonafide resident of Barangay{" "}
+                    <strong style={{ color: "#1e3a8a" }}>{barangayData?.barangay_name?.toUpperCase()}</strong>,{" "}
+                    <strong style={{ color: "#1e3a8a" }}>BORONGAN CITY</strong>, Eastern Samar, Philippines.
                   </div>
                 </div>
               </div>
 
-              {/* QR + certification */}
-              <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 12 }}>
-                {qrCodeUrl && (
-                  <img src={qrCodeUrl} alt="QR Code" style={{ width: 72, height: 72, flexShrink: 0, imageRendering: "crisp-edges" }} />
-                )}
-                <div style={{ fontSize: 7, color: "#4b5563", lineHeight: 1.6, textAlign: "justify" }}>
-                  This certifies that the bearer is a bonafide resident of Barangay{" "}
-                  <strong>{barangayData?.barangay_name?.toUpperCase()}</strong>,{" "}
-                  <strong>BORONGAN CITY</strong>, Eastern Samar, Philippines.
-                  This ID is non-transferable.
-                </div>
-              </div>
-
-              {/* Notice + Mayor signature */}
-              <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-                <div style={{ fontSize: 6.5, color: "#9ca3af", fontWeight: 600, lineHeight: 1.5 }}>
-                  THIS ID IS NON-TRANSFERABLE.<br />
-                  IF FOUND, PLEASE RETURN TO THE CITY HALL.
+              {/* Bottom Gray Bar */}
+              <div style={{ backgroundColor: "#e2e8f0", padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", zIndex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ backgroundColor: "#1d4ed8", borderRadius: "50%", padding: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Lock size={10} color="white" />
+                  </div>
+                  <div style={{ fontSize: 5.5, color: "#4b5563", fontWeight: 700, lineHeight: 1.3 }}>
+                    THIS ID IS NON-TRANSFERABLE.<br />
+                    IF FOUND, PLEASE RETURN TO THE CITY HALL.
+                  </div>
                 </div>
 
-                <div style={{ textAlign: "center", flexShrink: 0 }}>
-                  <div style={{ width: 120, borderTop: "1.5px solid #374151", marginBottom: 3 }} />
-                  <div style={{ fontSize: 8, fontWeight: 800, color: "#111827", letterSpacing: 0.3 }}>
+                {/* Mayor signature block */}
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 7.5, fontWeight: 800, color: "#111827", letterSpacing: 0.3 }}>
                     HON. JOSE IVAN DAYAN AGDA
                   </div>
-                  <div style={{ fontSize: 7, color: "#6b7280", fontWeight: 600 }}>
+                  <div style={{ fontSize: 6, color: "#4b5563", fontWeight: 600 }}>
                     CITY MAYOR
                   </div>
                 </div>
@@ -403,3 +462,4 @@ const ResidentIDCard = ({
 };
 
 export default ResidentIDCard;
+
