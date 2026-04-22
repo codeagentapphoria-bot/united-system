@@ -6,6 +6,7 @@
  */
 
 import prisma from '../config/database';
+import { Prisma } from '@prisma/client';
 import cacheService from './cache.service';
 import { formatResidentResponse } from './auth.service';
 import { getSupabase, ESERVICE_BUCKET } from '../config/supabase';
@@ -147,9 +148,17 @@ export const listResidents = async (filters: ResidentFilters) => {
 // =============================================================================
 // GET SINGLE RESIDENT (cached)
 // =============================================================================
+
+/** Shape returned by raw SQL for resident_classifications (matches BIMS VIEW_RESIDENT_INFORMATION) */
+interface ResidentClassificationRow {
+  classification_id: number;
+  classification_type: string;
+  classification_details: unknown;
+}
+
 export const getResident = async (id: string) => {
   const cacheKey = `resident:${id}:profile`;
-  
+
   const cached = await cacheService.get(cacheKey);
   if (cached) {
     return cached;
@@ -168,10 +177,22 @@ export const getResident = async (id: string) => {
   });
 
   if (!resident) throw new Error('Resident not found');
-  
+
+  // Fetch classifications via raw SQL (BIMS-managed table, not in Prisma schema)
+  const classifications = await prisma.$queryRaw<ResidentClassificationRow[]>`
+    SELECT
+      id AS classification_id,
+      classification_type,
+      COALESCE(classification_details, '{}'::jsonb) AS classification_details
+    FROM resident_classifications
+    WHERE resident_id = ${Prisma.sql`${id}`}
+    ORDER BY classification_type ASC
+  `;
+
   const formatted = formatResidentResponse(resident);
-  await cacheService.set(cacheKey, formatted, 120); // 2 min TTL
-  return formatted;
+  const withClassifications = { ...formatted, classifications };
+  await cacheService.set(cacheKey, withClassifications, 120); // 2 min TTL
+  return withClassifications;
 };
 
 // =============================================================================

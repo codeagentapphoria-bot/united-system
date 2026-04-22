@@ -2,6 +2,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { Separator } from '@/components/ui/separator';
@@ -9,9 +10,12 @@ import { adminMenuItems } from '@/config/admin-menu';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatDateWithoutTimezone, formatIdType } from '@/lib/utils';
 import { adminRegistrationService, type RegistrationRequestResponse, type RegistrationRequestFilters } from '@/services/api/citizen-registration.service';
+import { classificationTypeService } from '@/services/api/classificationType.service';
 import { logger } from '@/utils/logger';
 import React, { useEffect, useState } from 'react';
-import { FiAlertCircle, FiCheck, FiEye, FiSearch, FiX, FiZoomIn } from 'react-icons/fi';
+import { FiAlertCircle, FiCheck, FiEye, FiFileText, FiRotateCw, FiSearch, FiX, FiZoomIn } from 'react-icons/fi';
+import ResidentClassificationsForm from '@/components/ui/ResidentClassificationsForm';
+import type { ResidentInfo } from '@/components/ui/ResidentClassificationsForm';
 
 type StatusFilter = 'ALL' | 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'REQUIRES_RESUBMISSION';
 
@@ -51,7 +55,7 @@ export const AdminRegistrationWorkflow: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<RegistrationRequestResponse | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [reviewAction, setReviewAction] = useState<'APPROVED' | 'REJECTED'>('APPROVED');
+  const [reviewAction, setReviewAction] = useState<'APPROVED' | 'REJECTED' | 'REQUIRES_RESUBMISSION'>('APPROVED');
   const [adminNotes, setAdminNotes] = useState('');
   const [isReviewing, setIsReviewing] = useState(false);
 
@@ -63,6 +67,11 @@ export const AdminRegistrationWorkflow: React.FC = () => {
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<{ src: string; label: string } | null>(null);
   const [isCleaning, setIsCleaning] = useState(false);
+
+  // Classification dialog
+  const [classifyResident, setClassifyResident] = useState<ResidentInfo | null>(null);
+  const [isClassifyModalOpen, setIsClassifyModalOpen] = useState(false);
+  const [isClassifying, setIsClassifying] = useState(false);
 
   // Fetch registration requests
   const fetchRequests = async () => {
@@ -101,8 +110,27 @@ export const AdminRegistrationWorkflow: React.FC = () => {
     fetchRequests();
   };
 
+  // Mark as under review
+  const handleMarkUnderReview = async (request: RegistrationRequestResponse) => {
+    try {
+      await adminRegistrationService.markUnderReview(request.id);
+      toast({
+        title: 'Marked as Under Review',
+        description: `Registration for ${request.citizen?.firstName} ${request.citizen?.lastName} is now under review.`,
+      });
+      fetchRequests();
+    } catch (error: any) {
+      logger.error('Failed to mark as under review:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to mark as under review',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Open review modal
-  const handleReviewClick = (request: RegistrationRequestResponse, action: 'APPROVED' | 'REJECTED') => {
+  const handleReviewClick = (request: RegistrationRequestResponse, action: 'APPROVED' | 'REJECTED' | 'REQUIRES_RESUBMISSION') => {
     setSelectedRequest(request);
     setReviewAction(action);
     setAdminNotes('');
@@ -115,19 +143,38 @@ export const AdminRegistrationWorkflow: React.FC = () => {
 
     try {
       setIsReviewing(true);
-      await adminRegistrationService.reviewRegistration(
-        selectedRequest.id,
-        reviewAction,
-        adminNotes || undefined
-      );
 
-      toast({
-        title: 'Success',
-        description: `Registration ${reviewAction === 'APPROVED' ? 'approved' : 'rejected'} successfully`,
-      });
+      if (reviewAction === 'REQUIRES_RESUBMISSION') {
+        await adminRegistrationService.requestResubmission(selectedRequest.id, adminNotes || '');
+        toast({
+          title: 'Success',
+          description: 'Resubmission requested. The resident will be notified.',
+        });
+        setIsReviewModalOpen(false);
+        fetchRequests();
+      } else {
+        await adminRegistrationService.reviewRegistration(
+          selectedRequest.id,
+          reviewAction,
+          adminNotes || undefined
+        );
+        toast({
+          title: 'Success',
+          description: `Registration ${reviewAction === 'APPROVED' ? 'approved' : 'rejected'} successfully`,
+        });
 
-      setIsReviewModalOpen(false);
-      fetchRequests();
+        // After approval, open the classification dialog
+        if (reviewAction === 'APPROVED' && selectedRequest.resident) {
+          // selectedRequest.resident already matches ResidentInfo shape (camelCase)
+          // and now includes classifications[] from the updated backend.
+          setClassifyResident(selectedRequest.resident as ResidentInfo);
+          setIsClassifyModalOpen(true);
+          setIsReviewModalOpen(false); // Close review modal; classification dialog will handle completion
+        } else {
+          setIsReviewModalOpen(false);
+          fetchRequests();
+        }
+      }
     } catch (error: any) {
       logger.error('Failed to review registration:', error);
       toast({
@@ -137,6 +184,45 @@ export const AdminRegistrationWorkflow: React.FC = () => {
       });
     } finally {
       setIsReviewing(false);
+    }
+  };
+
+  // Save classifications for a resident
+  const handleClassificationSave = async (
+    data: { classifications: Array<{ type: string; details: Record<string, unknown> | null }> }
+  ) => {
+    if (!classifyResident) return;
+
+    setIsClassifying(true);
+    try {
+      await Promise.all(
+        data.classifications.map((cls) =>
+          classificationTypeService.insertClassification({
+            residentId: classifyResident.id,
+            classificationType: cls.type,
+            classificationDetails: cls.details ?? undefined,
+          })
+        )
+      );
+
+      toast({
+        title: 'Classifications Saved',
+        description: 'Resident classifications have been assigned successfully.',
+      });
+
+      setIsClassifyModalOpen(false);
+      setClassifyResident(null);
+      fetchRequests();
+    } catch (error: any) {
+      logger.error('Failed to save classifications:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save classifications',
+        variant: 'destructive',
+      });
+      throw error; // Re-throw so the form doesn't close
+    } finally {
+      setIsClassifying(false);
     }
   };
 
@@ -176,22 +262,11 @@ export const AdminRegistrationWorkflow: React.FC = () => {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Registration Requests (Read-Only)</h1>
-          <p className="text-gray-500">View portal registration requests submitted by residents</p>
+          <h1 className="text-2xl font-bold text-gray-900">Registration Approvals</h1>
+          <p className="text-gray-500">Review and process resident registration requests from the portal</p>
         </div>
 
-        {/* Read-only notice */}
-        <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
-          <FiAlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-          <div>
-            <p className="font-semibold">Approvals are managed in BIMS</p>
-            <p className="mt-0.5">
-              To approve or reject a registration, log in to the BIMS admin portal and go to
-              <strong> Registrations</strong>. This page is read-only — it shows the list but
-              does not allow actions to avoid conflicts with the BIMS approval workflow.
-            </p>
-          </div>
-        </div>
+
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -291,20 +366,41 @@ export const AdminRegistrationWorkflow: React.FC = () => {
                         </td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {/* View-only: approve/reject actions removed — use BIMS admin */}
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleViewDetails(request)}
+                              title="View details"
                             >
                               <FiEye className="h-4 w-4" />
                             </Button>
-                            {false && request.status === 'UNDER_REVIEW' && (
+                            {request.status === 'PENDING' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleMarkUnderReview(request)}
+                                title="Mark under review"
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              >
+                                <FiFileText className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {(request.status === 'PENDING' || request.status === 'UNDER_REVIEW') && (
                               <>
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  onClick={() => handleReviewClick(request, 'APPROVED')}
+                                  title="Approve"
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                >
+                                  <FiCheck className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
                                   onClick={() => handleReviewClick(request, 'REJECTED')}
+                                  title="Reject"
                                   className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                 >
                                   <FiX className="h-4 w-4" />
@@ -591,6 +687,17 @@ export const AdminRegistrationWorkflow: React.FC = () => {
                       Approve
                     </Button>
                     <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setIsDetailModalOpen(false);
+                        handleReviewClick(selectedRequest, 'REQUIRES_RESUBMISSION');
+                      }}
+                    >
+                      <FiRotateCw className="mr-2 h-4 w-4" />
+                      Request Docs
+                    </Button>
+                    <Button
                       variant="destructive"
                       className="flex-1"
                       onClick={() => {
@@ -616,7 +723,7 @@ export const AdminRegistrationWorkflow: React.FC = () => {
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">
-                  {reviewAction === 'APPROVED' ? 'Approve' : 'Reject'} Registration
+                  {reviewAction === 'APPROVED' ? 'Approve' : reviewAction === 'REJECTED' ? 'Reject' : 'Request Resubmission'}
                 </h2>
                 <button
                   onClick={() => setIsReviewModalOpen(false)}
@@ -627,9 +734,11 @@ export const AdminRegistrationWorkflow: React.FC = () => {
               </div>
 
               <p className="text-gray-600 mb-4">
-                {reviewAction === 'APPROVED' 
+                {reviewAction === 'APPROVED'
                   ? `Are you sure you want to approve the registration for ${selectedRequest.citizen?.firstName} ${selectedRequest.citizen?.lastName}?`
-                  : `Are you sure you want to reject the registration for ${selectedRequest.citizen?.firstName} ${selectedRequest.citizen?.lastName}?`
+                  : reviewAction === 'REJECTED'
+                  ? `Are you sure you want to reject the registration for ${selectedRequest.citizen?.firstName} ${selectedRequest.citizen?.lastName}?`
+                  : `Request resubmission for ${selectedRequest.citizen?.firstName} ${selectedRequest.citizen?.lastName}? The resident will be asked to re-upload their documents.`
                 }
               </p>
 
@@ -663,14 +772,14 @@ export const AdminRegistrationWorkflow: React.FC = () => {
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Admin Notes {reviewAction === 'REJECTED' && <span className="text-red-500">*</span>}
+                  Admin Notes {(reviewAction === 'REJECTED' || reviewAction === 'REQUIRES_RESUBMISSION') && <span className="text-red-500">*</span>}
                 </label>
                 <textarea
                   className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   rows={3}
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Enter reason for rejection..."
+                  placeholder={reviewAction === 'REQUIRES_RESUBMISSION' ? 'What documents or information is needed?' : 'Enter reason for rejection...'}
                 />
               </div>
 
@@ -684,12 +793,12 @@ export const AdminRegistrationWorkflow: React.FC = () => {
                   Cancel
                 </Button>
                 <Button
-                  variant={reviewAction === 'APPROVED' ? 'default' : 'destructive'}
+                  variant={reviewAction === 'APPROVED' ? 'default' : reviewAction === 'REJECTED' ? 'destructive' : 'default'}
                   className="flex-1"
                   onClick={handleReviewSubmit}
-                  disabled={isReviewing}
+                  disabled={isReviewing || (reviewAction === 'REQUIRES_RESUBMISSION' && !adminNotes.trim())}
                 >
-                  {isReviewing ? 'Processing...' : reviewAction === 'APPROVED' ? 'Approve' : 'Reject'}
+                  {isReviewing ? 'Processing...' : reviewAction === 'APPROVED' ? 'Approve' : reviewAction === 'REJECTED' ? 'Reject' : 'Request Resubmission'}
                 </Button>
               </div>
             </div>
@@ -761,7 +870,7 @@ export const AdminRegistrationWorkflow: React.FC = () => {
 
       {/* Image Preview Modal */}
       {isImagePreviewOpen && previewImage && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/90 flex items-center justify-center z-[60]"
           onClick={() => setIsImagePreviewOpen(false)}
         >
@@ -773,14 +882,38 @@ export const AdminRegistrationWorkflow: React.FC = () => {
           </button>
           <div className="max-w-4xl max-h-[90vh] w-full mx-4" onClick={(e) => e.stopPropagation()}>
             <p className="text-white text-center mb-4 text-lg font-medium">{previewImage.label}</p>
-            <img 
-              src={previewImage.src} 
+            <img
+              src={previewImage.src}
               alt={previewImage.label}
               className="max-w-full max-h-[80vh] object-contain mx-auto rounded-lg"
             />
           </div>
         </div>
       )}
+
+      {/* Classification Dialog */}
+      <Dialog open={isClassifyModalOpen} onOpenChange={setIsClassifyModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Assign Resident Classifications</DialogTitle>
+          </DialogHeader>
+          {classifyResident && (
+            <ResidentClassificationsForm
+              resident={classifyResident}
+              municipalityId={classifyResident.barangay?.municipality?.id ?? 1}
+              onSubmit={handleClassificationSave}
+              onCancel={() => {
+                setIsClassifyModalOpen(false);
+                setClassifyResident(null);
+                fetchRequests();
+              }}
+              showResidentInfo
+              showActions
+              loading={isClassifying}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
