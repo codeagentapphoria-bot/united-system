@@ -148,6 +148,44 @@ const GuestHero: React.FC<{ onRegister: () => void; onLogin: () => void }> = ({ 
 );
 
 // ---------------------------------------------------------------------------
+// Responsive scale wrapper for ResidentIDCard (380px CR80 card)
+// ---------------------------------------------------------------------------
+const CARD_W = 380;
+
+const IDCardScaler: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const applyScale = () => {
+      // Get the flex container's available width (not the scaled wrapper width)
+      const parentWidth = container.parentElement?.getBoundingClientRect().width ?? window.innerWidth;
+      const scale = Math.min(1, parentWidth / CARD_W);
+      container.style.transform = `scale(${scale})`;
+    };
+
+    applyScale();
+    window.addEventListener('resize', applyScale);
+    return () => window.removeEventListener('resize', applyScale);
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        width: CARD_W,
+        transformOrigin: 'top center',
+        flexShrink: 0,
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
 // Hero — Logged-in resident dashboard
 // ---------------------------------------------------------------------------
 
@@ -181,7 +219,11 @@ const ResidentHero: React.FC<{ resident: ReturnType<typeof useAuth>['user'] }> =
 
           {/* Right: flip ID card */}
           <div className="flex-1 flex justify-center items-center">
-            {resident && <ResidentIDCard resident={resident} />}
+            {resident && (
+              <IDCardScaler>
+                <ResidentIDCard resident={resident} />
+              </IDCardScaler>
+            )}
           </div>
         </div>
       </div>
@@ -216,7 +258,15 @@ export const Home: React.FC = () => {
     setIsLoading(true);
     try {
       const { data } = await portalProgramsService.listPrograms({});
-      setPrograms(data);
+      // Sort: Libre Sakay first, then alphabetically
+      const sorted = [...data].sort((a, b) => {
+        const aIsLibre = a.name.toLowerCase().includes('libre sakay');
+        const bIsLibre = b.name.toLowerCase().includes('libre sakay');
+        if (aIsLibre && !bIsLibre) return -1;
+        if (!aIsLibre && bIsLibre) return 1;
+        return a.name.localeCompare(b.name);
+      });
+      setPrograms(sorted);
     } catch {
       toastRef.current({ variant: 'destructive', title: 'Failed to load programs', description: 'Please try again.' });
     } finally {
