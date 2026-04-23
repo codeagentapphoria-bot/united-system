@@ -44,8 +44,8 @@ async function main() {
     ctx.fillStyle = '#1d4ed8';
     ctx.fillRect(0, 0, w, h);
 
-    // Draw logo centered (30% of min dimension)
-    const logoSize = Math.min(w, h) * 0.30;
+    // Draw logo centered (22% of min dimension for clean padding)
+    const logoSize = Math.min(w, h) * 0.22;
     const cx = w / 2;
     const cy = h / 2 - logoSize * 0.15; // Slightly above center
 

@@ -19,11 +19,11 @@ async function main() {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, size, size);
 
-  // Center-crop logo to square, scaled to 70% of icon size
+  // Center-crop logo to square, scaled to 55% of icon size for clean padding
   const cropSize = Math.min(logo.width, logo.height);
   const sx = (logo.width - cropSize) / 2;
   const sy = (logo.height - cropSize) / 2;
-  const drawSize = size * 0.70;
+  const drawSize = size * 0.55;
 
   ctx.drawImage(
     logo,
