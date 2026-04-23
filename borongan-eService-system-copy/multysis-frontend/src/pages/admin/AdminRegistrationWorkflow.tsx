@@ -2,7 +2,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { Separator } from '@/components/ui/separator';
@@ -904,25 +904,70 @@ export const AdminRegistrationWorkflow: React.FC = () => {
 
       {/* Classification Dialog */}
       <Dialog open={isClassifyModalOpen} onOpenChange={setIsClassifyModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Assign Resident Classifications</DialogTitle>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 py-4 border-b shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary shrink-0">
+                {classifyResident?.firstName?.[0]}{classifyResident?.lastName?.[0]}
+              </div>
+              <div>
+                <DialogTitle className="text-sm">
+                  {classifyResident?.firstName}{' '}
+                  {classifyResident?.middleName ? classifyResident.middleName + ' ' : ''}
+                  {classifyResident?.lastName}
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground">
+                  Assign classifications — optional, can be updated later
+                </p>
+              </div>
+            </div>
           </DialogHeader>
-          {classifyResident && (
-            <ResidentClassificationsForm
-              resident={classifyResident}
-              municipalityId={classifyResident.barangay?.municipality?.id ?? 1}
-              onSubmit={handleClassificationSave}
-              onCancel={() => {
-                setIsClassifyModalOpen(false);
-                setClassifyResident(null);
-                fetchRequests();
-              }}
-              showResidentInfo
-              showActions
-              loading={isClassifying}
-            />
-          )}
+
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            {classifyResident && (
+              <ResidentClassificationsForm
+                resident={classifyResident}
+                municipalityId={classifyResident.barangay?.municipality?.id ?? 1}
+                onSubmit={handleClassificationSave}
+                onCancel={() => {
+                  setIsClassifyModalOpen(false);
+                  setClassifyResident(null);
+                  fetchRequests();
+                }}
+                showResidentInfo={false}
+                showActions={false}
+                loading={isClassifying}
+                formId="classification-form"
+              />
+            )}
+          </div>
+
+          <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30 shrink-0">
+            <p className="text-xs text-muted-foreground">
+              You can also assign classifications later from Resident Management.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsClassifyModalOpen(false);
+                  setClassifyResident(null);
+                  fetchRequests();
+                }}
+              >
+                Skip
+              </Button>
+              <Button
+                size="sm"
+                type="submit"
+                form="classification-form"
+                disabled={isClassifying}
+              >
+                {isClassifying ? 'Saving...' : 'Save Classifications'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>

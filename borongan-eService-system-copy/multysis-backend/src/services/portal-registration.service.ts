@@ -468,7 +468,7 @@ function isCollegeLevel(educationAttainment?: string | null): boolean {
 }
 
 /**
- * Auto-insert resident_classifications rows from flat resident fields.
+ * Auto-insert resident_classifications rows from flat resident fields + ameliorationData.
  * Uses raw SQL since resident_classifications is not in the Prisma schema.
  * Best-effort — errors are logged but do not throw.
  */
@@ -481,12 +481,25 @@ async function autoClassifyResident(
     educationAttainment?: string | null;
     indigenousPerson?: boolean;
     birthdate?: Date | null;
+  },
+  ameliorationData?: {
+    seniorCitizen?: { pensionTypeIds?: string[] };
+    pwd?: { disabilityTypeId?: string; disabilityLevel?: string };
+    student?: { gradeLevelId?: string };
+    soloParent?: { categoryId?: string };
+    voter?: { voterType?: string };
   }
 ): Promise<void> {
   const toInsert: Array<{ type: string; details: object }> = [];
 
   if (resident.isVoter) {
-    toInsert.push({ type: 'Voter', details: [{ typeOfVoter: 'Regular' }] });
+    toInsert.push({
+      type: 'Voter',
+      details: {
+        typeOfVoter: ameliorationData?.voter?.voterType || 'Regular',
+        remarks: '',
+      },
+    });
   }
 
   const employmentClass = resident.employmentStatus
@@ -498,7 +511,13 @@ async function autoClassifyResident(
       const classType = isCollegeLevel(resident.educationAttainment)
         ? 'College Student'
         : 'Student';
-      toInsert.push({ type: classType, details: [] });
+      toInsert.push({
+        type: classType,
+        details: {
+          gradeLevel: ameliorationData?.student?.gradeLevelId || '',
+          remarks: '',
+        },
+      });
     } else {
       toInsert.push({ type: employmentClass, details: [] });
     }
@@ -511,8 +530,37 @@ async function autoClassifyResident(
   if (resident.birthdate) {
     const ageDays = (Date.now() - new Date(resident.birthdate).getTime()) / 86400000;
     if (ageDays >= 60 * 365.25) {
-      toInsert.push({ type: 'Senior Citizen', details: [] });
+      toInsert.push({
+        type: 'Senior Citizen',
+        details: {
+          pensionTypes: ameliorationData?.seniorCitizen?.pensionTypeIds || [],
+          remarks: '',
+        },
+      });
     }
+  }
+
+  // Social amelioration: PWD
+  if (ameliorationData?.pwd?.disabilityTypeId) {
+    toInsert.push({
+      type: 'Person with Disability',
+      details: {
+        disabilityTypeId: ameliorationData.pwd.disabilityTypeId,
+        disabilityLevel: ameliorationData.pwd.disabilityLevel || '',
+        remarks: '',
+      },
+    });
+  }
+
+  // Social amelioration: Solo Parent
+  if (ameliorationData?.soloParent?.categoryId) {
+    toInsert.push({
+      type: 'Solo Parent',
+      details: {
+        categoryId: ameliorationData.soloParent.categoryId,
+        remarks: '',
+      },
+    });
   }
 
   for (const { type, details } of toInsert) {
@@ -592,20 +640,23 @@ export const reviewRegistrationRequest = async (requestId: string, data: ReviewD
       }),
     ]);
 
-    // Auto-create classifications from flat registration fields (non-blocking)
+    // Auto-create classifications from flat registration fields + ameliorationData
+    // MUST await so that getResident called by the frontend sees the new records
     const classifyMunicipalityId = resident.barangay?.municipality?.id;
     if (classifyMunicipalityId) {
-      autoClassifyResident(resident.id, classifyMunicipalityId, {
-        isVoter: resident.isVoter ?? false,
-        employmentStatus: resident.employmentStatus,
-        educationAttainment: resident.educationAttainment,
-        indigenousPerson: resident.indigenousPerson ?? false,
-        birthdate: resident.birthdate,
-      }).catch((err: any) =>
-        console.error(
-          `[auto-classify] autoClassifyResident error for ${resident.id}: ${(err as Error).message}`
-        )
-      );
+      try {
+        await autoClassifyResident(resident.id, classifyMunicipalityId, {
+          isVoter: resident.isVoter ?? false,
+          employmentStatus: resident.employmentStatus,
+          educationAttainment: resident.educationAttainment,
+          indigenousPerson: resident.indigenousPerson ?? false,
+          birthdate: resident.birthdate,
+        }, request.ameliorationData ?? undefined);
+        // Invalidate resident profile cache so the next getResident sees the new classifications
+        await cacheService.del(`resident:${resident.id}:profile`);
+      } catch (err: any) {
+        console.error(`[auto-classify] autoClassifyResident error for ${resident.id}: ${err.message}`);
+      }
     }
 
     // NOTE: Beneficiary sync with amelioration details is handled by the BIMS
