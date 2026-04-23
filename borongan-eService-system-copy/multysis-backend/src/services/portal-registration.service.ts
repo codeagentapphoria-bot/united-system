@@ -651,7 +651,7 @@ export const reviewRegistrationRequest = async (requestId: string, data: ReviewD
           educationAttainment: resident.educationAttainment,
           indigenousPerson: resident.indigenousPerson ?? false,
           birthdate: resident.birthdate,
-        }, request.ameliorationData ?? undefined);
+        }, request.ameliorationData as { seniorCitizen?: { pensionTypeIds?: string[] }; pwd?: { disabilityTypeId?: string; disabilityLevel?: string }; student?: { gradeLevelId?: string }; soloParent?: { categoryId?: string }; voter?: { voterType?: string }; } ?? undefined);
         // Invalidate resident profile cache so the next getResident sees the new classifications
         await cacheService.del(`resident:${resident.id}:profile`);
       } catch (err: any) {
