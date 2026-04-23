@@ -11,7 +11,7 @@ import { useRoutes } from '@/hooks/useRoutes';
 import { portalProgramsService, type PortalProgram } from '@/services/api/portal-programs.service';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { FiArrowLeft, FiCheck, FiClock, FiX, FiInfo, FiMap } from 'react-icons/fi';
+import { FiArrowLeft, FiCheck, FiClock, FiX, FiInfo, FiMap, FiNavigation } from 'react-icons/fi';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -147,6 +147,7 @@ export function LibreSakay() {
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+  const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
 
   const { data: buses = [], isLoading: busesLoading } = useBusLocations(30_000);
   const { data: routes = [] } = useRoutes();
@@ -251,6 +252,8 @@ export function LibreSakay() {
             selectedRouteId={selectedRouteId}
             onSelectedRouteChange={setSelectedRouteId}
             routes={routes.map(r => ({ id: r.id, name: r.name }))}
+            selectedBusId={selectedBusId}
+            onSelectedBusChange={setSelectedBusId}
           />
         </div>
 
@@ -261,7 +264,10 @@ export function LibreSakay() {
               Active Buses
             </h2>
             {!userLocation && (
-              <span className="text-xs text-gray-400">Enable location for ETA</span>
+              <span className="text-xs text-amber-500 flex items-center gap-1">
+                <FiNavigation size={11} />
+                Location needed for ETA
+              </span>
             )}
           </div>
 
@@ -284,6 +290,7 @@ export function LibreSakay() {
                   key={bus.id}
                   bus={bus}
                   userLocation={userLocation}
+                  onFocus={() => setSelectedBusId(bus.id)}
                 />
               ))}
             </div>

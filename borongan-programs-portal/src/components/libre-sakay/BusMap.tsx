@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl/mapbox';
 import type { MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -105,6 +105,9 @@ interface BusMapProps {
   selectedRouteId?: string | null;
   onSelectedRouteChange?: (routeId: string | null) => void;
   routes?: Array<{ id: string; name: string }>;
+  /** Controlled selected bus — causes the map to flyTo that bus */
+  selectedBusId?: string | null;
+  onSelectedBusChange?: (busId: string | null) => void;
 }
 
 export function BusMap({
@@ -116,12 +119,18 @@ export function BusMap({
   selectedRouteId,
   onSelectedRouteChange,
   routes = [],
+  selectedBusId,
+  onSelectedBusChange,
 }: BusMapProps) {
   const mapRef = useRef<MapRef>(null);
-  const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
+  const [internalSelectedBusId, setInternalSelectedBusId] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(false);
+
+  // Prefer controlled selectedBusId prop, fall back to internal state
+  const activeSelectedBusId = selectedBusId !== undefined ? selectedBusId : internalSelectedBusId;
+  const setActiveSelectedBusId = onSelectedBusChange ?? setInternalSelectedBusId;
 
   const queryClient = useQueryClient();
 
@@ -136,7 +145,18 @@ export function BusMap({
   );
   // Empty state only when there are genuinely no buses at all for the route
   const hasAnyBuses = filteredBuses.length > 0;
-  const selectedBus = activeBuses.find(b => b.id === selectedBusId) ?? null;
+  const selectedBus = activeBuses.find(b => b.id === activeSelectedBusId) ?? null;
+
+  // Fly to the selected bus when selection changes
+  useEffect(() => {
+    if (selectedBus) {
+      mapRef.current?.flyTo({
+        center: [selectedBus.longitude, selectedBus.latitude],
+        zoom: 15,
+        duration: 1000,
+      });
+    }
+  }, [selectedBus]);
 
   const handleLocate = useCallback(() => {
     if (!navigator.geolocation) { setLocateError('Geolocation not supported'); return; }
@@ -154,7 +174,7 @@ export function BusMap({
     );
   }, [onUserLocation]);
 
-  const handleMapClick = useCallback(() => setSelectedBusId(null), []);
+  const handleMapClick = useCallback(() => setActiveSelectedBusId(null), [setActiveSelectedBusId]);
 
   return (
     <div className="relative w-full rounded-xl overflow-hidden bg-gray-100" style={{ height }}>
@@ -173,7 +193,7 @@ export function BusMap({
             latitude={bus.latitude}
             anchor="center"
           >
-            <BusPin busLocation={bus} onClick={() => setSelectedBusId(bus.id)} />
+            <BusPin busLocation={bus} onClick={() => setActiveSelectedBusId(bus.id)} />
           </Marker>
         ))}
 
@@ -188,7 +208,7 @@ export function BusMap({
             longitude={selectedBus.longitude}
             latitude={selectedBus.latitude}
             anchor="bottom"
-            onClose={() => setSelectedBusId(null)}
+            onClose={() => setActiveSelectedBusId(null)}
             closeOnClick={false}
             offset={20}
           >

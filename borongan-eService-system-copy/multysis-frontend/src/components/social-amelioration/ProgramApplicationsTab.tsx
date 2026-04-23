@@ -18,7 +18,7 @@ import {
   type AdminProgramApplication,
   type AdminProgramApplicationDetail,
 } from '@/services/api/portal-programs.service';
-import { AttachmentGrid, fixAttachmentUrl } from '@/components/common/AttachmentPreview';
+import { AttachmentGrid, fixAttachmentUrl, Lightbox } from '@/components/common/AttachmentPreview';
 
 // Utils
 import { cn } from '@/lib/utils';
@@ -72,9 +72,10 @@ interface ResidentPreviewDialogProps {
   open: boolean;
   onClose: () => void;
   programId?: string;
+  onImageClick?: (url: string, label: string) => void;
 }
 
-const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, open, onClose, programId }) => {
+const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, open, onClose, programId, onImageClick }) => {
   const { toast } = useToast();
   const [detail, setDetail] = useState<AdminProgramApplicationDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -252,7 +253,7 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
             {detail.attachments && detail.attachments.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Attachments</p>
-                <AttachmentGrid attachments={detail.attachments} />
+                <AttachmentGrid attachments={detail.attachments} onImageClick={onImageClick} />
               </div>
             )}
 
@@ -416,6 +417,7 @@ export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatu
 
   const [previewAppId, setPreviewAppId] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [lightbox, setLightbox] = useState<{ url: string; label: string } | null>(null);
 
   const fetchApplications = useCallback(
     async (page = 1) => {
@@ -648,6 +650,7 @@ export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatu
           setPreviewAppId(null);
         }}
         programId={programId}
+        onImageClick={(url, label) => setLightbox({ url, label })}
       />
 
       {/* Review Dialog */}
@@ -663,6 +666,15 @@ export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatu
         isLoading={isReviewing}
         programId={programId}
       />
+
+      {/* Lightbox — rendered outside Dialog so it covers the full screen */}
+      {lightbox && (
+        <Lightbox
+          url={lightbox.url}
+          label={lightbox.label}
+          onClose={() => setLightbox(null)}
+        />
+      )}
     </div>
   );
 };

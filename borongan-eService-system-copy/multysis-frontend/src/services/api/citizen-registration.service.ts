@@ -22,6 +22,13 @@ export interface RegistrationRequestFilters {
   limit?: number;
 }
 
+// Classification entry returned by the backend (matches BIMS VIEW_RESIDENT_INFORMATION shape)
+export interface Classification {
+  classification_id: number;
+  classification_type: string;
+  classification_details: unknown;
+}
+
 // Resident/citizen info shape (same fields, two names for backward compat)
 interface ResidentInfo {
   id: string;
@@ -53,6 +60,17 @@ interface ResidentInfo {
   idDocumentNumber?: string;
   username?: string;
   status?: string;
+  // Classifications from resident_classifications table (BIMS-managed)
+  classifications?: Classification[];
+  // Nested relation returned by the API (barangay includes municipality)
+  barangay?: {
+    id?: number;
+    barangay_name?: string;
+    municipality?: {
+      id?: number;
+      municipality_name?: string;
+    };
+  };
 }
 
 export interface RegistrationRequestResponse {
@@ -149,11 +167,15 @@ export const adminRegistrationService = {
   async reviewRegistration(
     id: string,
     // Accept both old 'APPROVED'/'REJECTED' and new 'approved'/'rejected'
-    action: 'APPROVED' | 'REJECTED' | 'approved' | 'rejected',
+    action: 'APPROVED' | 'REJECTED' | 'approved' | 'reject',
     adminNotes?: string
   ): Promise<{ residentId?: string; citizenId?: string; status: string; reviewedAt: string }> {
+    // Normalize to the backend's expected 'approve' / 'reject' values
+    const normalizedAction =
+      action === 'APPROVED' || action === 'approved' ? 'approve' : 'reject';
+
     const response = await api.post(`/portal-registration/requests/${id}/review`, {
-      action: action.toLowerCase(),
+      action: normalizedAction,
       adminNotes,
     });
     const d = response.data.data ?? response.data;

@@ -12,6 +12,8 @@
  */
 
 import prisma from '../config/database';
+import { Prisma } from '@prisma/client';
+import cacheService from './cache.service';
 import { hashPassword, generateTempPassword } from '../utils/password';
 import { sendEmailSafely } from './email.service';
 import {
@@ -252,6 +254,51 @@ export const getRegistrationStatus = async (username: string) => {
 };
 
 // =============================================================================
+// HELPERS: Fetch classifications for multiple residents (raw SQL, BIMS table)
+// =============================================================================
+
+interface ResidentClassificationRow {
+  resident_id: string;
+  id: number;
+  classification_type: string;
+  classification_details: unknown;
+}
+
+/**
+ * Batch-fetch resident_classifications for multiple resident IDs.
+ * Returns a Map: residentId → classifications array.
+ * Uses cache to avoid redundant queries within the same request.
+ */
+async function fetchClassificationsForResidents(
+  residentIds: string[],
+): Promise<Map<string, ResidentClassificationRow[]>> {
+  if (!residentIds.length) return new Map();
+
+  // Batch-fetch all classifications in one raw SQL query
+  // Use Prisma.join so array interpolation into IN clause is safe
+  const idList = Prisma.join(residentIds.map((id) => Prisma.sql`${id}`));
+  const rows = await prisma.$queryRaw<ResidentClassificationRow[]>`
+    SELECT
+      resident_id,
+      id AS classification_id,
+      classification_type,
+      COALESCE(classification_details, '{}'::jsonb) AS classification_details
+    FROM resident_classifications
+    WHERE resident_id IN (${idList})
+  `;
+
+  // Group by resident_id
+  const grouped = new Map<string, ResidentClassificationRow[]>();
+  for (const row of rows) {
+    const list = grouped.get(row.resident_id) ?? [];
+    list.push(row);
+    grouped.set(row.resident_id, list);
+  }
+
+  return grouped;
+}
+
+// =============================================================================
 // LIST REGISTRATION REQUESTS  (BIMS admin)
 // =============================================================================
 
@@ -315,8 +362,22 @@ export const listRegistrationRequests = async (filters: RegistrationRequestFilte
     prisma.registrationRequest.count({ where }),
   ]);
 
+  // Attach classifications to each resident (raw SQL, BIMS-managed table)
+  const residentIds = requests.map((r) => r.resident.id).filter(Boolean);
+  const classificationsMap = await fetchClassificationsForResidents(residentIds);
+
+  const requestsWithClassifications = requests.map((request) => ({
+    ...request,
+    resident: request.resident
+      ? {
+          ...request.resident,
+          classifications: classificationsMap.get(request.resident.id) ?? [],
+        }
+      : undefined,
+  }));
+
   return {
-    requests,
+    requests: requestsWithClassifications,
     pagination: {
       total,
       page,

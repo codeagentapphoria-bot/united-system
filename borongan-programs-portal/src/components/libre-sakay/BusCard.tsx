@@ -50,7 +50,7 @@ export function BusCard({ bus, userLocation, onFocus }: BusCardProps) {
     <>
       <Card
         className="border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-        onClick={() => setModalOpen(true)}
+        onClick={() => { onFocus?.(); setModalOpen(true); }}
       >
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-3">
@@ -105,6 +105,7 @@ export function BusCard({ bus, userLocation, onFocus }: BusCardProps) {
                 >
                   <FiNavigation size={12} />
                   ETA
+                  <span className="text-[10px] text-gray-400">(needs location)</span>
                 </Button>
               )}
             </div>
