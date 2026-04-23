@@ -33,17 +33,7 @@ import {
   listProgramsForResident,
   reviewApplicationAdmin,
 } from '../services/portal-programs.service';
-import { uploadFileToSupabase, validateFileContent } from '../middleware/upload';
-import { deleteMultipleFromSupabase } from '../utils/supabaseStorage';
-
-const ALLOWED_APPLICATION_MIMES = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-];
+import { uploadFileToSupabase } from '../middleware/upload';
 
 // =============================================================================
 // PORTAL (resident-facing)
@@ -98,30 +88,11 @@ export const applyForProgramController = async (req: AuthRequest, res: Response)
       }
     }
 
-    // Validate uploaded files with magic-byte check
-    const uploadedFiles = (req.files as Express.Multer.File[]) ?? [];
-    const uploadedUrls: string[] = [];
-
-    for (const f of uploadedFiles) {
-      const valid = await validateFileContent(f.buffer, ALLOWED_APPLICATION_MIMES);
-      if (!valid) {
-        // Clean up already-uploaded files from Supabase
-        if (uploadedUrls.length > 0) {
-          await deleteMultipleFromSupabase(uploadedUrls);
-        }
-        res.status(400).json({
-          status: 'error',
-          message: `File "${f.originalname}" has an invalid or unsupported format`,
-        });
-        return;
-      }
-    }
-
     // Upload all validated files to Supabase and build attachments
+    const uploadedFiles = (req.files as Express.Multer.File[]) ?? [];
     const attachments = [];
     for (const f of uploadedFiles) {
       const url = await uploadFileToSupabase(f, 'program-applications', 'app');
-      uploadedUrls.push(url);
       attachments.push({
         label: f.fieldname,
         filename: f.originalname,
