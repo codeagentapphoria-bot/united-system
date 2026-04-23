@@ -10,6 +10,7 @@ import { adminMenuItems } from '@/config/admin-menu';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatDateWithoutTimezone, formatIdType } from '@/lib/utils';
 import { adminRegistrationService, type RegistrationRequestResponse, type RegistrationRequestFilters } from '@/services/api/citizen-registration.service';
+import { residentService } from '@/services/api/resident.service';
 import { classificationTypeService } from '@/services/api/classificationType.service';
 import { logger } from '@/utils/logger';
 import React, { useEffect, useState } from 'react';
@@ -153,23 +154,33 @@ export const AdminRegistrationWorkflow: React.FC = () => {
         setIsReviewModalOpen(false);
         fetchRequests();
       } else {
-        await adminRegistrationService.reviewRegistration(
+        const result = await adminRegistrationService.reviewRegistration(
           selectedRequest.id,
           reviewAction,
           adminNotes || undefined
         );
+        void result; // suppress unused variable warning
         toast({
           title: 'Success',
           description: `Registration ${reviewAction === 'APPROVED' ? 'approved' : 'rejected'} successfully`,
         });
 
-        // After approval, open the classification dialog
+        // After approval, fetch fresh resident data with auto-created classifications
         if (reviewAction === 'APPROVED' && selectedRequest.resident) {
-          // selectedRequest.resident already matches ResidentInfo shape (camelCase)
-          // and now includes classifications[] from the updated backend.
-          setClassifyResident(selectedRequest.resident as unknown as ResidentInfo);
+          try {
+            const residentId = selectedRequest.resident.id;
+            if (residentId) {
+              const freshResident = await residentService.getResident(residentId);
+              setClassifyResident(freshResident as unknown as ResidentInfo);
+            } else {
+              setClassifyResident(selectedRequest.resident as unknown as ResidentInfo);
+            }
+          } catch (err) {
+            logger.warn('Failed to fetch fresh resident for classification pre-fill', err);
+            setClassifyResident(selectedRequest.resident as unknown as ResidentInfo);
+          }
           setIsClassifyModalOpen(true);
-          setIsReviewModalOpen(false); // Close review modal; classification dialog will handle completion
+          setIsReviewModalOpen(false);
         } else {
           setIsReviewModalOpen(false);
           fetchRequests();
