@@ -1,0 +1,69 @@
+<h2>Bus Marker Design Options</h2>
+<p class="subtitle">Which marker design communicates bus + occupancy best?</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style="width:80px;height:80px;margin:auto;display:block">
+        <!-- Bus icon -->
+        <circle cx="40" cy="40" r="36" fill="#1a1a2e" stroke="#4f46e5" stroke-width="3"/>
+        <rect x="24" y="28" width="32" height="22" rx="4" fill="white"/>
+        <rect x="26" y="32" width="10" height="8" rx="2" fill="#4f46e5"/>
+        <rect x="38" y="32" width="10" height="8" rx="2" fill="#4f46e5"/>
+        <circle cx="29" cy="52" r="4" fill="#333"/>
+        <circle cx="51" cy="52" r="4" fill="#333"/>
+        <!-- Occupancy ring -->
+        <circle cx="40" cy="40" r="36" fill="none" stroke="#16a34a" stroke-width="6" stroke-dasharray="198 226" stroke-dashoffset="0" opacity="0.9"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>Option A — Occupancy Ring</h3>
+      <p>Colored ring around the marker shows fill level. Green=Low, Amber=Medium, Red=Full. Bus icon + plate removed.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style="width:80px;height:80px;margin:auto;display:block">
+        <!-- Fill-level circle -->
+        <circle cx="40" cy="40" r="28" fill="#d4a017" opacity="0.25"/>
+        <circle cx="40" cy="40" r="28" fill="none" stroke="#d4a017" stroke-width="8" stroke-dasharray="88 176" stroke-dashoffset="0" transform="rotate(-90 40 40)"/>
+        <!-- Bus icon in center -->
+        <rect x="26" y="30" width="28" height="20" rx="4" fill="#1a1a2e"/>
+        <rect x="28" y="33" width="8" height="6" rx="1.5" fill="white"/>
+        <rect x="38" y="33" width="8" height="6" rx="1.5" fill="white"/>
+        <circle cx="31" cy="52" r="3.5" fill="#333"/>
+        <circle cx="49" cy="52" r="3.5" fill="#333"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>Option B — Fill-Level Circle</h3>
+      <p>Circular progress indicator (like a battery) showing occupancy % inside. Centered bus icon stays minimal.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style="width:80px;height:80px;margin:auto;display:block">
+        <!-- Background -->
+        <circle cx="40" cy="40" r="36" fill="#1a1a2e"/>
+        <!-- Header band - route color -->
+        <path d="M8 40 A32 32 0 0 1 72 40 L72 48 L8 48 Z" fill="#4f46e5"/>
+        <!-- Bus body -->
+        <rect x="22" y="28" width="36" height="20" rx="4" fill="white"/>
+        <rect x="24" y="31" width="11" height="8" rx="2" fill="#4f46e5"/>
+        <rect x="37" y="31" width="11" height="8" rx="2" fill="#4f46e5"/>
+        <!-- Wheels -->
+        <circle cx="29" cy="50" r="4" fill="#333"/>
+        <circle cx="51" cy="50" r="4" fill="#333"/>
+        <!-- Occupancy badge -->
+        <circle cx="62" cy="20" r="14" fill="#16a34a" stroke="white" stroke-width="2"/>
+        <text x="62" y="24" text-anchor="middle" font-size="12" font-weight="bold" fill="white">12</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>Option C — Badge Bubble</h3>
+      <p>Full plate + route color header. Small colored bubble in top-right shows passenger count. Familiar bus silhouette.</p>
+    </div>
+  </div>
+</div>

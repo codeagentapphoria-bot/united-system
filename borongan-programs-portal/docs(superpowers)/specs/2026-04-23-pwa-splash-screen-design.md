@@ -8,7 +8,7 @@
 
 ## 1. Concept & Vision
 
-A polished, branded launch experience across all platforms when the PWA is opened. The splash screen communicates "Borongan City Government Services Portal" with the city's identity — logo, official colors, and clean typography — giving users confidence the app is loading, not broken. It covers three distinct surfaces: Android Chrome auto-generated splash, iOS Safari static splashes, and a branded HTML overlay for both platforms.
+A polished, branded launch experience across all platforms when the PWA is opened. The splash screen communicates "Borongan City Government Residents Portal" with the city's identity — logo, official colors, and clean typography — giving users confidence the app is loading, not broken. It covers three distinct surfaces: Android Chrome auto-generated splash, iOS Safari static splashes, and a branded HTML overlay for both platforms.
 
 ---
 

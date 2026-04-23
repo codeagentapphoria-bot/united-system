@@ -36,7 +36,7 @@ Replace the `manifest` block in the `VitePWA()` config with this tuned version:
 
 ```typescript
 manifest: {
-  name: 'Borongan Services Portal',
+  name: 'Borongan Residents Portal',
   short_name: 'Borongan Portal',
   description: 'Access government services and programs for Borongan City residents.',
   theme_color: '#1d4ed8',
