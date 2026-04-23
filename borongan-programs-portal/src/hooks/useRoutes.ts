@@ -61,6 +61,7 @@ export function useRoutes() {
       });
     },
     staleTime: 60_000,
+    refetchInterval: 30_000,
   });
 }
 
