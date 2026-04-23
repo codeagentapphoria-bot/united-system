@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { socialAmeliorationSettingApi, type SocialAmeliorationSettingType } from '@/services/api/social-amelioration-setting.service';
+import { socialAmeliorationSettingApi, type SocialAmeliorationSettingType, type SocialAmeliorationSetting } from '@/services/api/social-amelioration-setting.service';
 
 const SETTING_TYPES: SocialAmeliorationSettingType[] = [
   'DISABILITY_TYPE',
@@ -36,7 +36,7 @@ export const useAmeliorationSettings = () => {
             socialAmeliorationSettingApi
               .getSettings({ type, isActive: true })
               .then((items) => ({ type, items }))
-              .catch(() => ({ type, items: [] as typeof items }))
+              .catch(() => ({ type, items: [] as SocialAmeliorationSetting[] }))
           )
         );
 

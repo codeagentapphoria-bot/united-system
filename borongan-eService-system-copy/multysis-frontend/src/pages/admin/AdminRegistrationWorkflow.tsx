@@ -167,7 +167,7 @@ export const AdminRegistrationWorkflow: React.FC = () => {
         if (reviewAction === 'APPROVED' && selectedRequest.resident) {
           // selectedRequest.resident already matches ResidentInfo shape (camelCase)
           // and now includes classifications[] from the updated backend.
-          setClassifyResident(selectedRequest.resident as ResidentInfo);
+          setClassifyResident(selectedRequest.resident as unknown as ResidentInfo);
           setIsClassifyModalOpen(true);
           setIsReviewModalOpen(false); // Close review modal; classification dialog will handle completion
         } else {

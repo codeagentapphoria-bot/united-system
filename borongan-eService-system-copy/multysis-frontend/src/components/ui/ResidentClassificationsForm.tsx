@@ -52,6 +52,11 @@ export interface ResidentInfo {
       municipality_name?: string;
     };
   };
+  classifications?: Array<{
+    classification_type?: string;
+    classification?: string;
+    classification_details?: string | Record<string, unknown>;
+  }>;
 }
 
 export interface ClassificationTypeOption {

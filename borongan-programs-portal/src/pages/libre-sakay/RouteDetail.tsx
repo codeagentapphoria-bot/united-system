@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiMapPin, FiTruck, FiClock, FiNavigation } from 'react-icons/fi';
+import { FiArrowLeft, FiMapPin, FiTruck, FiClock } from 'react-icons/fi';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useRoute } from '@/hooks/useRoutes';

@@ -20,7 +20,7 @@ const getStoredUser = (): { id: string; role: string } | null => {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const queryClient = useQueryClient();
-  const { storedUser, saveUser, clearUser } = useAuthStorage();
+  const { saveUser, clearUser } = useAuthStorage();
 
   // Initialize user from localStorage IMMEDIATELY (synchronously)
   // This prevents the flicker - isAuthenticated is true from the first render
