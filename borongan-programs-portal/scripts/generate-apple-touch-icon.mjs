@@ -1,4 +1,6 @@
-// Generates 180x180 apple-touch-icon.png
+// Generates apple-touch-icon.png at 1024x1024 (Apple's recommended size for iOS home screen icons)
+// iOS uses this as the app icon AND as the fallback startup image when no
+// apple-touch-startup-image matches the device — so it must be 1024x1024 to look crisp
 import { createCanvas, loadImage } from 'canvas';
 import { writeFileSync } from 'fs';
 import { dirname, join } from 'path';
@@ -11,7 +13,7 @@ const OUT_PATH = join(PUBLIC_DIR, 'apple-touch-icon.png');
 
 async function main() {
   const logo = await loadImage(LOGO_PATH);
-  const size = 180;
+  const size = 1024; // Apple recommends 1024x1024 for iOS app icons
   const canvas = createCanvas(size, size);
   const ctx = canvas.getContext('2d');
 

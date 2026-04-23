@@ -19,7 +19,9 @@ const splashes = [
   { w: 828,  h: 1472, file: 'splash-828x1472.png' },
   { w: 1125, h: 2436, file: 'splash-1125x2436.png' },
   { w: 1170, h: 2532, file: 'splash-1170x2532.png' },
+  { w: 1179, h: 2556, file: 'splash-1179x2556.png' },   // iPhone 14/15/16 Pro (393×852 @3x)
   { w: 1284, h: 2778, file: 'splash-1284x2778.png' },
+  { w: 1290, h: 2796, file: 'splash-1290x2796.png' },   // iPhone 14/15/16 Plus/Pro Max (430×932 @3x)
   { w: 1536, h: 2048, file: 'splash-1536x2048.png' },
   { w: 2048, h: 2732, file: 'splash-2048x2732.png' },
 ];
@@ -76,7 +78,7 @@ async function main() {
     ctx.font = `bold ${Math.round(Math.min(w, h) * 0.055)}px Poppins, Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Borongan Portal', cx, cy + logoSize * 0.75);
+    ctx.fillText('Borongan Residents Portal', cx, cy + logoSize * 0.75);
 
     const outPath = join(PUBLIC_DIR, file);
     writeFileSync(outPath, canvas.toBuffer('image/png'));
