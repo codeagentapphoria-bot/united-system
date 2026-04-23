@@ -15,6 +15,8 @@ import { FiArrowLeft, FiCheck, FiClock, FiX, FiInfo, FiMap, FiNavigation } from 
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const LOCATION_STORAGE_KEY = 'libre_sakay_user_location';
+
 // ── Status config ──────────────────────────────────────────────────────────────
 
 type AppStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | null;
@@ -170,6 +172,43 @@ export function LibreSakay() {
   useEffect(() => {
     fetchLibreSakayProgram();
   }, [fetchLibreSakayProgram]);
+
+  // Auto-start location tracking with localStorage placeholder
+  useEffect(() => {
+    // 1. Hydrate from localStorage immediately (no flash of "needs location")
+    const stored = localStorage.getItem(LOCATION_STORAGE_KEY);
+    if (stored) {
+      try {
+        const coords = JSON.parse(stored) as [number, number];
+        setUserLocation(coords);
+      } catch {
+        // ignore corrupt storage
+      }
+    }
+
+    // 2. Start continuous GPS tracking
+    if (!navigator.geolocation) {
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setUserLocation(coords);
+        localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(coords));
+      },
+      () => {
+        // GPS error — userLocation stays as localStorage value or null
+        // ETAs will show "needs location" if null
+      },
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 }
+    );
+
+    // 3. Cleanup on unmount — stop watching
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, []);
 
   const handleCancel = async () => {
     if (!libreSakayProgram) return;
