@@ -29,6 +29,12 @@
 </head>
 
 <body>
+  <!-- Branded PWA splash — visible before React hydrates -->
+  <div id="splash">
+    <img class="splash-logo" src="/lgu-borongan-512.png" alt="Borongan City" />
+    <p class="splash-name">Borongan Portal</p>
+    <div class="splash-spinner"></div>
+  </div>
   <!-- Capture beforeinstallprompt as early as possible — before any module loads -->
   <script>
     window.__pwaInstallPrompt = null;
