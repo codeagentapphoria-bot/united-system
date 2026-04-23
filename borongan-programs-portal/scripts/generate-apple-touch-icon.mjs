@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = join(__dirname, '..', 'public');
-const LOGO_PATH = join(PUBLIC_DIR, 'lgu-borongan-512.png');
+const LOGO_PATH = join(PUBLIC_DIR, 'favicon.png');
 const OUT_PATH = join(PUBLIC_DIR, 'apple-touch-icon.png');
 
 async function main() {

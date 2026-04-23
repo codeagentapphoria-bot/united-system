@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'assets/**/*.png'],
       manifest: {
-        name: 'Borongan Services Portal',
-        short_name: 'Borongan Portal',
+        name: 'Borongan Residents Portal',
+        short_name: 'Residents Portal',
         description: 'Access government services and programs for Borongan City residents.',
         theme_color: '#1d4ed8',
         background_color: '#ffffff',
@@ -20,8 +20,8 @@ export default defineConfig({
         scope: '/',
         start_url: '/',
         icons: [
-          { src: 'lgu-borongan-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: 'lgu-borongan-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: 'favicon.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'favicon.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
       },
       workbox: {

@@ -12,7 +12,7 @@ const PUBLIC_DIR = join(__dirname, '..', 'public');
 // Ensure public dir exists
 if (!existsSync(PUBLIC_DIR)) mkdirSync(PUBLIC_DIR, { recursive: true });
 
-const LOGO_PATH = join(PUBLIC_DIR, 'lgu-borongan-512.png');
+const LOGO_PATH = join(PUBLIC_DIR, 'favicon.png');
 
 const splashes = [
   { w: 640,  h: 920,  file: 'splash-640x920.png' },
