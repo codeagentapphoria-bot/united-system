@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['lgu-borongan.png', 'lgu-borongan-192.png', 'lgu-borongan-512.png', 'assets/**/*.png'],
+      includeAssets: ['favicon.png', 'assets/**/*.png'],
       manifest: {
         name: 'Borongan Services Portal',
         short_name: 'Borongan Portal',
