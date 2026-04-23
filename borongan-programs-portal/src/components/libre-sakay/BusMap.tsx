@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl/mapbox';
 import type { MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -108,6 +108,10 @@ interface BusMapProps {
   /** Controlled selected bus — causes the map to flyTo that bus */
   selectedBusId?: string | null;
   onSelectedBusChange?: (busId: string | null) => void;
+  /** Called once the first time userLocation becomes non-null — use for immediate flyTo */
+  onFirstLocationFix?: (coords: [number, number]) => void;
+  /** Optional shared map ref so parent can call flyTo directly */
+  mapRef?: React.RefObject<MapRef | null>;
 }
 
 export function BusMap({
@@ -121,8 +125,11 @@ export function BusMap({
   routes = [],
   selectedBusId,
   onSelectedBusChange,
+  onFirstLocationFix,
+  mapRef: externalMapRef,
 }: BusMapProps) {
-  const mapRef = useRef<MapRef>(null);
+  const internalMapRef = useRef<MapRef>(null);
+  const mapRef = externalMapRef ?? internalMapRef;
   const [internalSelectedBusId, setInternalSelectedBusId] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
@@ -158,18 +165,14 @@ export function BusMap({
     }
   }, [selectedBus]);
 
-  // Fly to user location when it becomes available (from watchPosition / localStorage on mount)
-  const [prevUserLocation, setPrevUserLocation] = useState<[number, number] | null>(null);
+  // Fly to user location on first fix — uses a ref to avoid stale closure / useState timing issues
+  const hasFlownToUser = useRef(false);
   useEffect(() => {
-    if (userLocation && !prevUserLocation) {
-      mapRef.current?.flyTo({
-        center: [userLocation[1], userLocation[0]],
-        zoom: 15,
-        duration: 1000,
-      });
+    if (userLocation && !hasFlownToUser.current) {
+      hasFlownToUser.current = true;
+      onFirstLocationFix?.(userLocation);
     }
-    setPrevUserLocation(userLocation);
-  }, [userLocation]);
+  }, [userLocation, onFirstLocationFix]);
 
   const handleLocate = useCallback(() => {
     if (!navigator.geolocation) { setLocateError('Geolocation not supported'); return; }
