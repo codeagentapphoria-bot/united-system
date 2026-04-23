@@ -238,8 +238,8 @@ export function BusMap({
         <button
           onClick={handleLocate}
           disabled={locating}
-          aria-label={locateError ?? 'Get my location'}
-          title={locateError ?? 'Get My Location'}
+          aria-label={locateError ?? 'Refresh location'}
+          title={locateError ?? 'Refresh Location'}
           className="w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors disabled:bg-gray-100"
         >
           {locating
