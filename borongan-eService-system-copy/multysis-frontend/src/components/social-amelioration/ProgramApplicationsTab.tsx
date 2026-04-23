@@ -73,11 +73,9 @@ interface ResidentPreviewDialogProps {
   onClose: () => void;
   programId?: string;
   onImageClick?: (url: string, label: string) => void;
-  overlayPointerEventsNone?: boolean;
-  contentPointerEventsNone?: boolean;
 }
 
-const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, open, onClose, programId, onImageClick, overlayPointerEventsNone, contentPointerEventsNone }) => {
+const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, open, onClose, programId, onImageClick }) => {
   const { toast } = useToast();
   const [detail, setDetail] = useState<AdminProgramApplicationDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -121,7 +119,7 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" overlayPointerEventsNone={overlayPointerEventsNone} contentPointerEventsNone={contentPointerEventsNone}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-primary-600">Resident Application Preview</DialogTitle>
         </DialogHeader>
@@ -653,8 +651,6 @@ export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatu
         }}
         programId={programId}
         onImageClick={(url, label) => setLightbox({ url, label })}
-        overlayPointerEventsNone={!!lightbox}
-        contentPointerEventsNone={!!lightbox}
       />
 
       {/* Review Dialog */}

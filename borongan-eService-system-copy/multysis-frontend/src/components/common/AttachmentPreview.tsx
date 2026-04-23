@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FiFile, FiX, FiZoomIn } from 'react-icons/fi';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn } from '@/lib/utils';
 import type { ApplicationAttachment } from '@/services/api/portal-programs.service';
 
@@ -30,19 +31,29 @@ interface LightboxProps {
 }
 
 export const Lightbox: React.FC<LightboxProps> = ({ url, label, onClose }) => (
-  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" onClick={onClose}>
-    <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-      {/* Header */}
-      <div className="flex items-center justify-between bg-black/60 px-4 py-2 rounded-t-lg">
-        <p className="text-white text-sm font-medium truncate">{label}</p>
-        <button onClick={onClose} className="text-white/70 hover:text-white transition-colors ml-4 shrink-0">
-          <FiX size={20} />
-        </button>
-      </div>
-      {/* Image */}
-      <img src={url} alt={label} className="w-full max-h-[80vh] object-contain rounded-b-lg bg-black" />
-    </div>
-  </div>
+  <DialogPrimitive.Root open={true} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <DialogPrimitive.Portal>
+      <DialogPrimitive.Overlay className="fixed inset-0 z-[60] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+      <DialogPrimitive.Content 
+        className="fixed inset-0 z-[60] flex items-center justify-center p-4 outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+        onClick={onClose}
+        aria-describedby={undefined}
+      >
+        <DialogPrimitive.Title className="sr-only">{label}</DialogPrimitive.Title>
+        <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex items-center justify-between bg-black/60 px-4 py-2 rounded-t-lg">
+            <p className="text-white text-sm font-medium truncate">{label}</p>
+            <button onClick={onClose} className="text-white/70 hover:text-white transition-colors ml-4 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-sm">
+              <FiX size={20} />
+            </button>
+          </div>
+          {/* Image */}
+          <img src={url} alt={label} className="w-full max-h-[80vh] object-contain rounded-b-lg bg-black" />
+        </div>
+      </DialogPrimitive.Content>
+    </DialogPrimitive.Portal>
+  </DialogPrimitive.Root>
 );
 
 // ---------------------------------------------------------------------------
