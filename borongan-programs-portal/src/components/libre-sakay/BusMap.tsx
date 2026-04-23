@@ -158,6 +158,19 @@ export function BusMap({
     }
   }, [selectedBus]);
 
+  // Fly to user location when it becomes available (from watchPosition / localStorage on mount)
+  const [prevUserLocation, setPrevUserLocation] = useState<[number, number] | null>(null);
+  useEffect(() => {
+    if (userLocation && !prevUserLocation) {
+      mapRef.current?.flyTo({
+        center: [userLocation[1], userLocation[0]],
+        zoom: 15,
+        duration: 1000,
+      });
+    }
+    setPrevUserLocation(userLocation);
+  }, [userLocation]);
+
   const handleLocate = useCallback(() => {
     if (!navigator.geolocation) { setLocateError('Geolocation not supported'); return; }
     setLocating(true);
