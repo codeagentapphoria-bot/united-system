@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { formatDateLong, getAge, formatLabel } from "./utils";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import lguLogo from "@/assets/images/borongan-city-seal.png";
-import cityHallBg from "@/assets/city-hall-borongan.jpg";
+import cityHallBg from "@/assets/City Hall of Borongan in midday sun.png";
 import { User as UserIcon, Users, CalendarDays, IdCard, MapPin, ShieldCheck, Building2, HeartHandshake, Lock } from "lucide-react";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "";
@@ -238,7 +238,7 @@ const ResidentIDCard = ({
                 src={cityHallBg}
                 alt=""
                 aria-hidden
-                style={{ position: "absolute", inset: 0, width: "130%", height: "130%", objectFit: "cover", zIndex: 0, opacity: 0.08, transform: "translate(-11%, -8%)" }}
+                style={{ position: "absolute", inset: 0, width: "130%", height: "130%", objectFit: "cover", zIndex: 0, opacity: 0.08, transform: "translate(-0%, -0%)" }}
               />
               {/* Blue Tint Overlay */}
               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(29,78,216,0.15) 0%, rgba(30,64,175,0.18) 50%, rgba(37,99,235,0.12) 100%)", zIndex: 0 }} />
@@ -349,7 +349,7 @@ const ResidentIDCard = ({
                 src={cityHallBg}
                 alt=""
                 aria-hidden
-                style={{ position: "absolute", inset: 0, width: "130%", height: "130%", objectFit: "cover", zIndex: 0, opacity: 0.08, transform: "translate(-11%, -8%)" }}
+                style={{ position: "absolute", inset: 0, width: "130%", height: "130%", objectFit: "cover", zIndex: 0, opacity: 0.08, transform: "translate(-0%, -0%)" }}
               />
               {/* Blue Tint Overlay */}
               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(29,78,216,0.15) 0%, rgba(30,64,175,0.18) 50%, rgba(37,99,235,0.12) 100%)", zIndex: 0 }} />

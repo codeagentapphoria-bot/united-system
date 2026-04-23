@@ -12,14 +12,16 @@ const PUBLIC_DIR = join(__dirname, '..', 'public');
 // Ensure public dir exists
 if (!existsSync(PUBLIC_DIR)) mkdirSync(PUBLIC_DIR, { recursive: true });
 
-const LOGO_PATH = join(PUBLIC_DIR, 'lgu-borongan-512.png');
+const LOGO_PATH = join(PUBLIC_DIR, 'favicon.png');
 
 const splashes = [
   { w: 640,  h: 920,  file: 'splash-640x920.png' },
   { w: 828,  h: 1472, file: 'splash-828x1472.png' },
   { w: 1125, h: 2436, file: 'splash-1125x2436.png' },
   { w: 1170, h: 2532, file: 'splash-1170x2532.png' },
+  { w: 1179, h: 2556, file: 'splash-1179x2556.png' },   // iPhone 14/15/16 Pro (393×852 @3x)
   { w: 1284, h: 2778, file: 'splash-1284x2778.png' },
+  { w: 1290, h: 2796, file: 'splash-1290x2796.png' },   // iPhone 14/15/16 Plus/Pro Max (430×932 @3x)
   { w: 1536, h: 2048, file: 'splash-1536x2048.png' },
   { w: 2048, h: 2732, file: 'splash-2048x2732.png' },
 ];
@@ -44,8 +46,8 @@ async function main() {
     ctx.fillStyle = '#1d4ed8';
     ctx.fillRect(0, 0, w, h);
 
-    // Draw logo centered (30% of min dimension)
-    const logoSize = Math.min(w, h) * 0.30;
+    // Draw logo centered (22% of min dimension for clean padding)
+    const logoSize = Math.min(w, h) * 0.22;
     const cx = w / 2;
     const cy = h / 2 - logoSize * 0.15; // Slightly above center
 
@@ -76,7 +78,7 @@ async function main() {
     ctx.font = `bold ${Math.round(Math.min(w, h) * 0.055)}px Poppins, Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Borongan Portal', cx, cy + logoSize * 0.75);
+    ctx.fillText('Borongan Residents Portal', cx, cy + logoSize * 0.75);
 
     const outPath = join(PUBLIC_DIR, file);
     writeFileSync(outPath, canvas.toBuffer('image/png'));
