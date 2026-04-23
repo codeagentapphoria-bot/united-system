@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { MapRef } from 'react-map-gl/mapbox';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -143,6 +144,7 @@ export function LibreSakay() {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
 
+  const mapRef = useRef<MapRef | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [libreSakayProgram, setLibreSakayProgram] = useState<PortalProgram | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
@@ -293,6 +295,14 @@ export function LibreSakay() {
             routes={routes.map(r => ({ id: r.id, name: r.name }))}
             selectedBusId={selectedBusId}
             onSelectedBusChange={setSelectedBusId}
+            mapRef={mapRef}
+            onFirstLocationFix={(coords) => {
+              mapRef.current?.flyTo({
+                center: [coords[1], coords[0]],
+                zoom: 15,
+                duration: 1000,
+              });
+            }}
           />
         </div>
 
