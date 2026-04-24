@@ -190,6 +190,7 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
         { path: '/admin/access-control/role-management', label: 'Role Management' },
         { path: '/admin/access-control/permissions', label: 'Permissions' },
         { path: '/admin/access-control/user-management', label: 'User Management' },
+        { path: '/admin/access-control/page-management', label: 'Page Management' },
       ],
     },
 
@@ -282,6 +283,7 @@ export const adminMenuItems: MenuItem[] = [
       { path: '/admin/access-control/role-management', label: 'Role Management' },
       { path: '/admin/access-control/permissions', label: 'Permissions' },
       { path: '/admin/access-control/user-management', label: 'User Management' },
+      { path: '/admin/access-control/page-management', label: 'Page Management' },
     ],
   },
   { type: 'separator' as const },

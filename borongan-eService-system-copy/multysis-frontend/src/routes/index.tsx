@@ -31,6 +31,9 @@ const AdminSubscribers = lazy(() =>
 const AdminUserManagement = lazy(() =>
   import('../pages/admin/AdminUserManagement').then(m => ({ default: m.AdminUserManagement }))
 );
+const AdminPageManagement = lazy(() =>
+  import('../pages/admin/AdminPageManagement').then(m => ({ default: m.default }))
+);
 const ServicePage = lazy(() => import('../pages/admin/ServicePage').then(m => ({ default: m.ServicePage })));
 const SocialAmelioration = lazy(() =>
   import('../pages/admin/SocialAmelioration').then(m => ({ default: m.SocialAmelioration }))
@@ -178,6 +181,16 @@ export const router = createBrowserRouter([
           <ProtectedRoute requiredRole="admin">
             <LazyWrapper>
               <AdminUserManagement />
+            </LazyWrapper>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'access-control/page-management',
+        element: (
+          <ProtectedRoute requiredRole="admin">
+            <LazyWrapper>
+              <AdminPageManagement />
             </LazyWrapper>
           </ProtectedRoute>
         ),

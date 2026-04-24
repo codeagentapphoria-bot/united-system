@@ -80,6 +80,12 @@ export const queryKeys = {
     stats: ['medicineRequests', 'stats'] as const,
   },
 
+  pages: {
+    all: ['pages'] as const,
+    list: (page: number, limit: number) => ['pages', 'list', page, limit] as const,
+    detail: (id: string) => ['pages', 'detail', id] as const,
+  },
+
   libreSakay: {
     fleet: ['libreSakay', 'fleet'] as const,
     fleetLocations: ['libreSakay', 'fleetLocations'] as const,
