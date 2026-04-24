@@ -55,7 +55,50 @@ const transformPermission = (backendPermission: BackendPermission): Permission =
   };
 };
 
+export interface PaginatedPermissions {
+  permissions: Permission[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export const permissionService = {
+  async getPermissions(
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    resource?: string,
+    signal?: AbortSignal
+  ): Promise<{ permissions: Permission[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      if (search) params.set('search', search);
+      if (resource && resource !== 'all') params.set('resource', resource);
+
+      const response = await api.get(`/permissions?${params.toString()}`, { signal });
+      const backendPermissions: BackendPermission[] = response.data.data || [];
+      const pagination = response.data.pagination || {
+        page,
+        limit,
+        total: 0,
+        totalPages: 0,
+      };
+      return {
+        permissions: backendPermissions.map(transformPermission),
+        pagination,
+      };
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch permissions';
+      throw new Error(errorMessage);
+    }
+  },
+
   async getAllPermissions(signal?: AbortSignal): Promise<Permission[]> {
     try {
       const response = await api.get('/permissions', { signal });
