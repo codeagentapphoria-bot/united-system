@@ -82,7 +82,7 @@ export const queryKeys = {
 
   pages: {
     all: ['pages'] as const,
-    list: (page: number, limit: number) => ['pages', 'list', page, limit] as const,
+    list: (page: number, limit: number, search?: string) => ['pages', 'list', page, limit, search] as const,
     detail: (id: string) => ['pages', 'detail', id] as const,
     systems: ['pages', 'systems'] as const,
   },

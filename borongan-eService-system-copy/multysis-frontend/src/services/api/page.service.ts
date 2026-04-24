@@ -21,8 +21,9 @@ export interface PaginatedPages {
 export const pageService = {
   async getPages(
     system?: string,
+    search?: string,
     page: number = 1,
-    limit: number = 100,
+    limit: number = 10,
     signal?: AbortSignal
   ): Promise<PaginatedPages> {
     try {
@@ -31,6 +32,7 @@ export const pageService = {
         limit: limit.toString(),
       });
       if (system) params.append('system', system);
+      if (search) params.append('search', search);
 
       const response = await api.get(`/pages?${params.toString()}`, { signal });
       return {

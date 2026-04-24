@@ -8,10 +8,11 @@ import { useState, useCallback } from 'react';
 interface UsePageManagementOptions {
   page?: number;
   limit?: number;
+  search?: string;
 }
 
 export const usePageManagement = (options: UsePageManagementOptions = {}) => {
-  const { page = 1, limit = 10 } = options;
+  const { page = 1, limit = 10, search = '' } = options;
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -19,10 +20,10 @@ export const usePageManagement = (options: UsePageManagementOptions = {}) => {
   const [currentPage, setCurrentPage] = useState(page);
   const [itemsPerPage] = useState(limit);
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: queryKeys.pages.list(currentPage, itemsPerPage),
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: queryKeys.pages.list(currentPage, itemsPerPage, search),
     queryFn: async ({ signal }) => {
-      return pageService.getPages(undefined, currentPage, limit, signal);
+      return pageService.getPages(undefined, search, currentPage, limit, signal);
     },
   });
 
@@ -123,10 +124,14 @@ export const usePageManagement = (options: UsePageManagementOptions = {}) => {
     selectedPage,
     setSelectedPage,
     isLoading,
+    isFetching,
     error: error?.message || null,
     createPage,
     updatePage,
     deletePage,
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
     refreshPages,
     paginatedPages: pages,
     currentPage,

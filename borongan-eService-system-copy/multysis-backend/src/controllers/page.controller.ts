@@ -32,9 +32,10 @@ export const getPagesController = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { system, page, limit } = req.query;
+    const { system, search, page, limit } = req.query;
     const result = await getPages({
       system: system as string | undefined,
+      search: search as string | undefined,
       page: page ? parseInt(page as string, 10) : undefined,
       limit: limit ? parseInt(limit as string, 10) : undefined,
     });

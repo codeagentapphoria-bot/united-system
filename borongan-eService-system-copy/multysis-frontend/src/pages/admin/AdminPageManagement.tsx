@@ -18,26 +18,30 @@ import React, { useEffect, useState } from 'react';
 import { FiDownload, FiFile, FiPlus, FiSearch } from 'react-icons/fi';
 
 export default function AdminPageManagement() {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
   const {
     pages,
     selectedPage,
     setSelectedPage,
     isLoading,
+    isFetching,
     error,
     deletePage,
+    isCreating,
+    isUpdating,
+    isDeleting,
     total,
     totalPages,
     currentPage,
     goToPage,
     goToNextPage,
     goToPreviousPage,
-  } = usePageManagement();
-
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [localSearchQuery, setLocalSearchQuery] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  } = usePageManagement({ search: searchQuery });
 
   // Debounce search query
   const debouncedSearchQuery = useDebounce(localSearchQuery, 300);
@@ -47,9 +51,11 @@ export default function AdminPageManagement() {
     setSearchQuery(debouncedSearchQuery);
   }, [debouncedSearchQuery]);
 
-  // Reset to page 1 when search changes
+  // Reset to page 1 when search changes (but only if not already on page 1)
   useEffect(() => {
-    goToPage(1);
+    if (currentPage !== 1) {
+      goToPage(1);
+    }
   }, [debouncedSearchQuery]);
 
   // Server-side pagination: pages already contains the correct page of items from API
@@ -79,6 +85,8 @@ export default function AdminPageManagement() {
     if (selectedPage) {
       try {
         await deletePage(selectedPage.id);
+        setIsDeleteModalOpen(false);
+        setSelectedPage(null);
       } catch (err) {
         console.error('Failed to delete page:', err);
       }
@@ -160,7 +168,15 @@ export default function AdminPageManagement() {
 
             <CardContent className="flex flex-col">
               <div className="space-y-2 max-h-[500px] overflow-y-auto overflow-x-visible pr-4">
-                {displayedPages.length === 0 ? (
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="h-20 bg-gray-200 rounded-md" />
+                      </div>
+                    ))}
+                  </div>
+                ) : displayedPages.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">No pages found.</div>
                 ) : (
                   displayedPages.map((page) => (
@@ -208,7 +224,7 @@ export default function AdminPageManagement() {
                   onPageChange={goToPage}
                   onPrevious={goToPreviousPage}
                   onNext={goToNextPage}
-                  isLoading={isLoading}
+                  isLoading={isFetching}
                 />
               )}
             </CardContent>
@@ -231,14 +247,14 @@ export default function AdminPageManagement() {
       <AddPageModal
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        isLoading={isLoading}
+        isLoading={isCreating}
       />
 
       <EditPageModal
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         page={selectedPage}
-        isLoading={isLoading}
+        isLoading={isUpdating}
       />
 
       <DeletePageModal
@@ -246,7 +262,7 @@ export default function AdminPageManagement() {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeletePage}
         pageName={selectedPage?.name || ''}
-        isLoading={isLoading}
+        isLoading={isDeleting}
       />
     </DashboardLayout>
   );

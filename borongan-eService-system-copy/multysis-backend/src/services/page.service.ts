@@ -43,11 +43,19 @@ export const createPage = async (data: CreatePageData) => {
 // GET PAGES
 // =============================================================================
 
-export const getPages = async (options: { system?: string; page?: number; limit?: number } = {}) => {
-  const { system, page = 1, limit = 50 } = options;
+export const getPages = async (options: { system?: string; search?: string; page?: number; limit?: number } = {}) => {
+  const { system, search, page = 1, limit = 50 } = options;
   const skip = (page - 1) * limit;
 
-  const where = system ? { system } : {};
+  const where: Record<string, unknown> = {};
+  if (system) where.system = system;
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { path: { contains: search, mode: 'insensitive' } },
+      { system: { contains: search, mode: 'insensitive' } },
+    ];
+  }
 
   const [pages, total] = await Promise.all([
     prisma.page.findMany({
