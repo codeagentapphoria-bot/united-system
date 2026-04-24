@@ -36,22 +36,54 @@ export const createPermission = async (data: CreatePermissionData) => {
   });
 };
 
-export const getPermissions = async () => {
-  return prisma.permission.findMany({
-    include: {
-      rolePermissions: {
-        include: {
-          role: {
-            select: {
-              id: true,
-              name: true,
+export const getPermissions = async (options: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  resource?: string;
+} = {}) => {
+  const { page = 1, limit = 10, search, resource } = options;
+  const skip = (page - 1) * limit;
+
+  const where: Record<string, unknown> = {};
+  if (search) {
+    where.OR = [{ resource: { contains: search, mode: 'insensitive' } }];
+  }
+  if (resource && resource !== 'all') {
+    where.resource = resource;
+  }
+
+  const [permissions, total] = await Promise.all([
+    prisma.permission.findMany({
+      where,
+      skip,
+      take: limit,
+      include: {
+        rolePermissions: {
+          include: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
           },
         },
       },
+      orderBy: [{ resource: 'asc' }, { action: 'asc' }],
+    }),
+    prisma.permission.count({ where }),
+  ]);
+
+  return {
+    permissions,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
     },
-    orderBy: [{ resource: 'asc' }, { action: 'asc' }],
-  });
+  };
 };
 
 export const getPermission = async (id: string) => {
@@ -124,16 +156,18 @@ export const deletePermission = async (id: string) => {
     throw new Error('Permission not found');
   }
 
-  // Check if permission is assigned to any roles
-  const roleCount = await prisma.rolePermission.count({
-    where: { permissionId: id },
-  });
+  // Check if permission is assigned to any roles — atomic with delete
+  return prisma.$transaction(async (tx) => {
+    const roleCount = await tx.rolePermission.count({
+      where: { permissionId: id },
+    });
 
-  if (roleCount > 0) {
-    throw new Error('Cannot delete permission that is assigned to roles');
-  }
+    if (roleCount > 0) {
+      throw new Error('Cannot delete permission that is assigned to roles');
+    }
 
-  return prisma.permission.delete({
-    where: { id },
+    return tx.permission.delete({
+      where: { id },
+    });
   });
 };
