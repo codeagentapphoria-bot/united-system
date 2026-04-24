@@ -138,6 +138,25 @@ export interface ResidentVerification {
   barangay_name: string | null;
 }
 
+export type GovernmentProgramTypeEnum = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+
+export interface RequirementItem {
+  type: string;
+  label: string;
+  required: boolean;
+}
+
+export interface LibreSakayProgramSettings {
+  id: string;
+  name: string;
+  description: string | null;
+  requirements: RequirementItem[];
+  types: GovernmentProgramTypeEnum[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // =============================================================================
 // API SERVICE
 // =============================================================================
@@ -348,6 +367,29 @@ export const libreSakayService = {
   // Resident Verification
   async verifyResident(residentId: string): Promise<ResidentVerification> {
     const response = await api.get(`${BASE}/residents/verify/${encodeURIComponent(residentId)}`);
+    return response.data.data;
+  },
+
+  // Program Settings
+  async getProgramSettings(): Promise<LibreSakayProgramSettings> {
+    const response = await api.get(`${BASE}/program-settings`);
+    return response.data.data;
+  },
+
+  async updateProgramSettings(data: {
+    name?: string;
+    description?: string;
+    requirements?: RequirementItem[];
+    types?: GovernmentProgramTypeEnum[];
+    isActive?: boolean;
+  }): Promise<LibreSakayProgramSettings> {
+    const payload = {
+      ...data,
+      ...(data.requirements !== undefined && {
+        requirements: JSON.stringify(data.requirements),
+      }),
+    };
+    const response = await api.patch(`${BASE}/program-settings`, payload);
     return response.data.data;
   },
 };
