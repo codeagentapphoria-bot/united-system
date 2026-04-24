@@ -21,6 +21,7 @@ import {
   getResidentRejectionEmail,
   getResidentResubmissionEmail,
 } from './email-templates/resident-notifications';
+import { syncBeneficiaryOnInsert } from './classification.service';
 
 // =============================================================================
 // TYPES
@@ -78,11 +79,11 @@ export interface ResidentRegistrationData {
   hasDisability?: boolean;
   hasChildren?: boolean;
   ameliorationData?: {
-    seniorCitizen?: { pensionTypeIds: string[] };
-    pwd?: { disabilityTypeId: string; disabilityLevel?: string };
-    student?: { gradeLevelId: string };
-    soloParent?: { categoryId: string };
-    voter?: { voterType: 'Regular' | 'SK' };
+    seniorCitizen?: { pensionTypeIds?: string[] };
+    pwd?: { disabilityTypeId?: string; disabilityLevel?: string };
+    student?: { gradeLevelId?: string; courseField?: string };
+    soloParent?: { categoryId?: string };
+    voter?: { voterType?: string };
   };
 }
 
@@ -485,12 +486,12 @@ async function autoClassifyResident(
   ameliorationData?: {
     seniorCitizen?: { pensionTypeIds?: string[] };
     pwd?: { disabilityTypeId?: string; disabilityLevel?: string };
-    student?: { gradeLevelId?: string };
+    student?: { gradeLevelId?: string; courseField?: string };
     soloParent?: { categoryId?: string };
     voter?: { voterType?: string };
   }
 ): Promise<void> {
-  const toInsert: Array<{ type: string; details: object }> = [];
+  const toInsert: Array<{ type: string; details: Record<string, unknown> }> = [];
 
   if (resident.isVoter) {
     toInsert.push({
@@ -508,28 +509,30 @@ async function autoClassifyResident(
 
   if (employmentClass) {
     if (resident.employmentStatus === 'student') {
-      const classType = isCollegeLevel(resident.educationAttainment)
-        ? 'College Student'
-        : 'Student';
-      toInsert.push({
-        type: classType,
-        details: {
-          gradeLevel: ameliorationData?.student?.gradeLevelId || '',
-          remarks: '',
-        },
-      });
+      const isCollege = isCollegeLevel(resident.educationAttainment);
+      const classType = isCollege ? 'College Student' : 'Student';
+
+      const details: Record<string, any> = { remarks: '' };
+      if (isCollege) {
+        details.courseField = ameliorationData?.student?.courseField || '';
+      } else {
+        details.gradeLevel = ameliorationData?.student?.gradeLevelId || '';
+      }
+
+      toInsert.push({ type: classType, details });
     } else {
-      toInsert.push({ type: employmentClass, details: [] });
+      toInsert.push({ type: employmentClass, details: {} });
     }
   }
 
   if (resident.indigenousPerson) {
-    toInsert.push({ type: 'Indigenous Person', details: [] });
+    toInsert.push({ type: 'Indigenous Person', details: {} });
   }
 
   if (resident.birthdate) {
     const ageDays = (Date.now() - new Date(resident.birthdate).getTime()) / 86400000;
     if (ageDays >= 60 * 365.25) {
+      // Map pensionTypeIds (BIMS) → pensionTypes (form schema)
       toInsert.push({
         type: 'Senior Citizen',
         details: {
@@ -541,11 +544,13 @@ async function autoClassifyResident(
   }
 
   // Social amelioration: PWD
+  // Read BIMS keys from ameliorationData (frontend sends disabilityTypeId),
+  // map to form schema keys for classification_details (matching migrate_classification_details.sql)
   if (ameliorationData?.pwd?.disabilityTypeId) {
     toInsert.push({
       type: 'Person with Disability',
       details: {
-        disabilityTypeId: ameliorationData.pwd.disabilityTypeId,
+        disabilityType: ameliorationData.pwd.disabilityTypeId,
         disabilityLevel: ameliorationData.pwd.disabilityLevel || '',
         remarks: '',
       },
@@ -553,11 +558,12 @@ async function autoClassifyResident(
   }
 
   // Social amelioration: Solo Parent
+  // Map categoryId (BIMS) → category (form schema)
   if (ameliorationData?.soloParent?.categoryId) {
     toInsert.push({
       type: 'Solo Parent',
       details: {
-        categoryId: ameliorationData.soloParent.categoryId,
+        category: ameliorationData.soloParent.categoryId,
         remarks: '',
       },
     });
@@ -585,6 +591,16 @@ async function autoClassifyResident(
       `;
       // eslint-disable-next-line no-console
       console.info(`[auto-classify] Inserted "${type}" for resident ${residentUUID}`);
+
+      // Sync to beneficiary tables (Senior Citizen, PWD, Student, Solo Parent)
+      try {
+        await syncBeneficiaryOnInsert(residentUUID, type, details);
+      } catch (syncErr: any) {
+        console.warn(
+          `[auto-classify] Beneficiary sync failed for resident ${residentUUID} ` +
+          `(${type}): ${syncErr.message}. Classification was saved.`
+        );
+      }
     } catch (err: any) {
       console.error(
         `[auto-classify] Failed to insert "${type}" for ${residentUUID}: ${(err as Error).message}`
@@ -651,7 +667,7 @@ export const reviewRegistrationRequest = async (requestId: string, data: ReviewD
           educationAttainment: resident.educationAttainment,
           indigenousPerson: resident.indigenousPerson ?? false,
           birthdate: resident.birthdate,
-        }, request.ameliorationData as { seniorCitizen?: { pensionTypeIds?: string[] }; pwd?: { disabilityTypeId?: string; disabilityLevel?: string }; student?: { gradeLevelId?: string }; soloParent?: { categoryId?: string }; voter?: { voterType?: string }; } ?? undefined);
+        }, request.ameliorationData as any ?? undefined);
         // Invalidate resident profile cache so the next getResident sees the new classifications
         await cacheService.del(`resident:${resident.id}:profile`);
       } catch (err: any) {
@@ -659,27 +675,14 @@ export const reviewRegistrationRequest = async (requestId: string, data: ReviewD
       }
     }
 
-    // NOTE: Beneficiary sync with amelioration details is handled by the BIMS
-    // approval route (registrationRoutes.js) which reads amelioration_data from
-    // registration_requests and passes it to _syncBeneficiaryOnInsert.
-
     // Send approval email (non-blocking)
     if (resident.email) {
-      const tempPassword = generateTempPassword();
-      const hashedTemp = await hashPassword(tempPassword);
-      // Update credential with temp password hint so resident can reset
-      await prisma.residentCredential.updateMany({
-        where: { residentFk: resident.id },
-        data: { password: hashedTemp },
-      });
-
       let emailSent = false;
       try {
         const { subject, html, text } = getResidentApprovalEmail({
           residentName: `${resident.firstName} ${resident.lastName}`,
           residentId,
           email: resident.email,
-          tempPassword,
           loginUrl: process.env.PORTAL_URL
             ? `${process.env.PORTAL_URL}/portal/login`
             : '/portal/login',
@@ -867,6 +870,7 @@ async function generateResidentId(municipalityId: number, year: number): Promise
   if (!row.length) throw new Error('Failed to generate resident ID counter');
 
   const { counter, prefix } = row[0];
-  const paddedCounter = String(counter).padStart(7, '0');
-  return `${prefix}-${year}-${paddedCounter}`;
+  const munPart = String(municipalityId).padStart(3, '0');
+  const cntPart = String(counter).padStart(4, '0');
+  return `${prefix}-${year}-${munPart}${cntPart}`;
 }

@@ -1,6 +1,7 @@
 import { BeneficiaryStatus, Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import { getFileUrl } from '../middleware/upload';
+import { generateBeneficiaryId } from './classification.service';
 
 interface BeneficiaryFilters {
   search?: string;
@@ -42,40 +43,29 @@ const dateRangeForYear = (year: number) => ({
 });
 
 const generateSequentialId = async (type: 'SENIOR' | 'PWD' | 'STUDENT' | 'SOLO_PARENT') => {
-  const year = new Date().getFullYear();
-  const { start, end } = dateRangeForYear(year);
-
-  let count = 0;
+  let table = '';
   let prefix = '';
 
   switch (type) {
     case 'SENIOR':
+      table = 'senior_citizen_beneficiaries';
       prefix = SENIOR_PREFIX;
-      count = await prisma.seniorCitizenBeneficiary.count({
-        where: { createdAt: { gte: start, lt: end } },
-      });
       break;
     case 'PWD':
+      table = 'pwd_beneficiaries';
       prefix = PWD_PREFIX;
-      count = await prisma.pWDBeneficiary.count({
-        where: { createdAt: { gte: start, lt: end } },
-      });
       break;
     case 'STUDENT':
+      table = 'student_beneficiaries';
       prefix = STUDENT_PREFIX;
-      count = await prisma.studentBeneficiary.count({
-        where: { createdAt: { gte: start, lt: end } },
-      });
       break;
     case 'SOLO_PARENT':
+      table = 'solo_parent_beneficiaries';
       prefix = SOLO_PARENT_PREFIX;
-      count = await prisma.soloParentBeneficiary.count({
-        where: { createdAt: { gte: start, lt: end } },
-      });
       break;
   }
 
-  return `${prefix}-${year}-${String(count + 1).padStart(3, '0')}`;
+  return generateBeneficiaryId(table, prefix);
 };
 
 // Helper function to fetch explicitly assigned programs for a beneficiary.

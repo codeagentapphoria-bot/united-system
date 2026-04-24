@@ -9,7 +9,6 @@ interface ResidentApprovalEmailData {
   residentName: string;
   email: string;
   residentId: string;
-  tempPassword: string;
   loginUrl: string;
 }
 
@@ -32,21 +31,15 @@ export const getResidentApprovalEmail = (
         <td style="padding: 10px 0; color: #6b7280; width: 40%; font-size: 14px;">Resident ID:</td>
         <td style="padding: 10px 0; font-weight: 700; color: #1d4ed8; font-size: 16px; font-family: monospace;">${data.residentId}</td>
       </tr>
-      <tr>
-        <td style="padding: 10px 0; color: #6b7280; font-size: 14px;">Temporary Password:</td>
-        <td style="padding: 10px 0; font-weight: 600; color: #374151; font-size: 14px; font-family: monospace; background: #f3f4f6; padding: 5px 10px; border-radius: 4px;">${data.tempPassword}</td>
-      </tr>
     </table>
   `;
 
   const content = `
-    ${getAlertBox('Please change your password after your first login for security purposes.', 'warning')}
     ${getInfoCard('Your Registration Details', credentialsInfo)}
     ${getInfoCard('Next Steps', `
       <ol style="margin: 0; padding-left: 20px; color: #374151; font-size: 14px; line-height: 1.8;">
         <li>Go to the <a href="${data.loginUrl}" style="color: #3b82f6;">Resident Portal</a></li>
-        <li>Log in using your username and temporary password</li>
-        <li>Change your password when prompted</li>
+        <li>Log in using your <b>username</b> and the <b>password</b> you provided during registration</li>
         <li>View your Resident ID card under "My ID"</li>
       </ol>
     `)}
@@ -64,15 +57,12 @@ export const getResidentApprovalEmail = (
   });
 
   const text = `
-Dear ${data.residentName},
-
 Your registration has been approved!
 
 Resident ID: ${data.residentId}
-Temporary Password: ${data.tempPassword}
 
 Please log in at: ${data.loginUrl}
-Change your password after your first login.
+Use the username and password you provided during registration.
 
 Thank you.
   `.trim();

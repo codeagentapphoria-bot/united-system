@@ -228,7 +228,10 @@ export const AdminRegistrationWorkflow: React.FC = () => {
       logger.error('Failed to save classifications:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to save classifications',
+        description:
+          (error as any).response?.data?.message ||
+          error.message ||
+          'Failed to save classifications',
         variant: 'destructive',
       });
       throw error; // Re-throw so the form doesn't close
