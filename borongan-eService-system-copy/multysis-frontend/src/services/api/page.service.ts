@@ -100,4 +100,16 @@ export const pageService = {
       throw new Error(errorMessage);
     }
   },
+
+  async getAllPages(signal?: AbortSignal): Promise<Page[]> {
+    try {
+      // Fetch all pages with a high limit (1000 should be enough for any realistic scenario)
+      const response = await api.get('/pages?page=1&limit=1000', { signal });
+      return response.data.pages || [];
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message || error.message || 'Failed to fetch all pages';
+      throw new Error(errorMessage);
+    }
+  },
 };
