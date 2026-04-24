@@ -14,7 +14,6 @@ interface MenuItem {
 export const libresakayMenuItems: MenuItem[] = [
   { path: '/admin/libre-sakay/dashboard', label: 'Dashboard', icon: <FiHome /> },
   { path: '/admin/libre-sakay/verification', label: 'Verify Resident', icon: <FiSearch /> },
-  { path: '/admin/libre-sakay/settings', label: 'Program Settings', icon: <FiSettings /> },
   { path: '/admin/libre-sakay/applications', label: 'Program Applications', icon: <FiUserCheck /> },
   { path: '/admin/libre-sakay/fleet', label: 'Fleet', icon: <FiMap /> },
   { path: '/admin/libre-sakay/buses', label: 'Buses', icon: <FiTruck /> },
@@ -22,6 +21,7 @@ export const libresakayMenuItems: MenuItem[] = [
   { path: '/admin/libre-sakay/drivers', label: 'Drivers', icon: <FiUsers /> },
   { path: '/admin/libre-sakay/stops', label: 'Stops', icon: <FiMapPin /> },
   { path: '/admin/libre-sakay/ride-logs', label: 'Ride Logs', icon: <FiList /> },
-  // { type: 'separator' as const },
+  { type: 'separator' as const },
+  { path: '/admin/libre-sakay/settings', label: 'Program Settings', icon: <FiSettings /> },
   // { path: '/admin/libre-sakay/access-control', label: 'Access Control', icon: <FiShield /> },
 ];
