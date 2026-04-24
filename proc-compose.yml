@@ -1,0 +1,13 @@
+processes:
+  bims-backend:
+    cmd: npm run dev
+    dir: ./barangay-information-management-system-copy/server/
+    env:
+      PORT: "7979"
+    restart: on-failure
+  eservice-backend:
+    cmd: npm run dev
+    dir: ./borongan-eService-system-copy/multysis-backend/
+    env:
+      PORT: "8989"
+    restart: on-failure
