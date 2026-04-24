@@ -285,25 +285,26 @@ const EditMode: React.FC<EditModeProps> = ({ form, saving, error, onSave, onCanc
                   Eligible Beneficiary Types <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
-                  <Select
-                    isMulti
-                    hideSelectedOptions={false}
-                    value={TYPE_OPTIONS.filter(option => field.value?.includes(option.value))}
-                    onChange={selected => {
-                      const values = (selected as { value: GovernmentProgramTypeEnum }[]).map(s => s.value);
-                      if (values.includes('ALL') && !field.value?.includes('ALL')) {
-                        field.onChange(['ALL']);
-                      } else if (field.value?.includes('ALL') && values.length > 1) {
-                        field.onChange(values.filter(v => v !== 'ALL'));
-                      } else {
-                        field.onChange(values);
-                      }
-                    }}
-                    options={TYPE_OPTIONS}
-                    placeholder="Select beneficiary types..."
-                    classNamePrefix="react-select"
-                    styles={createReactSelectStyles(!!form.formState.errors.types)}
-                  />
+                      <Select
+                        isMulti
+                        hideSelectedOptions={false}
+                        menuShouldScrollIntoView={false}
+                        value={TYPE_OPTIONS.filter(option => field.value?.includes(option.value))}
+                        onChange={selected => {
+                          const values = (selected as { value: GovernmentProgramTypeEnum }[]).map(s => s.value);
+                          if (values.includes('ALL') && !field.value?.includes('ALL')) {
+                            field.onChange(['ALL']);
+                          } else if (field.value?.includes('ALL') && values.length > 1) {
+                            field.onChange(values.filter(v => v !== 'ALL'));
+                          } else {
+                            field.onChange(values);
+                          }
+                        }}
+                        options={TYPE_OPTIONS}
+                        placeholder="Select beneficiary types..."
+                        classNamePrefix="react-select"
+                        styles={createReactSelectStyles(!!form.formState.errors.types)}
+                      />
                 </FormControl>
                 <FormMessage />
               </FormItem>
