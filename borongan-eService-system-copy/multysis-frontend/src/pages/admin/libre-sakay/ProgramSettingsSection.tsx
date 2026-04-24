@@ -289,6 +289,8 @@ const EditMode: React.FC<EditModeProps> = ({ form, saving, error, onSave, onCanc
                         isMulti
                         hideSelectedOptions={false}
                         menuShouldScrollIntoView={false}
+                        menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+                        menuPosition="fixed"
                         value={TYPE_OPTIONS.filter(option => field.value?.includes(option.value))}
                         onChange={selected => {
                           const values = (selected as { value: GovernmentProgramTypeEnum }[]).map(s => s.value);
