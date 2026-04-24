@@ -15,6 +15,7 @@ import {
   RideLogsSection,
   ApplicationsSection,
   AccessControlSection,
+  VerificationSection,
   SECTION_TITLES,
 } from './libre-sakay';
 
@@ -62,6 +63,8 @@ export const AdminLibreSakay: React.FC = () => {
         return <ApplicationsSection />;
       case 'access-control':
         return <AccessControlSection />;
+      case 'verification':
+        return <VerificationSection />;
       default:
         return <DashboardSection />;
     }

@@ -130,6 +130,14 @@ export interface PaginatedResponse<T> {
   };
 }
 
+export interface ResidentVerification {
+  exists: boolean;
+  approved: boolean;
+  resident_id: string | null;
+  full_name: string | null;
+  barangay_name: string | null;
+}
+
 // =============================================================================
 // API SERVICE
 // =============================================================================
@@ -335,5 +343,11 @@ export const libreSakayService = {
 
   async reviewRideLog(id: string): Promise<void> {
     await api.patch(`${BASE}/ride-logs/${id}/review`);
+  },
+
+  // Resident Verification
+  async verifyResident(residentId: string): Promise<ResidentVerification> {
+    const response = await api.get(`${BASE}/residents/verify/${encodeURIComponent(residentId)}`);
+    return response.data.data;
   },
 };

@@ -11,6 +11,7 @@ import {
   assignStopToRoute, removeStopFromRoute, reorderStopsInRoute, replaceStopInRoute, getRoutesForStop,
   getDashboardStats, getRideLogs, getRidesTrend, deleteRideLog, reviewRideLog,
 } from '../services/libre-sakay.service';
+import prisma from '../config/database';
 
 // Helper to send paginated response
 const paginated = (data: any[], total: number, page: number, limit: number, res: Response) => {
@@ -438,5 +439,61 @@ export const reviewRideLogController = async (req: AuthRequest, res: Response): 
     res.status(200).json({ status: 'success' });
   } catch (error: any) {
     res.status(400).json({ status: 'error', message: error.message });
+  }
+};
+
+// =============================================================================
+// RESIDENT VERIFICATION (for Libre Sakay admin)
+// =============================================================================
+
+export const verifyResidentController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { residentId } = req.params;
+
+    // Auto-detect: if value contains '@', treat as email, otherwise as residentId
+    const isEmail = residentId.includes('@');
+    const whereClause = isEmail ? { email: residentId } : { residentId };
+
+    const resident = await prisma.resident.findFirst({
+      where: whereClause,
+      select: {
+        residentId: true,
+        firstName: true,
+        lastName: true,
+        status: true,
+        email: true,
+        barangay: { select: { barangayName: true } },
+      },
+    });
+
+    if (!resident) {
+      res.status(200).json({
+        status: 'success',
+        data: {
+          exists: false,
+          approved: false,
+          resident_id: null,
+          full_name: null,
+          barangay_name: null,
+        },
+      });
+      return;
+    }
+
+    const approved = resident.status === 'active' && resident.residentId != null;
+    const fullName = [resident.firstName, resident.lastName].filter(Boolean).join(' ');
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        exists: true,
+        approved,
+        resident_id: resident.residentId,
+        full_name: fullName,
+        barangay_name: resident.barangay?.barangayName ?? null,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
   }
 };

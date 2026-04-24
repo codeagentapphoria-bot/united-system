@@ -18,6 +18,7 @@ import {
   getDashboardStatsController,
   getRideLogsController, getRidesTrendController, deleteRideLogController,
   reviewRideLogController,
+  verifyResidentController,
 } from '../controllers/libre-sakay.controller';
 import {
   getBusesValidation, getBusByIdValidation, createBusValidation,
@@ -86,5 +87,8 @@ router.get('/ride-logs', getRideLogsController);
 router.get('/ride-logs/trend', getRidesTrendController);
 router.delete('/ride-logs/:id', deleteRideLogController);
 router.patch('/ride-logs/:id/review', validate(reviewRideLogValidation), reviewRideLogController);
+
+// Resident Verification (Libre Sakay admin checks if a resident is approved)
+router.get('/residents/verify/:residentId', verifyResidentController);
 
 export default router;
