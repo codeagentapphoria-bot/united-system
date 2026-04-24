@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { permissionService } from '@/services/api/permission.service';
 import type { Permission } from '@/types/role';
 import { queryKeys } from '@/lib/query-keys';
+import { useToast } from '@/hooks/use-toast';
 
 export interface CreatePermissionInput {
   name: string;
@@ -18,25 +19,31 @@ export interface UpdatePermissionInput {
   action?: string;
 }
 
-export const usePermissions = () => {
+export const usePermissions = (options: { search?: string; resource?: string } = {}) => {
+  const { search = '', resource = '' } = options;
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const [selectedPermission, setSelectedPermission] = useState<Permission | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  const {
-    data: permissions = [],
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: queryKeys.permissions.all,
-    queryFn: ({ signal }) => permissionService.getAllPermissions(signal),
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: queryKeys.permissions.list({ page: currentPage, limit: itemsPerPage, search, resource }),
+    queryFn: async ({ signal }) => {
+      return permissionService.getPermissions(
+        currentPage,
+        itemsPerPage,
+        search || undefined,
+        resource || undefined,
+        signal
+      );
+    },
   });
 
-  const totalPages = Math.ceil(permissions.length / itemsPerPage);
-  const paginatedPermissions = permissions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const permissions = data?.permissions ?? [];
+  const pagination = data?.pagination;
+  const totalPages = pagination?.totalPages ?? Math.ceil((pagination?.total ?? 0) / itemsPerPage);
 
   const createMutation = useMutation({
     mutationFn: (data: CreatePermissionInput) => {
@@ -46,6 +53,10 @@ export const usePermissions = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.permissions.all });
+      toast({ title: 'Success', description: 'Permission created successfully' });
+    },
+    onError: (err: Error) => {
+      toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to create permission' });
     },
   });
 
@@ -61,6 +72,10 @@ export const usePermissions = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.permissions.all });
+      toast({ title: 'Success', description: 'Permission updated successfully' });
+    },
+    onError: (err: Error) => {
+      toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to update permission' });
     },
   });
 
@@ -68,6 +83,10 @@ export const usePermissions = () => {
     mutationFn: (id: string) => permissionService.deletePermission(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.permissions.all });
+      toast({ title: 'Success', description: 'Permission deleted successfully' });
+    },
+    onError: (err: Error) => {
+      toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to delete permission' });
     },
   });
 
@@ -83,23 +102,30 @@ export const usePermissions = () => {
     await deleteMutation.mutateAsync(id);
   };
 
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
   return {
-    permissions: paginatedPermissions,
-    allPermissions: permissions,
-    isLoading,
-    error: error?.message || null,
+    permissions,
     selectedPermission,
     setSelectedPermission,
-    currentPage,
-    totalPages,
-    itemsPerPage,
-    total: permissions.length,
-    goToPage: (page: number) => setCurrentPage(Math.max(1, Math.min(page, totalPages))),
-    goToNextPage: () => setCurrentPage((p) => Math.min(p + 1, totalPages)),
-    goToPreviousPage: () => setCurrentPage((p) => Math.max(p - 1, 1)),
+    isLoading,
+    isFetching,
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+    error: error?.message || null,
     createPermission,
     updatePermission,
     deletePermission,
     refreshPermissions: refetch,
+    currentPage,
+    totalPages,
+    itemsPerPage,
+    total: pagination?.total ?? 0,
+    goToPage,
+    goToNextPage: () => setCurrentPage(p => Math.min(p + 1, totalPages)),
+    goToPreviousPage: () => setCurrentPage(p => Math.max(p - 1, 1)),
   };
 };
