@@ -24,12 +24,16 @@ export const createRoleController = async (req: AuthRequest, res: Response): Pro
   }
 };
 
-export const getRolesController = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getRolesController = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const roles = await getRoles();
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 10;
+    const search = (req.query.search as string) || undefined;
+    const result = await getRoles({ page, limit, search });
     res.status(200).json({
       status: 'success',
-      data: roles,
+      data: result.roles,
+      pagination: result.pagination,
     });
   } catch (error: any) {
     res.status(500).json({
@@ -77,7 +81,13 @@ export const deleteRoleController = async (req: AuthRequest, res: Response): Pro
       message: 'Role deleted successfully',
     });
   } catch (error: any) {
-    res.status(400).json({
+    let statusCode = 400;
+    if (error.message === 'Role not found') {
+      statusCode = 404;
+    } else if (error.message === 'Cannot delete role that is assigned to users') {
+      statusCode = 409;
+    }
+    res.status(statusCode).json({
       status: 'error',
       message: error.message || 'Failed to delete role',
     });

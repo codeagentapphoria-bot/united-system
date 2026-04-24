@@ -16,7 +16,13 @@ interface BackendRole {
   id: string;
   name: string;
   description: string | null;
-  redirectPath: string | null;
+  system: string;
+  redirectPage: {
+    id: string;
+    system: string;
+    path: string;
+    name: string;
+  } | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -39,6 +45,7 @@ const transformRole = (backendRole: BackendRole): Role => {
     id: backendRole.id,
     name: backendRole.name,
     description: backendRole.description || '',
+    system: backendRole.system,
     permissions: backendRole.rolePermissions?.map((rp) => ({
       id: rp.permission.id,
       name: rp.permission.name,
@@ -48,7 +55,7 @@ const transformRole = (backendRole: BackendRole): Role => {
       createdAt: rp.permission.createdAt,
       updatedAt: rp.permission.updatedAt,
     })) || [],
-    redirectPath: backendRole.redirectPath || undefined,
+    redirectPage: backendRole.redirectPage || undefined,
     isActive: backendRole.isActive !== undefined ? backendRole.isActive : true,
     createdAt: backendRole.createdAt,
     updatedAt: backendRole.updatedAt,
@@ -70,6 +77,7 @@ export const roleService = {
   async getRoles(
     page: number = 1,
     limit: number = 10,
+    search?: string,
     signal?: AbortSignal
   ): Promise<PaginatedRoles> {
     try {
@@ -77,6 +85,7 @@ export const roleService = {
         page: page.toString(),
         limit: limit.toString(),
       });
+      if (search) params.set('search', search);
       const response = await api.get(`/roles?${params.toString()}`, { signal });
       const backendRoles: BackendRole[] = response.data.data || [];
       const pagination = response.data.pagination || {
@@ -106,7 +115,7 @@ export const roleService = {
     }
   },
 
-  async createRole(data: { name: string; description?: string }): Promise<Role> {
+  async createRole(data: { name: string; description?: string; system: string; redirectPageId?: string }): Promise<Role> {
     try {
       const response = await api.post('/roles', data);
       const backendRole: BackendRole = response.data.data;
@@ -117,7 +126,7 @@ export const roleService = {
     }
   },
 
-  async updateRole(id: string, data: { name?: string; description?: string }): Promise<Role> {
+  async updateRole(id: string, data: { name?: string; description?: string; redirectPageId?: string }): Promise<Role> {
     try {
       const response = await api.put(`/roles/${id}`, data);
       const backendRole: BackendRole = response.data.data;
@@ -148,4 +157,3 @@ export const roleService = {
     }
   },
 };
-

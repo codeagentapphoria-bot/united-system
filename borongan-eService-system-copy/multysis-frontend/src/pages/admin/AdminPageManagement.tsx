@@ -14,7 +14,7 @@ import { adminMenuItems } from '@/config/admin-menu';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePageManagement } from '@/hooks/pages/usePageManagement';
 import { cn } from '@/lib/utils';
-import React, { useEffect, useState } from 'react';
+  import { useEffect, useState } from 'react';
 import { FiDownload, FiFile, FiPlus, FiSearch } from 'react-icons/fi';
 
 export default function AdminPageManagement() {

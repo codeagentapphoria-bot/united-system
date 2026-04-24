@@ -68,25 +68,52 @@ export const createUser = async (data: CreateUserData) => {
   });
 };
 
-export const getUsers = async () => {
-  return prisma.user.findMany({
-    include: {
-      userRoles: {
-        include: {
-          role: {
-            include: {
-              rolePermissions: {
-                include: {
-                  permission: true,
+export const getUsers = async (options: { page?: number; limit?: number; search?: string } = {}) => {
+  const { page = 1, limit = 10, search } = options;
+  const skip = (page - 1) * limit;
+
+  const where: Record<string, unknown> = {};
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      skip,
+      take: limit,
+      include: {
+        userRoles: {
+          include: {
+            role: {
+              include: {
+                rolePermissions: {
+                  include: {
+                    permission: true,
+                  },
                 },
               },
             },
           },
         },
       },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  return {
+    users,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
     },
-    orderBy: { createdAt: 'desc' },
-  });
+  };
 };
 
 export const getUser = async (id: string) => {

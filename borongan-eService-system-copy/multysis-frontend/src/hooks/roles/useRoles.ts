@@ -9,10 +9,11 @@ import { useState, useCallback } from 'react';
 interface UseRolesOptions {
   page?: number;
   limit?: number;
+  search?: string;
 }
 
 export const useRoles = (options: UseRolesOptions = {}) => {
-  const { page = 1, limit = 10 } = options;
+  const { page = 1, limit = 10, search = '' } = options;
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -20,11 +21,11 @@ export const useRoles = (options: UseRolesOptions = {}) => {
   const [currentPage, setCurrentPage] = useState(page);
   const [itemsPerPage] = useState(limit);
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: queryKeys.roles.list(currentPage, itemsPerPage),
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: queryKeys.roles.list(currentPage, itemsPerPage, search),
     queryFn: async ({ signal }) => {
       const [rolesResult, permissions] = await Promise.all([
-        roleService.getRoles(page, limit, signal),
+        roleService.getRoles(page, limit, search || undefined, signal),
         permissionService.getAllPermissions(signal),
       ]);
       return {
@@ -46,6 +47,8 @@ export const useRoles = (options: UseRolesOptions = {}) => {
       const newRole = await roleService.createRole({
         name: data.name,
         description: data.description,
+        system: data.system,
+        redirectPageId: data.redirectPageId || undefined,
       });
       if (data.permissionIds && data.permissionIds.length > 0) {
         return roleService.assignPermissions(newRole.id, data.permissionIds);
@@ -64,9 +67,10 @@ export const useRoles = (options: UseRolesOptions = {}) => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateRoleInput }) => {
-      const updateData: { name?: string; description?: string } = {};
+      const updateData: { name?: string; description?: string; redirectPageId?: string } = {};
       if (data.name !== undefined) updateData.name = data.name;
       if (data.description !== undefined) updateData.description = data.description;
+      if (data.redirectPageId !== undefined) updateData.redirectPageId = data.redirectPageId || undefined;
 
       let updatedRole: Role;
       if (Object.keys(updateData).length > 0) {
@@ -145,6 +149,10 @@ export const useRoles = (options: UseRolesOptions = {}) => {
     selectedRole,
     setSelectedRole,
     isLoading,
+    isFetching,
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
     error: error?.message || null,
     createRole,
     updateRole,

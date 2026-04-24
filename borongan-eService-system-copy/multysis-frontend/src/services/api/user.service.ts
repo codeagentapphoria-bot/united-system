@@ -52,6 +52,7 @@ export const userService = {
   async getAllUsers(
     page: number = 1,
     limit: number = 10,
+    search?: string,
     signal?: AbortSignal
   ): Promise<PaginatedUsers> {
     try {
@@ -59,6 +60,7 @@ export const userService = {
         page: page.toString(),
         limit: limit.toString(),
       });
+      if (search) params.set('search', search);
 
       const response = await api.get(`/users?${params.toString()}`, { signal });
       const backendUsers: BackendUser[] = response.data.data;

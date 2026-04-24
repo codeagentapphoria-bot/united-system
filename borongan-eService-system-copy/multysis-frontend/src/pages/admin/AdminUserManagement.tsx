@@ -33,80 +33,66 @@ import { adminMenuItems } from '@/config/admin-menu';
 import { cn } from '@/lib/utils';
 
 export const AdminUserManagement: React.FC = () => {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+
+  // Debounce search query
+  const debouncedSearchQuery = useDebounce(localSearchQuery, 300);
+
   const {
     users,
     selectedUser,
     setSelectedUser,
     roles,
     isLoading,
+    isFetching,
+    isCreating,
+    isUpdating,
+    isDeleting,
     error,
     createUser,
     updateUser,
     deleteUser,
     changePassword,
     currentPage,
+    total,
     goToPage,
     goToNextPage: _goToNextPage,
     goToPreviousPage: _goToPreviousPage,
-  } = useUsers();
+  } = useUsers({ search: debouncedSearchQuery });
 
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
-  const [localSearchQuery, setLocalSearchQuery] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-
-  // Debounce search query
-  const debouncedSearchQuery = useDebounce(localSearchQuery, 300);
-
-  // Update the actual search query when debounced value changes
+  // Reset to page 1 when search changes
   useEffect(() => {
-    setSearchQuery(debouncedSearchQuery);
+    if (currentPage !== 1) {
+      goToPage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchQuery]);
 
-  // Reset page when filters change
-  useEffect(() => {
-    goToPage(1);
-  }, [debouncedSearchQuery, statusFilter, roleFilter]);
-
+  // Client-side only filter (role filter - no server-side support)
   const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.roleName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatusFilter =
-      statusFilter === 'all' ||
-      (statusFilter === 'active' && user.isActive) ||
-      (statusFilter === 'inactive' && !user.isActive);
     const matchesRoleFilter = roleFilter === 'all' || user.roleId === roleFilter;
-    return matchesSearch && matchesStatusFilter && matchesRoleFilter;
+    return matchesRoleFilter;
   });
 
   // Apply pagination to filtered results
   const totalFilteredPages = Math.max(1, Math.ceil(filteredUsers.length / 10));
-  const startIndex = (currentPage - 1) * 10;
-  const endIndex = startIndex + 10;
-  const paginatedFilteredUsers = filteredUsers.slice(startIndex, endIndex);
 
-  // Pagination wrapper functions that respect filtered results
+  // Guarded pagination handlers
   const handleGoToPage = (page: number) => {
-    const clampedPage = Math.max(1, Math.min(page, totalFilteredPages));
-    goToPage(clampedPage);
+    if (currentPage !== page) goToPage(page);
   };
 
   const handleGoToNextPage = () => {
-    if (currentPage < totalFilteredPages) {
-      goToPage(currentPage + 1);
-    }
+    if (currentPage < totalFilteredPages) goToPage(currentPage + 1);
   };
 
   const handleGoToPreviousPage = () => {
-    if (currentPage > 1) {
-      goToPage(currentPage - 1);
-    }
+    if (currentPage > 1) goToPage(currentPage - 1);
   };
 
   const handleDownload = () => {
@@ -251,49 +237,8 @@ export const AdminUserManagement: React.FC = () => {
                 />
               </div>
 
-              {/* Filters */}
-              <div className="flex flex-wrap gap-2 mt-3">
-                {/* Status Filter */}
-                <Button
-                  size="sm"
-                  variant={statusFilter === 'all' ? 'default' : 'outline'}
-                  onClick={() => setStatusFilter('all')}
-                  className={
-                    statusFilter === 'all'
-                      ? 'bg-primary-600 hover:bg-primary-700'
-                      : 'text-primary-600 hover:bg-primary-50'
-                  }
-                >
-                  All
-                </Button>
-                <Button
-                  size="sm"
-                  variant={statusFilter === 'active' ? 'default' : 'outline'}
-                  onClick={() => setStatusFilter('active')}
-                  className={
-                    statusFilter === 'active'
-                      ? 'bg-primary-600 hover:bg-primary-700'
-                      : 'text-primary-600 hover:bg-primary-50'
-                  }
-                >
-                  Active
-                </Button>
-                <Button
-                  size="sm"
-                  variant={statusFilter === 'inactive' ? 'default' : 'outline'}
-                  onClick={() => setStatusFilter('inactive')}
-                  className={
-                    statusFilter === 'inactive'
-                      ? 'bg-primary-600 hover:bg-primary-700'
-                      : 'text-primary-600 hover:bg-primary-50'
-                  }
-                >
-                  Inactive
-                </Button>
-              </div>
-
               {/* Role Filter */}
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex flex-wrap gap-2 mt-3">
                 <Button
                   size="sm"
                   variant={roleFilter === 'all' ? 'default' : 'outline'}
@@ -328,19 +273,23 @@ export const AdminUserManagement: React.FC = () => {
 
               {/* Total count */}
               <div className="flex justify-between items-center mt-3 text-sm text-gray-600">
-                <span>Total: {filteredUsers.length} users</span>
+                <span>Total: {total} users</span>
                 <span>Page {currentPage} of {totalFilteredPages}</span>
               </div>
             </CardHeader>
 
             <CardContent className="flex flex-col">
               <div className="space-y-2 max-h-[500px] overflow-y-auto overflow-x-visible pr-4">
-                {paginatedFilteredUsers.length === 0 ? (
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-[90px] bg-gray-100 rounded-lg animate-pulse" />
+                  ))
+                ) : filteredUsers.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     No users found.
                   </div>
                 ) : (
-                  paginatedFilteredUsers.map((user) => (
+                  filteredUsers.map((user) => (
                     <div key={user.id} className="relative">
                       <Card
                         className={cn(
@@ -388,7 +337,7 @@ export const AdminUserManagement: React.FC = () => {
                   onPageChange={handleGoToPage}
                   onPrevious={handleGoToPreviousPage}
                   onNext={handleGoToNextPage}
-                  isLoading={isLoading}
+                  isLoading={isFetching}
                 />
               )}
             </CardContent>
@@ -414,7 +363,7 @@ export const AdminUserManagement: React.FC = () => {
         onClose={() => setIsAddModalOpen(false)}
         onSubmit={handleCreateUser}
         roles={roles}
-        isLoading={isLoading}
+        isLoading={isCreating}
       />
 
       <EditUserModal
@@ -423,7 +372,7 @@ export const AdminUserManagement: React.FC = () => {
         onSubmit={handleUpdateUser}
         user={selectedUser}
         roles={roles}
-        isLoading={isLoading}
+        isLoading={isUpdating}
       />
 
       <DeleteUserModal
@@ -431,14 +380,14 @@ export const AdminUserManagement: React.FC = () => {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteUser}
         userName={selectedUser?.name || ''}
-        isLoading={isLoading}
+        isLoading={isDeleting}
       />
 
       <ChangePasswordModal
         open={isChangePasswordModalOpen}
         onClose={() => setIsChangePasswordModalOpen(false)}
         onSubmit={handleChangePassword}
-        isLoading={isLoading}
+        isLoading={isUpdating}
       />
     </DashboardLayout>
   );
