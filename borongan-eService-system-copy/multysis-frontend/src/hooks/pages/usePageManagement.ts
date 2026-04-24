@@ -11,7 +11,7 @@ interface UsePageManagementOptions {
 }
 
 export const usePageManagement = (options: UsePageManagementOptions = {}) => {
-  const { page = 1, limit = 100 } = options;
+  const { page = 1, limit = 10 } = options;
   const queryClient = useQueryClient();
   const { toast } = useToast();
 

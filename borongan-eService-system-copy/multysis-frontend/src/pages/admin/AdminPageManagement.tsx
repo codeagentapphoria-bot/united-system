@@ -25,11 +25,12 @@ export default function AdminPageManagement() {
     isLoading,
     error,
     deletePage,
-    // Pagination
+    total,
+    totalPages,
     currentPage,
     goToPage,
-    goToNextPage: _goToNextPage,
-    goToPreviousPage: _goToPreviousPage,
+    goToNextPage,
+    goToPreviousPage,
   } = usePageManagement();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -37,7 +38,6 @@ export default function AdminPageManagement() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   // Debounce search query
   const debouncedSearchQuery = useDebounce(localSearchQuery, 300);
@@ -47,46 +47,17 @@ export default function AdminPageManagement() {
     setSearchQuery(debouncedSearchQuery);
   }, [debouncedSearchQuery]);
 
-  // Reset page when filters change
+  // Reset to page 1 when search changes
   useEffect(() => {
     goToPage(1);
-  }, [debouncedSearchQuery, statusFilter]);
+  }, [debouncedSearchQuery]);
 
-  const filteredPages = pages.filter((page) => {
-    const matchesSearch =
-      page.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      page.path.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      page.system.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
-
-  // Apply pagination to filtered results
-  const totalFilteredPages = Math.max(1, Math.ceil(filteredPages.length / 10));
-  const startIndex = (currentPage - 1) * 10;
-  const endIndex = startIndex + 10;
-  const paginatedFilteredPages = filteredPages.slice(startIndex, endIndex);
-
-  // Pagination wrapper functions that respect filtered results
-  const handleGoToPage = (page: number) => {
-    const clampedPage = Math.max(1, Math.min(page, totalFilteredPages));
-    goToPage(clampedPage);
-  };
-
-  const handleGoToNextPage = () => {
-    if (currentPage < totalFilteredPages) {
-      goToPage(currentPage + 1);
-    }
-  };
-
-  const handleGoToPreviousPage = () => {
-    if (currentPage > 1) {
-      goToPage(currentPage - 1);
-    }
-  };
+  // Server-side pagination: pages already contains the correct page of items from API
+  const displayedPages = pages;
 
   const handleDownload = () => {
     const headers = ['Name', 'System', 'Path', 'Created Date'];
-    const rows = filteredPages.map((page) => [
+    const rows = displayedPages.map((page) => [
       page.name,
       page.system,
       page.path,
@@ -180,19 +151,19 @@ export default function AdminPageManagement() {
 
               {/* Total count */}
               <div className="flex justify-between items-center mt-3 text-sm text-gray-600">
-                <span>Total: {filteredPages.length} pages</span>
+                <span>Total: {total} pages</span>
                 <span>
-                  Page {currentPage} of {totalFilteredPages}
+                  Page {currentPage} of {totalPages}
                 </span>
               </div>
             </CardHeader>
 
             <CardContent className="flex flex-col">
               <div className="space-y-2 max-h-[500px] overflow-y-auto overflow-x-visible pr-4">
-                {paginatedFilteredPages.length === 0 ? (
+                {displayedPages.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">No pages found.</div>
                 ) : (
-                  paginatedFilteredPages.map((page) => (
+                  displayedPages.map((page) => (
                     <div key={page.id} className="relative">
                       <Card
                         className={cn(
@@ -230,13 +201,13 @@ export default function AdminPageManagement() {
               </div>
 
               {/* Pagination */}
-              {totalFilteredPages > 1 && (
+              {totalPages > 1 && (
                 <Pagination
                   currentPage={currentPage}
-                  totalPages={totalFilteredPages}
-                  onPageChange={handleGoToPage}
-                  onPrevious={handleGoToPreviousPage}
-                  onNext={handleGoToNextPage}
+                  totalPages={totalPages}
+                  onPageChange={goToPage}
+                  onPrevious={goToPreviousPage}
+                  onNext={goToNextPage}
                   isLoading={isLoading}
                 />
               )}
