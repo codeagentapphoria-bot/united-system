@@ -17,10 +17,10 @@ interface EditPageModalProps {
 }
 
 const SYSTEM_OPTIONS = [
-  { value: 'BUP', label: 'BUP' },
-  { value: 'MEO', label: 'MEO' },
-  { value: 'CT', label: 'CT' },
-  { value: 'OSCA', label: 'OSCA' },
+  { value: 'core', label: 'Core' },
+  { value: 'libre-sakay', label: 'Libre Sakay' },
+  { value: 'government-programs', label: 'Government Programs' },
+  { value: 'services', label: 'Services' },
 ];
 
 export function EditPageModal({ open, onClose, page, isLoading }: EditPageModalProps) {
