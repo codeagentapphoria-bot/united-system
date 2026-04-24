@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import Select from 'react-select';
-import { FiEdit2, FiPlus, FiSave, FiTrash2, FiX } from 'react-icons/fi';
+import { FiEdit2, FiPlus, FiSave, FiTrash2, FiX, FiCheck, FiClock } from 'react-icons/fi';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,6 +54,14 @@ const TYPE_LABEL: Record<GovernmentProgramTypeEnum, string> = {
   ALL: 'All Residents',
 };
 
+const TYPE_COLOR: Record<GovernmentProgramTypeEnum, string> = {
+  SENIOR_CITIZEN: 'bg-amber-50 text-amber-700 border-amber-200',
+  PWD: 'bg-violet-50 text-violet-700 border-violet-200',
+  STUDENT: 'bg-blue-50 text-blue-700 border-blue-200',
+  SOLO_PARENT: 'bg-pink-50 text-pink-700 border-pink-200',
+  ALL: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+};
+
 const parseRequirements = (raw?: string | null | RequirementItem[]): RequirementItem[] => {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
@@ -63,6 +71,393 @@ const parseRequirements = (raw?: string | null | RequirementItem[]): Requirement
   } catch {}
   return [{ type: 'text', label: raw as string, required: false }];
 };
+
+// ── View Mode ────────────────────────────────────────────────────────────────
+
+interface RequirementRowProps {
+  req: RequirementItem;
+  idx: number;
+}
+
+const RequirementRow: React.FC<RequirementRowProps> = ({ req, idx }) => (
+  <li className="flex items-start gap-3 py-2.5 border-b border-gray-100 last:border-0">
+    <span className="mt-1.5 w-2 h-2 rounded-full bg-primary-200 shrink-0" />
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-medium text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded border border-primary-100">
+          {INPUT_TYPE_OPTIONS.find(o => o.value === req.type)?.label ?? req.type}
+        </span>
+        <span className="text-sm font-medium text-gray-900">{req.label || <span className="text-gray-400 italic">Untitled</span>}</span>
+        {req.required && (
+          <span className="flex items-center gap-0.5 text-xs text-red-500 font-medium">
+            <FiClock size={10} /> Required
+          </span>
+        )}
+      </div>
+    </div>
+  </li>
+);
+
+interface ViewModeProps {
+  settings: LibreSakayProgramSettings;
+  onEdit: () => void;
+}
+
+const ViewMode: React.FC<ViewModeProps> = ({ settings, onEdit }) => {
+  const reqs = parseRequirements(settings.requirements);
+
+  return (
+    <div className="space-y-4">
+      {/* Header row */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg font-semibold text-gray-900 truncate">{settings.name}</h2>
+          {settings.description && (
+            <p className="mt-1 text-sm text-gray-500 line-clamp-2">{settings.description}</p>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onEdit}
+          className="gap-1.5 shrink-0 text-primary-600 border-primary-200 hover:bg-primary-50 hover:text-primary-700"
+        >
+          <FiEdit2 size={13} />
+          Edit Settings
+        </Button>
+      </div>
+
+      {/* Status */}
+      <div className={cn(
+        'flex items-center gap-2 rounded-lg px-3 py-2 border',
+        settings.isActive
+          ? 'bg-emerald-50 border-emerald-200'
+          : 'bg-gray-50 border-gray-200'
+      )}>
+        {settings.isActive ? (
+          <FiCheck className="text-emerald-600 shrink-0" size={15} />
+        ) : (
+          <FiX className="text-gray-400 shrink-0" size={15} />
+        )}
+        <span className={cn(
+          'text-sm font-medium',
+          settings.isActive ? 'text-emerald-700' : 'text-gray-500'
+        )}>
+          {settings.isActive ? 'Program is active — residents can apply and ride' : 'Program is inactive — closed to new applicants and riders'}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Eligibility */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Eligible Beneficiaries</h3>
+          <div className="flex flex-wrap gap-1.5">
+            {settings.types?.length ? (
+              settings.types.map(t => (
+                <span
+                  key={t}
+                  className={cn(
+                    'text-xs px-2.5 py-1 rounded-full border font-medium',
+                    TYPE_COLOR[t]
+                  )}
+                >
+                  {TYPE_LABEL[t]}
+                </span>
+              ))
+            ) : (
+              <p className="text-sm text-gray-400 italic">None specified</p>
+            )}
+          </div>
+        </div>
+
+        {/* Quick stats */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Requirements</h3>
+          <p className="text-2xl font-bold text-gray-900">{reqs.length}</p>
+          <p className="text-xs text-gray-500">
+            {reqs.filter(r => r.required).length} required · {reqs.filter(r => !r.required).length} optional
+          </p>
+        </div>
+      </div>
+
+      {/* Requirements list */}
+      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Application Requirements</h3>
+          <span className="text-xs text-gray-400">{reqs.length} item{reqs.length !== 1 ? 's' : ''}</span>
+        </div>
+        {reqs.length > 0 ? (
+          <ul className="divide-y divide-gray-100 px-4">
+            {reqs.map((req, idx) => (
+              <RequirementRow key={idx} req={req} idx={idx} />
+            ))}
+          </ul>
+        ) : (
+          <div className="px-4 py-6 text-center">
+            <p className="text-sm text-gray-400">No requirements have been set for this program.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Edit Mode ───────────────────────────────────────────────────────────────
+
+interface EditModeProps {
+  form: ReturnType<typeof useForm<GovernmentProgramInput>>;
+  saving: boolean;
+  error: string | null;
+  onSave: () => void;
+  onCancel: () => void;
+}
+
+const EditMode: React.FC<EditModeProps> = ({ form, saving, error, onSave, onCancel }) => (
+  <Form {...form}>
+    <form onSubmit={form.handleSubmit(onSave)} className="space-y-6">
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 flex items-start gap-2">
+          <FiX className="text-red-500 shrink-0 mt-0.5" size={14} />
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      {/* Program Info */}
+      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Program Information</h3>
+        </div>
+        <div className="p-4 space-y-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-700">
+                  Program Name <span className="text-red-500">*</span>
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="e.g. Libre Sakay — Borongan City"
+                    {...field}
+                    className="h-9"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-700">Description</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Brief description of the Libre Sakay program..."
+                    rows={3}
+                    {...field}
+                    className="resize-none"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </div>
+
+      {/* Eligibility */}
+      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Eligibility & Status</h3>
+        </div>
+        <div className="p-4 space-y-4">
+          <FormField
+            control={form.control}
+            name="types"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-700">
+                  Eligible Beneficiary Types <span className="text-red-500">*</span>
+                </FormLabel>
+                <FormControl>
+                  <Select
+                    isMulti
+                    hideSelectedOptions={false}
+                    value={TYPE_OPTIONS.filter(option => field.value?.includes(option.value))}
+                    onChange={selected => {
+                      const values = (selected as { value: GovernmentProgramTypeEnum }[]).map(s => s.value);
+                      if (values.includes('ALL') && !field.value?.includes('ALL')) {
+                        field.onChange(['ALL']);
+                      } else if (field.value?.includes('ALL') && values.length > 1) {
+                        field.onChange(values.filter(v => v !== 'ALL'));
+                      } else {
+                        field.onChange(values);
+                      }
+                    }}
+                    options={TYPE_OPTIONS}
+                    placeholder="Select beneficiary types..."
+                    classNamePrefix="react-select"
+                    styles={createReactSelectStyles(!!form.formState.errors.types)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="isActive"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-sm font-medium text-gray-700 cursor-pointer">Activate Program</FormLabel>
+                  <p className="text-xs text-gray-500">Inactive programs are hidden from residents</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={cn('text-xs font-medium', field.value ? 'text-emerald-600' : 'text-gray-400')}>
+                    {field.value ? 'Active' : 'Inactive'}
+                  </span>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </div>
+              </FormItem>
+            )}
+          />
+        </div>
+      </div>
+
+      {/* Requirements */}
+      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Application Requirements</h3>
+        </div>
+        <div className="p-4 space-y-3">
+          <FormField
+            control={form.control}
+            name="requirements"
+            render={({ field }) => {
+              const items: RequirementItem[] = field.value || [];
+              return (
+                <FormItem>
+                  <div className="space-y-2">
+                    {items.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        {/* Input type selector */}
+                        <select
+                          value={item.type}
+                          onChange={e => {
+                            const updated = [...items];
+                            updated[idx] = { ...item, type: e.target.value };
+                            field.onChange(updated);
+                          }}
+                          className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-300"
+                        >
+                          {INPUT_TYPE_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+
+                        {/* Label */}
+                        <Input
+                          value={item.label}
+                          onChange={e => {
+                            const updated = [...items];
+                            updated[idx] = { ...item, label: e.target.value };
+                            field.onChange(updated);
+                          }}
+                          placeholder="Requirement description..."
+                          className="flex-1 h-9"
+                        />
+
+                        {/* Required toggle */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...items];
+                            updated[idx] = { ...item, required: !item.required };
+                            field.onChange(updated);
+                          }}
+                          className={cn(
+                            'shrink-0 flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border h-9 font-medium transition-colors',
+                            item.required
+                              ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                              : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100 hover:text-gray-600'
+                          )}
+                        >
+                          {item.required ? <FiClock size={10} /> : null}
+                          {item.required ? 'Required' : 'Optional'}
+                        </button>
+
+                        {/* Delete */}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => field.onChange(items.filter((_, i) => i !== idx))}
+                          className="shrink-0 h-9 w-9 text-gray-400 hover:text-red-500 hover:bg-red-50"
+                        >
+                          <FiTrash2 size={14} />
+                        </Button>
+                      </div>
+                    ))}
+
+                    {items.length === 0 && (
+                      <p className="text-sm text-gray-400 italic py-2">No requirements added yet.</p>
+                    )}
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => field.onChange([...items, { type: 'text', label: '', required: false }])}
+                      className="mt-1 gap-1.5 text-primary-600 border-primary-200 hover:bg-primary-50"
+                    >
+                      <FiPlus size={13} />
+                      Add Requirement
+                    </Button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-end gap-3 pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={saving}
+          className="gap-1.5 h-9 text-gray-600 border-gray-300 hover:bg-gray-50"
+        >
+          <FiX size={13} />
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={saving}
+          className="gap-1.5 h-9 bg-primary-600 hover:bg-primary-700"
+        >
+          <FiSave size={13} />
+          {saving ? 'Saving…' : 'Save Changes'}
+        </Button>
+      </div>
+    </form>
+  </Form>
+);
+
+// ── Main Component ────────────────────────────────────────────────────────────
 
 export const ProgramSettingsSection: React.FC = () => {
   const [editing, setEditing] = useState(false);
@@ -97,7 +492,7 @@ export const ProgramSettingsSection: React.FC = () => {
           isActive: data.isActive,
         });
       } catch (err: any) {
-        setError(err?.response?.data?.message ?? err.message ?? 'Failed to load settings');
+        setError(err?.response?.data?.message ?? err.message ?? 'Failed to load program settings');
       } finally {
         setLoading(false);
       }
@@ -141,8 +536,9 @@ export const ProgramSettingsSection: React.FC = () => {
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <p className="text-sm text-gray-500">Loading program settings...</p>
+        <CardContent className="flex flex-col items-center justify-center gap-3 py-16">
+          <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+          <p className="text-sm text-gray-500">Loading program settings…</p>
         </CardContent>
       </Card>
     );
@@ -151,317 +547,53 @@ export const ProgramSettingsSection: React.FC = () => {
   if (error && !settings) {
     return (
       <Card>
-        <CardContent className="py-8">
-          <p className="text-sm text-red-600 text-center">{error}</p>
+        <CardContent className="flex flex-col items-center justify-center gap-3 py-16">
+          <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+            <FiX className="text-red-500" size={18} />
+          </div>
+          <p className="text-sm text-red-600 font-medium">{error}</p>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            Retry
+          </Button>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base font-semibold text-gray-900">Libre Sakay Program Settings</CardTitle>
-        {!editing ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setEditing(true)}
-            className="gap-1.5 text-primary-600 border-primary-300 hover:bg-primary-50"
-          >
-            <FiEdit2 size={14} />
-            Edit
-          </Button>
-        ) : (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCancel}
-              disabled={saving}
-              className="gap-1.5 text-gray-600"
-            >
-              <FiX size={14} />
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={form.handleSubmit(handleSave)}
-              disabled={saving}
-              className="gap-1.5 bg-primary-600 hover:bg-primary-700"
-            >
-              <FiSave size={14} />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
+    <Card className="border-gray-200 shadow-sm">
+      <CardHeader className="pb-0">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-lg font-bold text-gray-900">Libre Sakay Program</CardTitle>
+            <p className="text-xs text-gray-500">
+              {editing ? 'Editing program settings' : 'Manage program details, eligibility, and requirements'}
+            </p>
           </div>
-        )}
+          {!editing && settings && (
+            <span className={cn(
+              'text-xs px-2.5 py-1 rounded-full border font-medium',
+              settings.isActive
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-gray-100 text-gray-500 border-gray-200'
+            )}>
+              {settings.isActive ? '● Active' : '○ Inactive'}
+            </span>
+          )}
+        </div>
       </CardHeader>
-
-      <CardContent className="space-y-6">
-        {error && editing && (
-          <div className="border border-red-300 bg-red-50 rounded px-4 py-3">
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
-        )}
-
+      <CardContent className="pt-5">
         {editing ? (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Program Name <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter program name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="types"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Eligible Beneficiary Types <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Select
-                        isMulti
-                        hideSelectedOptions={false}
-                        value={TYPE_OPTIONS.filter(option => field.value?.includes(option.value))}
-                        onChange={selected => {
-                          const values = (selected as { value: GovernmentProgramTypeEnum }[]).map(
-                            s => s.value
-                          );
-                          if (values.includes('ALL') && !field.value?.includes('ALL')) {
-                            field.onChange(['ALL']);
-                          } else if (field.value?.includes('ALL') && values.length > 1) {
-                            field.onChange(values.filter(v => v !== 'ALL'));
-                          } else {
-                            field.onChange(values);
-                          }
-                        }}
-                        options={TYPE_OPTIONS}
-                        placeholder="Select one or more types..."
-                        className="mt-1"
-                        classNamePrefix="react-select"
-                        styles={createReactSelectStyles(!!form.formState.errors.types)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Enter description (optional)" rows={3} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="requirements"
-                render={({ field }) => {
-                  const items: RequirementItem[] = field.value || [];
-                  return (
-                    <FormItem>
-                      <FormLabel>Requirements</FormLabel>
-                      <div className="space-y-2">
-                        {items.map((item, idx) => (
-                          <div key={idx} className="flex gap-2 items-center">
-                            <select
-                              value={item.type}
-                              onChange={e => {
-                                const updated = [...items];
-                                updated[idx] = { ...item, type: e.target.value };
-                                field.onChange(updated);
-                              }}
-                              className="h-9 rounded-md border border-input bg-background px-3 text-sm w-36 shrink-0"
-                            >
-                              {INPUT_TYPE_OPTIONS.map(opt => (
-                                <option key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </option>
-                              ))}
-                            </select>
-                            <Input
-                              value={item.label}
-                              onChange={e => {
-                                const updated = [...items];
-                                updated[idx] = { ...item, label: e.target.value };
-                                field.onChange(updated);
-                              }}
-                              placeholder="Requirement label"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = [...items];
-                                updated[idx] = { ...item, required: !item.required };
-                                field.onChange(updated);
-                              }}
-                              className={cn(
-                                'shrink-0 text-xs px-2 py-1 rounded border h-9',
-                                item.required
-                                  ? 'bg-red-50 text-red-600 border-red-300'
-                                  : 'text-gray-400 border-gray-200'
-                              )}
-                            >
-                              {item.required ? 'Required' : 'Optional'}
-                            </button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              onClick={() => field.onChange(items.filter((_, i) => i !== idx))}
-                              className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <FiTrash2 size={14} />
-                            </Button>
-                          </div>
-                        ))}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            field.onChange([...items, { type: 'text', label: '', required: false }])
-                          }
-                          className="text-primary-600 hover:bg-primary-50"
-                        >
-                          <FiPlus size={14} className="mr-1" />
-                          Add Requirement
-                        </Button>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-
-              <FormField
-                control={form.control}
-                name="isActive"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div>
-                      <FormLabel className="text-sm font-medium">Active Status</FormLabel>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        When inactive, residents cannot apply or ride
-                      </p>
-                    </div>
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
-        ) : (
-          /* View mode */
-          <div className="space-y-4">
-            {/* Status badge */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">Status</span>
-              <span
-                className={cn(
-                  'text-xs px-2 py-0.5 rounded-full font-medium',
-                  settings?.isActive
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-gray-100 text-gray-500'
-                )}
-              >
-                {settings?.isActive ? 'Active' : 'Inactive'}
-              </span>
-            </div>
-
-            {/* Name */}
-            <div>
-              <p className="text-xs text-gray-500">Program Name</p>
-              <p className="text-sm font-medium text-gray-900">{settings?.name ?? '—'}</p>
-            </div>
-
-            {/* Eligible Types */}
-            <div>
-              <p className="text-xs text-gray-500">Eligible Beneficiary Types</p>
-              <div className="flex flex-wrap gap-1.5 mt-1">
-                {settings?.types?.length ? (
-                  settings.types.map(t => (
-                    <span
-                      key={t}
-                      className="text-xs px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200"
-                    >
-                      {TYPE_LABEL[t]}
-                    </span>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-400">None</p>
-                )}
-              </div>
-            </div>
-
-            {/* Description */}
-            <div>
-              <p className="text-xs text-gray-500">Description</p>
-              <p className="text-sm text-gray-900 whitespace-pre-wrap">
-                {settings?.description || <span className="text-gray-400">No description</span>}
-              </p>
-            </div>
-
-            {/* Requirements */}
-            <div>
-              <p className="text-xs text-gray-500">Requirements</p>
-              {(() => {
-                const reqs = parseRequirements(settings?.requirements);
-                return reqs.length > 0 ? (
-                  <ul className="mt-1.5 space-y-1">
-                    {reqs.map((req, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm">
-                      <span
-                        className={cn(
-                          'mt-0.5 w-1.5 h-1.5 rounded-full shrink-0',
-                          req.required ? 'bg-red-400' : 'bg-gray-300'
-                        )}
-                      />
-                      <span className="text-gray-700">
-                        <span className="font-medium text-gray-900">
-                          [{INPUT_TYPE_OPTIONS.find(o => o.value === req.type)?.label ?? req.type}]
-                        </span>{' '}
-                        {req.label}
-                        {req.required && (
-                          <span className="ml-1 text-xs text-red-500">(Required)</span>
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-400 mt-1">No requirements</p>
-              );
-              })()}
-            </div>
-          </div>
-        )}
+          <EditMode
+            form={form}
+            saving={saving}
+            error={error}
+            onSave={handleSave}
+            onCancel={handleCancel}
+          />
+        ) : settings ? (
+          <ViewMode settings={settings} onEdit={() => setEditing(true)} />
+        ) : null}
       </CardContent>
     </Card>
   );
