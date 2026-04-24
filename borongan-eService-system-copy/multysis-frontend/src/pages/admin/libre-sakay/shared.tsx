@@ -90,4 +90,5 @@ export const SECTION_TITLES: Record<string, string> = {
   applications: 'Beneficiaries & Application',
   'access-control': 'Access Control',
   verification: 'Verify Resident',
+  settings: 'Program Settings',
 };

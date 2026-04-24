@@ -39,6 +39,7 @@ const implementedRoutes = [
   '/admin/libre-sakay/applications',
   '/admin/libre-sakay/access-control',
   '/admin/libre-sakay/verification',
+  '/admin/libre-sakay/settings',
   '/admin/e-government/social-amelioration',
   '/admin/e-government/reports',
   '/admin/general-settings/address',

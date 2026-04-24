@@ -9,6 +9,7 @@ export { RideLogsSection } from './RideLogsSection';
 export { ApplicationsSection } from './ApplicationsSection';
 export { AccessControlSection } from './AccessControlSection';
 export { VerificationSection } from './VerificationSection';
+export { ProgramSettingsSection } from './ProgramSettingsSection';
 
 // Shared utilities (re-exported for use by tests or external consumers)
 export { StatusBadge, LoadingRows, EmptyState, DONUT_COLORS, RIDE_STATUS_STYLES, SECTION_TITLES } from './shared';
