@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { GovernmentProgramType } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import {
   getFleetStats, getFleetLocations,
@@ -492,6 +493,78 @@ export const verifyResidentController = async (req: AuthRequest, res: Response):
         full_name: fullName,
         barangay_name: resident.barangay?.barangayName ?? null,
       },
+    });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+export const getProgramSettingsController = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const program = await prisma.governmentProgram.findFirst({
+      where: { id: 'gp-all-libre-sakay' },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        requirements: true,
+        types: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!program) {
+      res.status(404).json({ status: 'error', message: 'Libre Sakay program not found' });
+      return;
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: program,
+    });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+export const updateProgramSettingsController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { name, description, requirements, types, isActive } = req.body as {
+      name?: string;
+      description?: string;
+      requirements?: string;
+      types?: string[];
+      isActive?: boolean;
+    };
+
+    const updated = await prisma.governmentProgram.update({
+      where: { id: 'gp-all-libre-sakay' },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(description !== undefined && { description }),
+        ...(requirements !== undefined && { requirements }),
+        ...(isActive !== undefined && { isActive }),
+        ...(types !== undefined && {
+          types: { set: types as GovernmentProgramType[] },
+        }),
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        requirements: true,
+        types: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data: updated,
     });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: error.message });
