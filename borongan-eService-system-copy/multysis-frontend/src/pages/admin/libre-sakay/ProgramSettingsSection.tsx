@@ -431,9 +431,11 @@ export const ProgramSettingsSection: React.FC = () => {
             {/* Requirements */}
             <div>
               <p className="text-xs text-gray-500">Requirements</p>
-              {settings?.requirements && settings.requirements.length > 0 ? (
-                <ul className="mt-1.5 space-y-1">
-                  {settings.requirements.map((req, idx) => (
+              {(() => {
+                const reqs = parseRequirements(settings?.requirements);
+                return reqs.length > 0 ? (
+                  <ul className="mt-1.5 space-y-1">
+                    {reqs.map((req, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-sm">
                       <span
                         className={cn(
@@ -455,7 +457,8 @@ export const ProgramSettingsSection: React.FC = () => {
                 </ul>
               ) : (
                 <p className="text-sm text-gray-400 mt-1">No requirements</p>
-              )}
+              );
+              })()}
             </div>
           </div>
         )}
