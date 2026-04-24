@@ -16,6 +16,8 @@ export const createReactSelectStyles = (hasError: boolean = false) => ({
   menu: (base: any) => ({
     ...base,
     zIndex: 9999,
+    maxHeight: 240,
+    overflow: 'auto',
   }),
 });
 
