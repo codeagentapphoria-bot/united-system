@@ -121,3 +121,16 @@ export const updatePage = async (id: string, data: UpdatePageData) => {
 export const deletePage = async (id: string) => {
   await prisma.page.delete({ where: { id } });
 };
+
+// =============================================================================
+// GET DISTINCT SYSTEMS
+// =============================================================================
+
+export const getDistinctSystems = async () => {
+  const systems = await prisma.page.findMany({
+    select: { system: true },
+    distinct: ['system'],
+    orderBy: { system: 'asc' },
+  });
+  return systems.map((s) => s.system);
+};

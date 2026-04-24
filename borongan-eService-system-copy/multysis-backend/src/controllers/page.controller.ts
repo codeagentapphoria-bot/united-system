@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createPage, getPages, getPageById, updatePage, deletePage } from '../services/page.service';
+import { createPage, getPages, getPageById, updatePage, deletePage, getDistinctSystems } from '../services/page.service';
 
 // =============================================================================
 // CREATE PAGE
@@ -107,6 +107,23 @@ export const deletePageController = async (
       res.status(404).json({ status: 'error', message: error.message });
       return;
     }
+    next(error);
+  }
+};
+
+// =============================================================================
+// GET DISTINCT SYSTEMS
+// =============================================================================
+
+export const getDistinctSystemsController = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const systems = await getDistinctSystems();
+    res.json({ status: 'success', data: systems });
+  } catch (error) {
     next(error);
   }
 };

@@ -7,6 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePageManagement } from '@/hooks/pages/usePageManagement';
+import { usePageSystems } from '@/hooks/pages/usePageSystems';
 
 interface AddPageModalProps {
   open: boolean;
@@ -14,15 +15,9 @@ interface AddPageModalProps {
   isLoading?: boolean;
 }
 
-const SYSTEM_OPTIONS = [
-  { value: 'core', label: 'Core' },
-  { value: 'libre-sakay', label: 'Libre Sakay' },
-  { value: 'government-programs', label: 'Government Programs' },
-  { value: 'services', label: 'Services' },
-];
-
 export function AddPageModal({ open, onClose, isLoading }: AddPageModalProps) {
   const { createPage } = usePageManagement();
+  const { systems } = usePageSystems();
   const form = useForm<CreatePageInput>({
     resolver: zodResolver(createPageSchema),
     defaultValues: { system: '', path: '', name: '' },
@@ -55,7 +50,7 @@ export function AddPageModal({ open, onClose, isLoading }: AddPageModalProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {SYSTEM_OPTIONS.map((opt) => (
+                      {systems.map((opt) => (
                         <SelectItem key={opt.value} value={opt.value}>
                           {opt.label}
                         </SelectItem>

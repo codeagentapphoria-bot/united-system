@@ -84,6 +84,7 @@ export const queryKeys = {
     all: ['pages'] as const,
     list: (page: number, limit: number) => ['pages', 'list', page, limit] as const,
     detail: (id: string) => ['pages', 'detail', id] as const,
+    systems: ['pages', 'systems'] as const,
   },
 
   libreSakay: {

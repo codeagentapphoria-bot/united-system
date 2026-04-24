@@ -87,4 +87,15 @@ export const pageService = {
       throw new Error(errorMessage);
     }
   },
+
+  async getSystems(signal?: AbortSignal): Promise<string[]> {
+    try {
+      const response = await api.get('/pages/systems', { signal });
+      return response.data.data || [];
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message || error.message || 'Failed to fetch systems';
+      throw new Error(errorMessage);
+    }
+  },
 };
