@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { body } from 'express-validator';
 import { verifyAdmin } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 import {
@@ -19,6 +20,8 @@ import {
   getRideLogsController, getRidesTrendController, deleteRideLogController,
   reviewRideLogController,
   verifyResidentController,
+  getProgramSettingsController,
+  updateProgramSettingsController,
 } from '../controllers/libre-sakay.controller';
 import {
   getBusesValidation, getBusByIdValidation, createBusValidation,
@@ -90,5 +93,20 @@ router.patch('/ride-logs/:id/review', validate(reviewRideLogValidation), reviewR
 
 // Resident Verification (Libre Sakay admin checks if a resident is approved)
 router.get('/residents/verify/:residentId', verifyResidentController);
+
+// Program Settings
+router.get('/program-settings', getProgramSettingsController);
+router.patch(
+  '/program-settings',
+  validate([
+    body('name').optional().isString().trim().notEmpty().withMessage('Name cannot be empty'),
+    body('description').optional().isString().trim(),
+    body('requirements').optional().isString().trim(),
+    body('types').optional().isArray().withMessage('types must be an array'),
+    body('types.*').optional().isIn(['SENIOR_CITIZEN', 'PWD', 'STUDENT', 'SOLO_PARENT', 'ALL']),
+    body('isActive').optional().isBoolean(),
+  ]),
+  updateProgramSettingsController,
+);
 
 export default router;
