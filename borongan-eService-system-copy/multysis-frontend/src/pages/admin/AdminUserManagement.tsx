@@ -38,16 +38,15 @@ export const AdminUserManagement: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
 
   // Debounce search query
   const debouncedSearchQuery = useDebounce(localSearchQuery, 300);
 
   const {
     users,
+    roles,
     selectedUser,
     setSelectedUser,
-    roles,
     isLoading,
     isFetching,
     isCreating,
@@ -60,6 +59,7 @@ export const AdminUserManagement: React.FC = () => {
     changePassword,
     currentPage,
     total,
+    totalPages,
     goToPage,
     goToNextPage: _goToNextPage,
     goToPreviousPage: _goToPreviousPage,
@@ -73,22 +73,13 @@ export const AdminUserManagement: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchQuery]);
 
-  // Client-side only filter (role filter - no server-side support)
-  const filteredUsers = users.filter((user) => {
-    const matchesRoleFilter = roleFilter === 'all' || user.roleId === roleFilter;
-    return matchesRoleFilter;
-  });
-
-  // Apply pagination to filtered results
-  const totalFilteredPages = Math.max(1, Math.ceil(filteredUsers.length / 10));
-
   // Guarded pagination handlers
   const handleGoToPage = (page: number) => {
     if (currentPage !== page) goToPage(page);
   };
 
   const handleGoToNextPage = () => {
-    if (currentPage < totalFilteredPages) goToPage(currentPage + 1);
+    if (currentPage < totalPages) goToPage(currentPage + 1);
   };
 
   const handleGoToPreviousPage = () => {
@@ -98,7 +89,7 @@ export const AdminUserManagement: React.FC = () => {
   const handleDownload = () => {
     // Create CSV content
     const headers = ['Name', 'Email', 'Phone Number', 'Role', 'Status', 'Last Login', 'Created Date'];
-    const rows = filteredUsers.map((user) => [
+    const rows = users.map((user) => [
       user.name,
       user.email,
       user.phoneNumber || 'N/A',
@@ -237,44 +228,10 @@ export const AdminUserManagement: React.FC = () => {
                 />
               </div>
 
-              {/* Role Filter */}
-              <div className="flex flex-wrap gap-2 mt-3">
-                <Button
-                  size="sm"
-                  variant={roleFilter === 'all' ? 'default' : 'outline'}
-                  onClick={() => setRoleFilter('all')}
-                  className={
-                    roleFilter === 'all'
-                      ? 'bg-primary-600 hover:bg-primary-700'
-                      : 'text-primary-600 hover:bg-primary-50'
-                  }
-                >
-                  All Roles
-                </Button>
-                {roles
-                  .filter((role) => role.isActive)
-                  .slice(0, 3)
-                  .map((role) => (
-                    <Button
-                      key={role.id}
-                      size="sm"
-                      variant={roleFilter === role.id ? 'default' : 'outline'}
-                      onClick={() => setRoleFilter(role.id)}
-                      className={
-                        roleFilter === role.id
-                          ? 'bg-primary-600 hover:bg-primary-700'
-                          : 'text-primary-600 hover:bg-primary-50'
-                      }
-                    >
-                      {role.name}
-                    </Button>
-                  ))}
-              </div>
-
               {/* Total count */}
               <div className="flex justify-between items-center mt-3 text-sm text-gray-600">
                 <span>Total: {total} users</span>
-                <span>Page {currentPage} of {totalFilteredPages}</span>
+                <span>Page {currentPage} of {totalPages}</span>
               </div>
             </CardHeader>
 
@@ -284,12 +241,12 @@ export const AdminUserManagement: React.FC = () => {
                   Array.from({ length: 5 }).map((_, i) => (
                     <div key={i} className="h-[90px] bg-gray-100 rounded-lg animate-pulse" />
                   ))
-                ) : filteredUsers.length === 0 ? (
+                ) : users.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     No users found.
                   </div>
                 ) : (
-                  filteredUsers.map((user) => (
+                  users.map((user) => (
                     <div key={user.id} className="relative">
                       <Card
                         className={cn(
@@ -330,10 +287,10 @@ export const AdminUserManagement: React.FC = () => {
               </div>
 
               {/* Pagination */}
-              {totalFilteredPages > 1 && (
+              {totalPages > 1 && (
                 <Pagination
                   currentPage={currentPage}
-                  totalPages={totalFilteredPages}
+                  totalPages={totalPages}
                   onPageChange={handleGoToPage}
                   onPrevious={handleGoToPreviousPage}
                   onNext={handleGoToNextPage}
