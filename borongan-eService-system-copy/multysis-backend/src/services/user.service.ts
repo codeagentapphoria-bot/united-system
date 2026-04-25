@@ -231,3 +231,54 @@ export const changeUserPassword = async (id: string, password: string) => {
     },
   });
 };
+
+/**
+ * Get all pages accessible to a user based on their permission set.
+ * A page is accessible if Page.resource matches any Permission.resource
+ * that the user holds via their roles.
+ */
+export const getAllowedPages = async (userId: string) => {
+  // Fetch user's roles and their permissions
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      userRoles: {
+        include: {
+          role: {
+            include: {
+              rolePermissions: {
+                include: {
+                  permission: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Collect all resource strings the user has permission for
+  const allowedResources = new Set<string>();
+  user.userRoles.forEach((userRole) => {
+    userRole.role.rolePermissions.forEach((rp) => {
+      allowedResources.add(rp.permission.resource);
+    });
+  });
+
+  // Fetch all pages whose resource is in the allowed set
+  const pages = await prisma.page.findMany({
+    where: {
+      resource: {
+        in: Array.from(allowedResources),
+      },
+    },
+    orderBy: [{ system: 'asc' }, { path: 'asc' }],
+  });
+
+  return pages;
+};

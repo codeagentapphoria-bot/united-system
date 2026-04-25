@@ -6,6 +6,7 @@ import {
   updateUser,
   deleteUser,
   changeUserPassword,
+  getAllowedPages,
 } from '../services/user.service';
 import { AuthRequest } from '../middleware/auth';
 
@@ -102,6 +103,29 @@ export const changePasswordController = async (req: AuthRequest, res: Response):
     res.status(400).json({
       status: 'error',
       message: error.message || 'Failed to change password',
+    });
+  }
+};
+
+export const getAllowedPagesController = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const targetUserId = req.params.id;
+    const pages = await getAllowedPages(targetUserId);
+    res.status(200).json({
+      status: 'success',
+      data: pages,
+    });
+  } catch (error: any) {
+    if (error.message === 'User not found') {
+      res.status(404).json({ status: 'error', message: 'User not found' });
+      return;
+    }
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to fetch allowed pages',
     });
   }
 };
