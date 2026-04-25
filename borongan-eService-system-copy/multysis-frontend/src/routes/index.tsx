@@ -118,7 +118,7 @@ export const router = createBrowserRouter([
       {
         path: 'dashboard',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <AdminDashboard />
             </LazyWrapper>
@@ -128,7 +128,7 @@ export const router = createBrowserRouter([
       {
         path: 'citizens',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <AdminCitizens />
             </LazyWrapper>
@@ -138,7 +138,7 @@ export const router = createBrowserRouter([
       {
         path: 'registration-workflow',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <AdminRegistrationWorkflow />
             </LazyWrapper>
@@ -148,7 +148,7 @@ export const router = createBrowserRouter([
       {
         path: 'subscribers',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <AdminSubscribers />
             </LazyWrapper>
@@ -158,7 +158,7 @@ export const router = createBrowserRouter([
       {
         path: 'access-control/role-management',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <AdminRoleManagement />
             </LazyWrapper>
@@ -168,7 +168,7 @@ export const router = createBrowserRouter([
       {
         path: 'access-control/permissions',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <AdminPermissionsManagement />
             </LazyWrapper>
@@ -178,7 +178,7 @@ export const router = createBrowserRouter([
       {
         path: 'access-control/user-management',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <AdminUserManagement />
             </LazyWrapper>
@@ -188,7 +188,7 @@ export const router = createBrowserRouter([
       {
         path: 'access-control/page-management',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <AdminPageManagement />
             </LazyWrapper>
@@ -198,7 +198,7 @@ export const router = createBrowserRouter([
       {
         path: 'general-settings/smart-city-services',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <AdminSmartCityServices />
             </LazyWrapper>
@@ -208,7 +208,7 @@ export const router = createBrowserRouter([
       {
         path: 'general-settings/government-program',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <AdminGovernmentPrograms />
             </LazyWrapper>
@@ -218,7 +218,7 @@ export const router = createBrowserRouter([
       {
         path: 'general-settings/address',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <AdminAddresses />
             </LazyWrapper>
@@ -228,7 +228,7 @@ export const router = createBrowserRouter([
       {
         path: 'general-settings/appointment',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <AdminAppointments />
             </LazyWrapper>
@@ -238,7 +238,7 @@ export const router = createBrowserRouter([
       {
         path: 'general-settings/faq',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <AdminFAQs />
             </LazyWrapper>
@@ -248,7 +248,7 @@ export const router = createBrowserRouter([
       {
         path: 'general-settings/tax-profiles',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <TaxProfiles />
             </LazyWrapper>
@@ -258,7 +258,7 @@ export const router = createBrowserRouter([
       {
         path: 'e-government/social-amelioration',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <SocialAmelioration />
             </LazyWrapper>
@@ -268,7 +268,7 @@ export const router = createBrowserRouter([
       {
         path: 'e-government/reports',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <EGovReports />
             </LazyWrapper>
@@ -278,7 +278,7 @@ export const router = createBrowserRouter([
       {
         path: 'e-government/:serviceCode',
         element: (
-          <ProtectedRoute requiredRole="admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <ServicePage />
             </LazyWrapper>
@@ -288,7 +288,7 @@ export const router = createBrowserRouter([
       {
         path: 'libre-medisina',
         element: (
-          <ProtectedRoute requiredRole="libre_medisina_admin">
+          <ProtectedRoute>
             <LazyWrapper>
               <AdminLibreMedisina />
             </LazyWrapper>
@@ -305,7 +305,7 @@ export const router = createBrowserRouter([
           {
             path: ':section',
             element: (
-              <ProtectedRoute requiredRole="libre_sakay_admin">
+              <ProtectedRoute>
                 <LazyWrapper>
                   <AdminLibreSakay />
                 </LazyWrapper>
@@ -335,7 +335,7 @@ export const router = createBrowserRouter([
       {
         path: 'dashboard',
         element: (
-          <ProtectedRoute requiredRole="developer">
+          <ProtectedRoute>
             <LazyWrapper>
               <DevDashboard />
             </LazyWrapper>

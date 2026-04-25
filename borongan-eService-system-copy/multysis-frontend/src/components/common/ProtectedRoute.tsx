@@ -5,24 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'user' | 'developer' | 'resident' | 'libre_medisina_admin' | 'libre_sakay_admin';
-  requireActiveStatus?: boolean;
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-  children,
-  requiredRole,
-  requireActiveStatus = false,
-}) => {
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, isLoading, isAuthenticated } = useAuth();
-
-  // ⚠️ DEVELOPMENT MODE: Authentication temporarily disabled
-  // TODO: Re-enable authentication before production
-  const DISABLE_AUTH = false;
-
-  if (DISABLE_AUTH) {
-    return <>{children}</>;
-  }
 
   if (isLoading) {
     return (
@@ -33,14 +19,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/portal" replace />;
-  }
-
-  if (requiredRole && user?.role !== requiredRole) {
-    return <Navigate to="/portal" replace />;
-  }
-
-  if (requireActiveStatus && user?.status !== 'active') {
     return <Navigate to="/portal" replace />;
   }
 
