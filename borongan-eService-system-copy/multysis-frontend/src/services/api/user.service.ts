@@ -174,5 +174,22 @@ export const userService = {
       throw new Error(errorMessage);
     }
   },
+
+  /**
+   * Returns the list of page paths the given user is allowed to access.
+   * Used by DashboardLayout to filter sidebar menu items.
+   */
+  async getAllowedPagePaths(userId: string, signal?: AbortSignal): Promise<string[]> {
+    try {
+      const response = await api.get<{ data: Array<{ path: string }> }>(`/users/${userId}/allowed-pages`, {
+        signal,
+      });
+      return response.data.data.map((page) => page.path);
+    } catch (error: any) {
+      // If endpoint returns 404 or other error, return empty array (no filtering)
+      console.error('Failed to fetch allowed page paths:', error);
+      return [];
+    }
+  },
 };
 
