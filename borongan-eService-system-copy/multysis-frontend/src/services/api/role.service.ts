@@ -1,4 +1,5 @@
 import type { Role } from '@/types/role';
+import type { Page } from './page.service';
 import api from './auth.service';
 
 export interface PaginatedRoles {
@@ -153,6 +154,26 @@ export const roleService = {
       return transformRole(backendRole);
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to assign permissions';
+      throw new Error(errorMessage);
+    }
+  },
+
+  async getRolePages(roleId: string, signal?: AbortSignal): Promise<Page[]> {
+    try {
+      const response = await api.get(`/roles/${roleId}/pages`, { signal });
+      return response.data.data || [];
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch role pages';
+      throw new Error(errorMessage);
+    }
+  },
+
+  async setRolePages(roleId: string, pageIds: string[]): Promise<Page[]> {
+    try {
+      const response = await api.put(`/roles/${roleId}/pages`, { pageIds });
+      return response.data.data || [];
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to set role pages';
       throw new Error(errorMessage);
     }
   },

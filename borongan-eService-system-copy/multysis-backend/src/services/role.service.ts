@@ -193,3 +193,38 @@ export const assignPermissionsToRole = async (roleId: string, permissionIds: str
 
   return getRole(roleId);
 };
+
+export const getRolePages = async (roleId: string) => {
+  const role = await prisma.role.findUnique({ where: { id: roleId } });
+  if (!role) throw new Error('Role not found');
+
+  const rolePages = await prisma.rolePage.findMany({
+    where: { roleId },
+    include: { page: true },
+    orderBy: { page: { name: 'asc' } },
+  });
+
+  return rolePages.map((rp) => rp.page);
+};
+
+export const setRolePages = async (roleId: string, pageIds: string[]) => {
+  const role = await prisma.role.findUnique({ where: { id: roleId } });
+  if (!role) throw new Error('Role not found');
+
+  // Verify all pages exist
+  const pages = await prisma.page.findMany({ where: { id: { in: pageIds } } });
+  if (pages.length !== pageIds.length) {
+    throw new Error('One or more pages not found');
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.rolePage.deleteMany({ where: { roleId } });
+    if (pageIds.length > 0) {
+      await tx.rolePage.createMany({
+        data: pageIds.map((pageId) => ({ roleId, pageId })),
+      });
+    }
+  });
+
+  return getRolePages(roleId);
+};

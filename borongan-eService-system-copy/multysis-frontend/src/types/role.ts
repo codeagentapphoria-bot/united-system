@@ -8,14 +8,22 @@ export interface Permission {
   updatedAt: string;
 }
 
+export interface RedirectPage {
+  id: string;
+  system: string;
+  path: string;
+  name: string;
+}
+
 // React Select for dropdowns
 
 export interface Role {
   id: string;
   name: string;
   description: string;
+  system: string;
   permissions: Permission[];
-  redirectPath?: string; // Optional redirect path after login
+  redirectPage?: RedirectPage;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -24,15 +32,16 @@ export interface Role {
 export interface CreateRoleInput {
   name: string;
   description: string;
+  system: string;
   permissionIds: string[];
-  redirectPath?: string;
+  redirectPageId?: string;
 }
 
 export interface UpdateRoleInput {
   name?: string;
   description?: string;
   permissionIds?: string[];
-  redirectPath?: string;
+  redirectPageId?: string;
   isActive?: boolean;
 }
 

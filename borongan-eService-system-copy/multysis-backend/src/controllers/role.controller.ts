@@ -6,6 +6,8 @@ import {
   updateRole,
   deleteRole,
   assignPermissionsToRole,
+  getRolePages,
+  setRolePages,
 } from '../services/role.service';
 import { AuthRequest } from '../middleware/auth';
 
@@ -110,5 +112,37 @@ export const assignPermissionsController = async (
       status: 'error',
       message: error.message || 'Failed to assign permissions',
     });
+  }
+};
+
+export const getRolePagesController = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const pages = await getRolePages(req.params.id);
+    res.status(200).json({ status: 'success', data: pages });
+  } catch (error: any) {
+    const statusCode = error.message === 'Role not found' ? 404 : 500;
+    res.status(statusCode).json({ status: 'error', message: error.message });
+  }
+};
+
+export const setRolePagesController = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { pageIds } = req.body;
+    if (!Array.isArray(pageIds)) {
+      res.status(400).json({ status: 'error', message: 'pageIds must be an array' });
+      return;
+    }
+    const pages = await setRolePages(req.params.id, pageIds);
+    res.status(200).json({ status: 'success', data: pages });
+  } catch (error: any) {
+    const statusCode =
+      error.message === 'Role not found' || error.message === 'One or more pages not found' ? 404 : 400;
+    res.status(statusCode).json({ status: 'error', message: error.message });
   }
 };

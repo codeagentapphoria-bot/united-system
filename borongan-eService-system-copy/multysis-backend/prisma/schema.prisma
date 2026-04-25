@@ -229,6 +229,7 @@ model Role {
   updatedAt       DateTime         @map("updated_at") @updatedAt
   rolePermissions RolePermission[]
   userRoles       UserRole[]
+  rolePages       RolePage[]
   redirectPage    Page?            @relation("RoleRedirect", fields: [redirectPageId], references: [id])
 
   @@map("roles")
@@ -239,12 +240,11 @@ model Page {
   system          String   @map("system")
   path            String   @map("path")
   name            String   @map("name")
-  resource        String   @map("resource")
   createdAt       DateTime @map("created_at") @default(now())
   redirectRoles   Role[]   @relation("RoleRedirect")
+  rolePages      RolePage[]
 
   @@unique([system, path])
-  @@unique([system, resource])
   @@map("pages")
 }
 
@@ -270,6 +270,18 @@ model RolePermission {
 
   @@unique([roleId, permissionId])
   @@map("role_permissions")
+}
+
+model RolePage {
+  id        String   @id @default(uuid())
+  roleId    String   @map("role_id")
+  pageId    String   @map("page_id")
+  createdAt DateTime @map("created_at") @default(now())
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, pageId])
+  @@map("role_pages")
 }
 
 model UserRole {

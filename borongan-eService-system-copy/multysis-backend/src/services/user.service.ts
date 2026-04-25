@@ -233,12 +233,10 @@ export const changeUserPassword = async (id: string, password: string) => {
 };
 
 /**
- * Get all pages accessible to a user based on their permission set.
- * A page is accessible if Page.resource matches any Permission.resource
- * that the user holds via their roles.
+ * Get all pages accessible to a user based on their role_pages assignments.
+ * A page is accessible if it is linked to the user's role via role_pages.
  */
 export const getAllowedPages = async (userId: string) => {
-  // Fetch user's roles and their permissions
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
@@ -246,9 +244,9 @@ export const getAllowedPages = async (userId: string) => {
         include: {
           role: {
             include: {
-              rolePermissions: {
+              rolePages: {
                 include: {
-                  permission: true,
+                  page: true,
                 },
               },
             },
@@ -262,22 +260,17 @@ export const getAllowedPages = async (userId: string) => {
     throw new Error('User not found');
   }
 
-  // Collect all resource strings the user has permission for
-  const allowedResources = new Set<string>();
+  // Collect unique pages from all user's roles via role_pages
+  const pageMap = new Map<string, typeof user.userRoles[0]['role']['rolePages'][0]['page']>();
   user.userRoles.forEach((userRole) => {
-    userRole.role.rolePermissions.forEach((rp) => {
-      allowedResources.add(rp.permission.resource);
+    userRole.role.rolePages.forEach((rp) => {
+      pageMap.set(rp.page.id, rp.page);
     });
   });
 
-  // Fetch all pages whose resource is in the allowed set
-  const pages = await prisma.page.findMany({
-    where: {
-      resource: {
-        in: Array.from(allowedResources),
-      },
-    },
-    orderBy: [{ system: 'asc' }, { path: 'asc' }],
+  const pages = Array.from(pageMap.values()).sort((a, b) => {
+    if (a.system !== b.system) return a.system.localeCompare(b.system);
+    return a.path.localeCompare(b.path);
   });
 
   return pages;
