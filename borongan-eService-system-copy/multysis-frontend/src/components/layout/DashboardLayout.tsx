@@ -16,6 +16,7 @@ import { userService } from '@/services/api/user.service';
 // Custom Components
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import { AllowedPagesProvider } from '../../context/AllowedPagesContext';
 
 interface SubmenuItem {
   path: string;
@@ -47,6 +48,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menu
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(propMenuItems || staticMenuItems);
   const [allowedPaths, setAllowedPaths] = useState<Set<string>>(new Set());
+  const [isAllowedPagesLoading, setIsAllowedPagesLoading] = useState(true);
   const { counts } = useAdminNotifications();
   const { user } = useAuth();
 
@@ -54,6 +56,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menu
   useEffect(() => {
     if (!user?.id) return;
 
+    setIsAllowedPagesLoading(true);
     userService
       .getAllowedPagePaths(user.id)
       .then(paths => {
@@ -62,6 +65,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menu
       .catch(error => {
         console.error('Failed to fetch allowed page paths:', error);
         setAllowedPaths(new Set());
+      })
+      .finally(() => {
+        setIsAllowedPagesLoading(false);
       });
   }, [user?.id]);
 
@@ -134,7 +140,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menu
       <div className={cn('lg:pl-64')}>
         <Header onToggleSidebar={toggleSidebar} />
 
-        <main className={cn('p-4 md:p-6')}>{children}</main>
+        <main className={cn('p-4 md:p-6')}>
+          <AllowedPagesProvider allowedPaths={allowedPaths} isLoading={isAllowedPagesLoading}>
+            {children}
+          </AllowedPagesProvider>
+        </main>
       </div>
     </div>
   );
