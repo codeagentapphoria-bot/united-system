@@ -5,9 +5,9 @@ import {
   getPermission,
   updatePermission,
   deletePermission,
+  getDistinctResources,
 } from '../services/permission.service';
 import { AuthRequest } from '../middleware/auth';
-import { getAdminResources } from '../utils/admin-resources';
 
 export const createPermissionController = async (
   req: AuthRequest,
@@ -109,7 +109,7 @@ export const getAdminResourcesController = async (
   res: Response
 ): Promise<void> => {
   try {
-    const resources = getAdminResources();
+    const resources = await getDistinctResources();
     res.status(200).json({
       status: 'success',
       data: resources,

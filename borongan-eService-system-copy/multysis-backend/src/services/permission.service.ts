@@ -171,3 +171,17 @@ export const deletePermission = async (id: string) => {
     });
   });
 };
+
+/**
+ * Returns all distinct resource strings from the Permission table.
+ * Replaces the hardcoded getAdminResources() utility.
+ */
+export const getDistinctResources = async () => {
+  const permissions = await prisma.permission.findMany({
+    select: { resource: true },
+    distinct: ['resource'],
+    orderBy: { resource: 'asc' },
+  });
+
+  return permissions.map((p) => p.resource);
+};
