@@ -49,8 +49,8 @@ export const AdminProfile: React.FC = () => {
     }
   };
 
-  // Get role display name from first role if available
-  const roleDisplayName = user?.roles?.[0]?.role?.name || 'Admin';
+  // Get role display name
+  const roleDisplayName = user?.role || 'Admin';
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
@@ -144,7 +144,7 @@ export const AdminProfile: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                    {user?.type === 'admin' ? 'Admin' : 'User'}
+                    {user?.role === 'admin' ? 'Admin' : 'User'}
                   </span>
                 </div>
               </div>

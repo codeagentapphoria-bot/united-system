@@ -10,7 +10,6 @@ import {
   FiTool,
   FiUsers,
   FiClipboard,
-  FiUser,
 } from 'react-icons/fi';
 import { SlWallet } from 'react-icons/sl';
 
