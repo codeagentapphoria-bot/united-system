@@ -77,7 +77,7 @@ export const listProgramsForResident = async (
     ? Promise.all([
         prisma.governmentProgramApplication.findMany({
           where: { residentId },
-          select: { programId: true, status: true },
+          select: { programId: true, status: true, adminNotes: true },
         }),
         getResidentEligibleTypes(residentId),
       ])
@@ -95,11 +95,16 @@ export const listProgramsForResident = async (
   ]);
 
   const appMap = new Map(
-    (applications as { programId: string; status: string }[]).map((a) => [a.programId, a.status])
+    (applications as { programId: string; status: string; adminNotes: string | null }[]).map((a) => [
+      a.programId,
+      { status: a.status, adminNotes: a.adminNotes },
+    ])
   );
 
   const data = programs.map((program) => {
-    const applicationStatus = appMap.get(program.id) ?? null;
+    const appInfo = appMap.get(program.id) ?? null;
+    const applicationStatus = appInfo?.status ?? null;
+    const adminNotes = appInfo?.adminNotes ?? null;
     // Unauthenticated visitors get eligible: false — no apply action shown
     const eligible = residentId ? isEligible(program.types, eligibleTypes) : false;
 
@@ -117,6 +122,7 @@ export const listProgramsForResident = async (
         | 'rejected'
         | 'cancelled'
         | null,
+      adminNotes,
     };
   });
 

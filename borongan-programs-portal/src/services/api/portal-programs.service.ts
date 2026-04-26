@@ -10,6 +10,7 @@ export interface PortalProgram {
   isActive: boolean;
   eligible: boolean;
   applicationStatus: 'pending' | 'approved' | 'rejected' | 'cancelled' | null;
+  adminNotes?: string | null;
 }
 
 export interface PortalProgramsListResponse {
