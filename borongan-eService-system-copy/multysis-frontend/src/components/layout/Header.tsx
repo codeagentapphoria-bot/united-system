@@ -2,6 +2,9 @@
 import React from 'react';
 
 // Third-party libraries
+import { useNavigate } from 'react-router-dom';
+
+// Third-party libraries
 
 // UI Components (shadcn/ui)
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +36,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { user, logout, isLoggingOut } = useAuth();
   const { counts } = useAdminNotifications();
+  const navigate = useNavigate();
   const isAdmin = user?.role === 'admin';
   const hasNotifications = isAdmin && counts.total > 0;
 
@@ -96,7 +100,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="text-primary-700">My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-primary-700 hover:!bg-primary-50 cursor-pointer">
+              <DropdownMenuItem onClick={() => navigate('/admin/profile')} className="text-primary-700 hover:!bg-primary-50 cursor-pointer">
                 <FiUser size={16} />
                 Profile
               </DropdownMenuItem>

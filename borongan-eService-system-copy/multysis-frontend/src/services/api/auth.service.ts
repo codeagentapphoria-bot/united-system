@@ -216,6 +216,17 @@ export const authService = {
   },
 
   // ---------------------------------------------------------------------------
+  // Change own password (self-service, requires old password verification)
+  // ---------------------------------------------------------------------------
+  async changeOwnPassword(oldPassword: string, newPassword: string): Promise<void> {
+    try {
+      await api.patch('/auth/me/password', { oldPassword, newPassword });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || error.message || 'Failed to change password');
+    }
+  },
+
+  // ---------------------------------------------------------------------------
   // Socket token
   // ---------------------------------------------------------------------------
   async getSocketToken(): Promise<string> {

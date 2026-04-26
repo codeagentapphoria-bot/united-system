@@ -1,7 +1,7 @@
 import prisma from '../config/database';
 import cacheService from './cache.service';
 import { generateRefreshToken, generateToken, TokenPayload } from '../utils/jwt';
-import { comparePassword } from '../utils/password';
+import { comparePassword, hashPassword } from '../utils/password';
 import { createRefreshToken } from './refreshToken.service';
 
 // =============================================================================
@@ -89,6 +89,45 @@ export const adminLogin = async (data: AdminLoginData) => {
     token,
     refreshToken,
     refreshTokenId: dbToken.id,
+  };
+};
+
+// =============================================================================
+// CHANGE OWN PASSWORD  (self-service, requires old password verification)
+// =============================================================================
+
+export interface ChangeOwnPasswordData {
+  oldPassword: string;
+  newPassword: string;
+}
+
+export const changeOwnPassword = async (userId: string, data: ChangeOwnPasswordData) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, password: true, email: true, name: true },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Verify old password
+  const isOldPasswordValid = await comparePassword(data.oldPassword, user.password);
+  if (!isOldPasswordValid) {
+    throw new Error('Current password is incorrect');
+  }
+
+  // Hash and update new password
+  const hashedPassword = await hashPassword(data.newPassword);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  });
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
   };
 };
 
