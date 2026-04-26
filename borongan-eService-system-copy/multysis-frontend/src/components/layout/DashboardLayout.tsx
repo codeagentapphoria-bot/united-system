@@ -108,7 +108,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menu
 
   // Build the final filtered menu when allowedPaths changes
   const filteredMenuItems = (items: MenuItem[]): MenuItem[] => {
-    if (allowedPaths.size === 0) return items; // not loaded yet — show all
+    if (isAllowedPagesLoading) return []; // show empty while loading
+    if (allowedPaths.size === 0) return []; // user has no access — show empty
 
     return items
       .filter(item => {

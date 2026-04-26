@@ -19,6 +19,10 @@ export const AccessControlGate: React.FC<AccessControlGateProps> = ({ children, 
     );
   }
 
+  if (allowedPaths.size === 0) {
+    return <AccessDenied pagePath={pagePath} message="No pages assigned to your account. Contact an administrator." />;
+  }
+
   if (!allowedPaths.has(pagePath)) {
     return <AccessDenied pagePath={pagePath} />;
   }
