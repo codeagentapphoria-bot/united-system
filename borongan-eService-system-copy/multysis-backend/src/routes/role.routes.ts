@@ -15,6 +15,7 @@ import {
   updateRoleValidation,
   getRoleValidation,
   assignPermissionsValidation,
+  setRolePagesValidation,
 } from '../validations/role.schema';
 import { validate } from '../middleware/validation';
 
@@ -30,6 +31,6 @@ router.put('/:id', validate(updateRoleValidation), updateRoleController);
 router.delete('/:id', validate(getRoleValidation), deleteRoleController);
 router.post('/:id/permissions', validate(assignPermissionsValidation), assignPermissionsController);
 router.get('/:id/pages', getRolePagesController);
-router.put('/:id/pages', setRolePagesController);
+router.put('/:id/pages', validate(setRolePagesValidation), setRolePagesController);
 
 export default router;

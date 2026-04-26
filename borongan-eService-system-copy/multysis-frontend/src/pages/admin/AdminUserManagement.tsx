@@ -13,6 +13,7 @@ import { Pagination } from '@/components/ui/pagination';
 
 // Custom Components
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import {
     AddUserModal,
     ChangePasswordModal,
@@ -166,7 +167,8 @@ export const AdminUserManagement: React.FC = () => {
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
-      <div className="space-y-4">
+      <AccessControlGate pagePath="/admin/access-control/user-management">
+        <div className="space-y-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -331,6 +333,7 @@ export const AdminUserManagement: React.FC = () => {
         roles={roles}
         isLoading={isUpdating}
       />
+      </AccessControlGate>
 
       <DeleteUserModal
         open={isDeleteModalOpen}

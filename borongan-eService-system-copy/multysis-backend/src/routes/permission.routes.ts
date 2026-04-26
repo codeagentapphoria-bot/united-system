@@ -20,7 +20,7 @@ const router = Router();
 // All routes require admin authentication
 router.use(verifyAdmin);
 
-router.get('/resources', getAdminResourcesController);
+router.get('/resources', verifyAdmin, getAdminResourcesController);
 router.get('/', getPermissionsController);
 router.get('/:id', validate(getPermissionValidation), getPermissionController);
 router.post('/', validate(createPermissionValidation), createPermissionController);

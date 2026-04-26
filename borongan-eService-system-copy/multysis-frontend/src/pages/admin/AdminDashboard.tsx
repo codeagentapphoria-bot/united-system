@@ -4,6 +4,9 @@ import React, { useMemo } from 'react';
 // UI Components (shadcn/ui)
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
+// Access Control
+import { AccessControlGate } from '@/components/common/AccessControlGate';
+
 // Custom Components
 import { OverviewCards } from '@/components/admin/dashboard/OverviewCards';
 import { RecentActivity } from '@/components/admin/dashboard/RecentActivity';
@@ -63,7 +66,8 @@ export const AdminDashboard: React.FC = () => {
   return (
     <DashboardStatisticsProvider>
       <DashboardLayout menuItems={adminMenuItems}>
-        <div className={cn("space-y-6") }>
+        <AccessControlGate pagePath="/admin/dashboard">
+          <div className={cn("space-y-6") }>
           {/* Welcome Section */}
           <Card>
             <CardHeader>
@@ -130,7 +134,10 @@ export const AdminDashboard: React.FC = () => {
 
           {/* Recent Activity */}
           <RecentActivity />
+          {/* Recent Activity */}
+          <RecentActivity />
         </div>
+        </AccessControlGate>
       </DashboardLayout>
     </DashboardStatisticsProvider>
   );

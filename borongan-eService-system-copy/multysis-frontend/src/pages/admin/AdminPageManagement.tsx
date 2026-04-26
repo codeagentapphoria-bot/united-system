@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import {
   AddPageModal,
   DeletePageModal,
@@ -95,7 +96,8 @@ export default function AdminPageManagement() {
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
-      <div className="space-y-4">
+      <AccessControlGate pagePath="/admin/access-control/page-management">
+        <div className="space-y-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -242,6 +244,7 @@ export default function AdminPageManagement() {
           </Card>
         </div>
       </div>
+      </AccessControlGate>
 
       {/* Modals */}
       <AddPageModal

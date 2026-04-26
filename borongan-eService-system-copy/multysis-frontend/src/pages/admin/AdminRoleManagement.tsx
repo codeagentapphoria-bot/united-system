@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import {
     AddRoleModal,
     DeleteRoleModal,
@@ -139,7 +140,8 @@ export const AdminRoleManagement: React.FC = () => {
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
-      <div className="space-y-4">
+      <AccessControlGate pagePath="/admin/access-control/role-management">
+        <div className="space-y-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -281,6 +283,8 @@ export const AdminRoleManagement: React.FC = () => {
           </Card>
         </div>
       </div>
+
+      </AccessControlGate>
 
       {/* Modals */}
       <AddRoleModal

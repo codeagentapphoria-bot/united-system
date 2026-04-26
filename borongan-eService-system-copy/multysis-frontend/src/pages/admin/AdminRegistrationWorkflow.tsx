@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -273,7 +274,8 @@ export const AdminRegistrationWorkflow: React.FC = () => {
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
-      <div className="space-y-6">
+      <AccessControlGate pagePath="/admin/registration-workflow">
+        <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Registration Approvals</h1>
@@ -904,6 +906,7 @@ export const AdminRegistrationWorkflow: React.FC = () => {
           </div>
         </div>
       )}
+      </AccessControlGate>
 
       {/* Classification Dialog */}
       <Dialog open={isClassifyModalOpen} onOpenChange={setIsClassifyModalOpen}>

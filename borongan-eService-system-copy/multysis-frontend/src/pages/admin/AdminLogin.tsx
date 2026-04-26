@@ -53,13 +53,12 @@ export const AdminLogin: React.FC = () => {
         title: 'Success',
         description: 'Welcome back, Admin!',
       });
-      if (user?.role === 'libre_medisina_admin') {
-        navigate('/admin/libre-medisina');
-      } else if (user?.role === 'libre_sakay_admin') {
-        navigate('/admin/libre-sakay');
-      } else {
-        navigate('/admin/dashboard');
-      }
+      // Use redirectPath from role settings, fallback to role-based default
+      const redirectTo = user?.redirectPath
+        || (user?.role === 'libre_medisina_admin' ? '/admin/libre-medisina'
+          : user?.role === 'libre_sakay_admin' ? '/admin/libre-sakay'
+          : '/admin/dashboard');
+      navigate(redirectTo);
     } catch (err: any) {
       toast({
         variant: 'destructive',

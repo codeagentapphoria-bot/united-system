@@ -13,6 +13,7 @@ import { Pagination } from '@/components/ui/pagination';
 
 // Custom Components
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import {
   AddPermissionModal,
   DeletePermissionModal,
@@ -153,7 +154,8 @@ export const AdminPermissionsManagement: React.FC = () => {
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
-      <div className="space-y-4">
+      <AccessControlGate pagePath="/admin/access-control/permissions">
+        <div className="space-y-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -330,6 +332,7 @@ export const AdminPermissionsManagement: React.FC = () => {
           </Card>
         </div>
       </div>
+      </AccessControlGate>
 
       {/* Modals */}
       <AddPermissionModal

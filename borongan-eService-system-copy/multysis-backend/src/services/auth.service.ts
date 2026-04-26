@@ -31,6 +31,17 @@ export interface PortalLoginData {
 export const adminLogin = async (data: AdminLoginData) => {
   const user = await prisma.user.findUnique({
     where: { email: data.email },
+    include: {
+      userRoles: {
+        include: {
+          role: {
+            include: {
+              redirectPage: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!user) {
@@ -40,6 +51,13 @@ export const adminLogin = async (data: AdminLoginData) => {
   const isPasswordValid = await comparePassword(data.password, user.password);
   if (!isPasswordValid) {
     throw new Error('Invalid credentials');
+  }
+
+  // Determine redirectPath: use the role with highest priority (first assigned role)
+  let redirectPath: string | undefined;
+  if (user.userRoles && user.userRoles.length > 0) {
+    const primaryRole = user.userRoles[0].role;
+    redirectPath = primaryRole.redirectPage?.path;
   }
 
   const tokenPayload: TokenPayload = {
@@ -66,6 +84,7 @@ export const adminLogin = async (data: AdminLoginData) => {
       email: user.email,
       name: user.name,
       role: user.role,
+      redirectPath,
     },
     token,
     refreshToken,

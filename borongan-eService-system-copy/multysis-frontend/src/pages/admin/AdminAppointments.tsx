@@ -3,6 +3,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 
 // UI Components (shadcn/ui)
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 
 // Custom Components
 import { AppointmentCalendar } from '@/components/appointments/AppointmentCalendar';
@@ -208,7 +209,8 @@ export const AdminAppointments: React.FC = () => {
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
-      <div className={cn('space-y-6')}>
+      <AccessControlGate pagePath="/admin/general-settings/appointment">
+        <div className={cn('space-y-6')}>
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-heading-800">Appointments</h1>
@@ -238,6 +240,8 @@ export const AdminAppointments: React.FC = () => {
             />
           </div>
         </div>
+        </div>
+        </AccessControlGate>
 
         {/* Transaction Details Modal */}
         {selectedTransaction && selectedService && (
@@ -257,7 +261,6 @@ export const AdminAppointments: React.FC = () => {
             }}
           />
         )}
-      </div>
     </DashboardLayout>
   );
 };

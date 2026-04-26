@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Custom Components
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import { ServiceApplicationsTab } from '@/components/services/ServiceApplicationsTab';
 import { ServiceDashboardTab } from '@/components/services/ServiceDashboardTab';
 
@@ -101,7 +102,8 @@ export const ServicePage: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className={cn('space-y-4')}>
+      <AccessControlGate pagePath={window.location.pathname}>
+        <div className={cn('space-y-4')}>
         {/* Header */}
         <div className={cn('flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4')}>
           <div>
@@ -153,6 +155,7 @@ export const ServicePage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+      </AccessControlGate>
     </DashboardLayout>
   );
 };

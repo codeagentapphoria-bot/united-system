@@ -12,36 +12,36 @@ export const createRoleValidation: ValidationChain[] = [
     .trim()
     .isLength({ min: 1 })
     .withMessage('System is required'),
-  body('redirectPageId').optional().isUUID().withMessage('redirectPageId must be a valid UUID'),
+  body('redirectPageId').optional().matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('redirectPageId must be a valid UUID'),
 ];
 
 export const updateRoleValidation: ValidationChain[] = [
-  param('id').isUUID().withMessage('Invalid role ID'),
+  param('id').matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('Invalid role ID'),
   body('name')
     .optional()
     .trim()
     .isLength({ min: 2 })
     .withMessage('Role name must be at least 2 characters'),
   body('description').optional().trim(),
-  body('redirectPageId').optional().isUUID().withMessage('redirectPageId must be a valid UUID'),
+  body('redirectPageId').optional().matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('redirectPageId must be a valid UUID'),
 ];
 
 export const getRoleValidation: ValidationChain[] = [
-  param('id').isUUID().withMessage('Invalid role ID'),
+  param('id').matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('Invalid role ID'),
 ];
 
 export const assignPermissionsValidation: ValidationChain[] = [
-  param('id').isUUID().withMessage('Invalid role ID'),
+  param('id').matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('Invalid role ID'),
   body('permissionIds')
     .isArray()
     .withMessage('permissionIds must be an array')
     .notEmpty()
     .withMessage('At least one permission is required'),
-  body('permissionIds.*').isUUID().withMessage('Each permission ID must be a valid UUID'),
+  body('permissionIds.*').matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('Each permission ID must be a valid UUID'),
 ];
 
 export const setRolePagesValidation: ValidationChain[] = [
-  param('id').isUUID().withMessage('Invalid role ID'),
+  param('id').matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('Invalid role ID'),
   body('pageIds')
     .isArray()
     .withMessage('pageIds must be an array'),

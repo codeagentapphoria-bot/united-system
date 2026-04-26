@@ -378,6 +378,7 @@ import paymentRoutes from './routes/payment.routes';
 import taxReassessmentRoutes from './routes/tax-reassessment.routes';
 import taxPreviewRoutes from './routes/tax-preview.routes';
 import roleRoutes from './routes/role.routes';
+import pageRoutes from './routes/page.routes';
 import residentRoutes from './routes/resident.routes';
 import serviceRoutes from './routes/service.routes';
 import serviceFieldsRoutes from './routes/service-fields.routes';
@@ -415,6 +416,7 @@ app.use('/api/portal/classifications', apiLimiter, portalClassificationRoutes);
 app.use('/api/portal', apiLimiter, portalProgramsRoutes);
 app.use('/api/transactions', apiLimiter, transactionRoutes);
 app.use('/api/roles', apiLimiter, roleRoutes);
+app.use('/api/pages', apiLimiter, pageRoutes);
 app.use('/api/permissions', apiLimiter, permissionRoutes);
 app.use('/api/users', apiLimiter, userRoutes);
 // Residents — unified person registry (admin CRUD + portal /me)

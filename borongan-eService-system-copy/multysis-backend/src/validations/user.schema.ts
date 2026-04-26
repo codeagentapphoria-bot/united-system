@@ -25,11 +25,11 @@ export const createUserValidation: ValidationChain[] = [
     .withMessage('Name must be at least 2 characters'),
   body('role').optional().trim(),
   body('roleIds').optional().isArray().withMessage('roleIds must be an array'),
-  body('roleIds.*').optional().isUUID().withMessage('Each role ID must be a valid UUID'),
+  body('roleIds.*').optional().matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('Each role ID must be a valid UUID'),
 ];
 
 export const updateUserValidation: ValidationChain[] = [
-  param('id').isUUID().withMessage('Invalid user ID'),
+  param('id').matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('Invalid user ID'),
   body('email').optional().isEmail().withMessage('Invalid email address'),
   body('name')
     .optional()
@@ -38,11 +38,11 @@ export const updateUserValidation: ValidationChain[] = [
     .withMessage('Name must be at least 2 characters'),
   body('role').optional().trim(),
   body('roleIds').optional().isArray().withMessage('roleIds must be an array'),
-  body('roleIds.*').optional().isUUID().withMessage('Each role ID must be a valid UUID'),
+  body('roleIds.*').optional().matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('Each role ID must be a valid UUID'),
 ];
 
 export const changePasswordValidation: ValidationChain[] = [
-  param('id').isUUID().withMessage('Invalid user ID'),
+  param('id').matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('Invalid user ID'),
   body('password')
     .isLength({ min: 8 })
     .withMessage('Password must be at least 8 characters')
@@ -66,5 +66,5 @@ export const changePasswordValidation: ValidationChain[] = [
 ];
 
 export const getUserValidation: ValidationChain[] = [
-  param('id').isUUID().withMessage('Invalid user ID'),
+  param('id').matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('Invalid user ID'),
 ];
