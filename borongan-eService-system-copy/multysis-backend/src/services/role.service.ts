@@ -23,16 +23,6 @@ export const createRole = async (data: CreateRoleData) => {
     throw new Error('Role name already exists');
   }
 
-  // Check if redirectPageId is already assigned to another role
-  if (data.redirectPageId) {
-    const existingRedirect = await prisma.role.findFirst({
-      where: { redirectPageId: data.redirectPageId },
-    });
-    if (existingRedirect) {
-      throw new Error('This redirect page is already assigned to another role');
-    }
-  }
-
   return prisma.role.create({
     data: {
       name: data.name,
