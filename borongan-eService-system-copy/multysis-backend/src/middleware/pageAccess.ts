@@ -58,7 +58,8 @@ export const requirePageAccess = async (
  * - Lowercase
  */
 function normalizePath(path: string): string {
-  return path.toLowerCase().replace(/\/$/, '').trim();
+  // Strip query strings, trailing slashes, and lowercase
+  return path.toLowerCase().replace(/\?.*$/, '').replace(/\/$/, '').trim();
 }
 
 /**
