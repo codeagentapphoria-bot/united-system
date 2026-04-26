@@ -136,7 +136,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menu
 
   return (
     <div className={cn('min-h-screen bg-gray-50')}>
-      <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} menuItems={filteredMenuItems(menuItems)} />
+      <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} menuItems={propMenuItems && propMenuItems.length > 0 ? menuItems : filteredMenuItems(menuItems)} />
 
       <div className={cn('lg:pl-64')}>
         <Header onToggleSidebar={toggleSidebar} />
