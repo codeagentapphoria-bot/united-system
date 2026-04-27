@@ -38,3 +38,8 @@ INSERT INTO public.eservice_users (
     now(),
     now()
 ) ON CONFLICT (email) DO NOTHING;
+
+-- Assign the libre_sakay_admin role to the user
+INSERT INTO public.user_roles (id, user_id, role_id, created_at) VALUES
+    ('ur-ls-admin', 'user-libre-sakay-admin', 'role-libre-sakay-admin', now())
+ON CONFLICT (id) DO NOTHING;
