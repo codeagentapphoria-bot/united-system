@@ -130,12 +130,14 @@ export const portalProgramsService = {
   async listPrograms(params?: {
     search?: string;
     type?: string;
+    name?: string;
     page?: number;
     limit?: number;
   }): Promise<PortalProgramsListResponse> {
     const query = new URLSearchParams();
     if (params?.search) query.append('search', params.search);
     if (params?.type && params.type !== 'all') query.append('type', params.type);
+    if (params?.name) query.append('name', params.name);
     if (params?.page) query.append('page', params.page.toString());
     if (params?.limit) query.append('limit', params.limit.toString());
     const qs = query.toString();

@@ -257,16 +257,9 @@ export const Home: React.FC = () => {
   const fetchPrograms = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data } = await portalProgramsService.listPrograms({});
-      // Sort: Libre Sakay first, then alphabetically
-      const sorted = [...data].sort((a, b) => {
-        const aIsLibre = a.name.toLowerCase().includes('libre sakay');
-        const bIsLibre = b.name.toLowerCase().includes('libre sakay');
-        if (aIsLibre && !bIsLibre) return -1;
-        if (!aIsLibre && bIsLibre) return 1;
-        return a.name.localeCompare(b.name);
-      });
-      setPrograms(sorted);
+      // Fetch only Libre Sakay at the API level — others filtered server-side
+      const { data } = await portalProgramsService.listPrograms({ name: 'Libre Sakay' });
+      setPrograms(data);
     } catch {
       toastRef.current({ variant: 'destructive', title: 'Failed to load programs', description: 'Please try again.' });
     } finally {
