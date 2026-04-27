@@ -5,11 +5,10 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { useQueryClient } from '@tanstack/react-query';
 import { type BusLocation } from '@/hooks/useBusLocations';
 import { queryKeys } from '@/lib/query-keys';
-import { Crosshair, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
+import { Crosshair, ZoomIn, ZoomOut, RefreshCw, MapPin } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-if (!MAPBOX_TOKEN) throw new Error('VITE_MAPBOX_TOKEN is not set');
 
 const BORONGAN_LNG = 125.4377;
 const BORONGAN_LAT = 11.5077;
@@ -133,6 +132,22 @@ export function BusMap({
   const setActiveSelectedBusId = onSelectedBusChange ?? setInternalSelectedBusId;
 
   const queryClient = useQueryClient();
+
+  // Graceful fallback when token is not configured
+  if (!MAPBOX_TOKEN) {
+    return (
+      <div
+        className="relative w-full rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center"
+        style={{ height }}
+      >
+        <div className="text-center">
+          <MapPin className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-sm text-gray-500 font-medium">Map unavailable</p>
+          <p className="text-xs text-gray-400 mt-1">Check back soon</p>
+        </div>
+      </div>
+    );
+  }
 
   const filteredBuses = selectedRouteId
     ? buses.filter(b => b.bus?.route?.id === selectedRouteId)

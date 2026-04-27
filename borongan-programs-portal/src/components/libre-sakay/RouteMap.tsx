@@ -4,10 +4,9 @@ import type { RouteStop } from '@/hooks/useRoutes';
 import type { BusLocation } from '@/hooks/useBusLocations';
 import type { RouteGeometry } from '@/lib/routing';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Crosshair, ZoomIn, ZoomOut } from 'lucide-react';
+import { Crosshair, ZoomIn, ZoomOut, MapPin } from 'lucide-react';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-if (!MAPBOX_TOKEN) throw new Error('VITE_MAPBOX_TOKEN is not set');
 
 const BORONGAN_LNG = 125.4377;
 const BORONGAN_LAT = 11.5077;
@@ -85,6 +84,22 @@ export function RouteMap({ height = '350px', stops, routeGeometry, busLocations 
     b => typeof b.latitude === 'number' && isFinite(b.latitude) &&
       typeof b.longitude === 'number' && isFinite(b.longitude)
   );
+
+  // Graceful fallback when token is not configured
+  if (!MAPBOX_TOKEN) {
+    return (
+      <div
+        className="relative w-full rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center"
+        style={{ height }}
+      >
+        <div className="text-center">
+          <MapPin className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-sm text-gray-500 font-medium">Map unavailable</p>
+          <p className="text-xs text-gray-400 mt-1">Check back soon</p>
+        </div>
+      </div>
+    );
+  }
 
   // Use real road geometry from Mapbox if available, otherwise fall back to straight-line
   const routeGeoJson = (() => {
