@@ -73,7 +73,9 @@ export function FleetMap() {
   }
 
   return (
-    <div className="rounded-lg overflow-hidden border" style={{ height: '480px' }}>
+    // isolation:isolate creates a stacking context so Leaflet's internal z-indexes
+    // don't bleed above page-level modals/dialogs (z-50) or sidebar (z-50)
+    <div className="rounded-lg overflow-hidden border" style={{ height: '480px', isolation: 'isolate' }}>
       <MapContainer center={BORONGAN_CENTER} zoom={13} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

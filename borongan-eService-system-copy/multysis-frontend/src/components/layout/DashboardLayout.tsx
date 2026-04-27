@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 
 // Third-party libraries
 import { getAdminMenuItems, adminMenuItems as staticMenuItems } from '@/config/admin-menu';
+import { libresakayMenuItems } from '@/config/libre-sakay-menu';
 
 // Hooks
 import { useAdminNotifications } from '@/hooks/notifications/useAdminNotifications';
@@ -17,6 +18,8 @@ import { userService } from '@/services/api/user.service';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { AllowedPagesProvider } from '../../context/AllowedPagesContext';
+import { ProfileModalProvider } from '@/context/ProfileModalContext';
+import { ProfileModal } from '@/components/modals/profile/ProfileModal';
 
 interface SubmenuItem {
   path: string;
@@ -42,6 +45,11 @@ interface DashboardLayoutProps {
 function isAllowed(path: string | undefined, allowedPaths: Set<string>): boolean {
   if (!path) return true; // separators are always shown
   return allowedPaths.has(path);
+}
+
+/** Returns true if user has LibreSakay access (has libre-sakay paths in allowedPaths). */
+function isLibreSakayUser(allowedPaths: Set<string>): boolean {
+  return Array.from(allowedPaths).some(path => path.startsWith('/admin/libre-sakay'));
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menuItems: propMenuItems }) => {
@@ -135,18 +143,36 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menu
   const closeSidebar = () => setIsSidebarOpen(false);
 
   return (
-    <div className={cn('min-h-screen bg-gray-50')}>
-      <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} menuItems={propMenuItems && propMenuItems.length > 0 ? menuItems : filteredMenuItems(menuItems)} />
+    <ProfileModalProvider>
+      <div className={cn('min-h-screen bg-gray-50')}>
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={closeSidebar}
+          menuItems={
+            // If menuItems prop was explicitly provided, use it
+            propMenuItems && propMenuItems.length > 0
+              ? menuItems
+              : // If user is LibreSakay (has libre-sakay paths in allowedPaths), always show LibreSakay menu
+                // This ensures LibreSakay users see their sidebar even on core routes like /admin/profile
+                isLibreSakayUser(allowedPaths)
+                ? libresakayMenuItems
+                : filteredMenuItems(menuItems)
+          }
+        />
 
-      <div className={cn('lg:pl-64')}>
-        <Header onToggleSidebar={toggleSidebar} />
+        <div className={cn('lg:pl-64')}>
+          <Header onToggleSidebar={toggleSidebar} />
 
-        <main className={cn('p-4 md:p-6')}>
-          <AllowedPagesProvider allowedPaths={allowedPaths} isLoading={isAllowedPagesLoading}>
-            {children}
-          </AllowedPagesProvider>
-        </main>
+          <main className={cn('p-4 md:p-6')}>
+            <AllowedPagesProvider allowedPaths={allowedPaths} isLoading={isAllowedPagesLoading}>
+              {children}
+            </AllowedPagesProvider>
+          </main>
+        </div>
+
+        {/* Global Profile Modal */}
+        <ProfileModal />
       </div>
-    </div>
+    </ProfileModalProvider>
   );
 };

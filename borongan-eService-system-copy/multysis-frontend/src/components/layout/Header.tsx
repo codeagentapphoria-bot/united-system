@@ -2,11 +2,6 @@
 import React from 'react';
 
 // Third-party libraries
-import { useNavigate } from 'react-router-dom';
-
-// Third-party libraries
-
-// UI Components (shadcn/ui)
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +19,7 @@ import { NotificationDropdown } from '@/components/notifications/NotificationDro
 // Hooks
 import { useAuth } from '@/context/AuthContext';
 import { useAdminNotifications } from '@/hooks/notifications/useAdminNotifications';
+import { useProfileModal } from '@/context/ProfileModalContext';
 
 // Utils
 import { cn } from '@/lib/utils';
@@ -36,7 +32,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { user, logout, isLoggingOut } = useAuth();
   const { counts } = useAdminNotifications();
-  const navigate = useNavigate();
+  const { open: openProfileModal } = useProfileModal();
   const isAdmin = user?.role === 'admin';
   const hasNotifications = isAdmin && counts.total > 0;
 
@@ -100,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="text-primary-700">My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/admin/profile')} className="text-primary-700 hover:!bg-primary-50 cursor-pointer">
+              <DropdownMenuItem onClick={openProfileModal} className="text-primary-700 hover:!bg-primary-50 cursor-pointer">
                 <FiUser size={16} />
                 Profile
               </DropdownMenuItem>
