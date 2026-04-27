@@ -82,7 +82,7 @@ export function RouteDetail() {
   const navigate = useNavigate();
   const { data: route, isLoading } = useRoute(id ?? null);
   const { data: buses = [], isLoading: busesLoading } = useBusesOnRoute(id ?? null);
-  const { data: allBusLocations = [] } = useBusLocations(30_000);
+  const { data: allBusLocations = [] } = useBusLocations(15_000);
   const routeBusLocations = allBusLocations.filter(b => b.bus?.route?.id === id);
   const { data: routeGeometry } = useQuery({
     queryKey: ['route-geometry', id, route?.stops.map(s => `${s.id}-${s.latitude}-${s.longitude}`)],

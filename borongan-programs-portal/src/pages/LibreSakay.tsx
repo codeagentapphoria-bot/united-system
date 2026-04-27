@@ -156,7 +156,7 @@ export function LibreSakay() {
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
 
-  const { data: buses = [], isLoading: busesLoading } = useBusLocations(30_000);
+  const { data: buses = [], isLoading: busesLoading } = useBusLocations(15_000);
   const { data: routes = [] } = useRoutes();
   const activeBuses = buses.filter(b => b.latitude && b.longitude);
 
@@ -192,28 +192,31 @@ export function LibreSakay() {
       }
     }
 
-    // 2. Start continuous GPS tracking
+    // 2. Start periodic location polling (not continuous watch)
+    // watchPosition fires every tick (~1-2s) causing ETA refetches and UI blink
+    // getCurrentPosition + interval gives us fresh location without the spam
     if (!navigator.geolocation) {
       return;
     }
 
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        setUserLocation(coords);
-        localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(coords));
-      },
-      () => {
-        // GPS error — userLocation stays as localStorage value or null
-        // ETAs will show "needs location" if null
-      },
-      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 }
-    );
-
-    // 3. Cleanup on unmount — stop watching
-    return () => {
-      navigator.geolocation.clearWatch(watchId);
+    const pollLocation = () => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+          setUserLocation(coords);
+          localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(coords));
+        },
+        () => {
+          // GPS error — userLocation stays as localStorage value or null
+        },
+        { enableHighAccuracy: false, timeout: 10_000, maximumAge: 30_000 }
+      );
     };
+
+    pollLocation(); // fetch immediately on mount
+    const intervalId = setInterval(pollLocation, 15_000); // then every 15s
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const handleCancel = async () => {

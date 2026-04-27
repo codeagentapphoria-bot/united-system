@@ -18,7 +18,7 @@ export interface BusLocation {
   };
 }
 
-export function useBusLocations(refetchInterval = 30_000) {
+export function useBusLocations(refetchInterval = 15_000) {
   return useQuery<BusLocation[]>({
     queryKey: queryKeys.busLocations,
     queryFn: async () => {
