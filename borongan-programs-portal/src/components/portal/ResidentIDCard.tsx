@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { authService } from '@/services/api/auth.service';
 import type { User } from '@/types/auth';
-import { User as UserIcon, Users, CalendarDays, IdCard, MapPin, ShieldCheck, Building2, HeartHandshake, Lock } from 'lucide-react';
+import { User as UserIcon, Users, CalendarDays, IdCard, MapPin, ShieldCheck, Building2, HeartHandshake, Lock, X } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // CR80 landscape — 85.6 mm × 54 mm scaled to 380 × 240 px
@@ -76,6 +76,8 @@ interface Props { resident: User }
 export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [cardInfo, setCardInfo] = useState<IdCardInfo>({});
+  const [showQRModal, setShowQRModal] = useState(false);
+  const lastTapRef = useRef<number>(0);
 
   useEffect(() => {
     authService.getIdCardInfo().then(setCardInfo).catch(() => { });
@@ -347,7 +349,17 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
                 </div>
 
                 {/* QR + certification row */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+                  onClick={() => {
+                    const now = Date.now();
+                    if (now - lastTapRef.current < 300) {
+                      setShowQRModal(true);
+                    }
+                    lastTapRef.current = now;
+                  }}
+                  title="Double-tap to enlarge QR"
+                >
                   <div style={{ padding: 4, backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: 6, flexShrink: 0 }}>
                     <QRCodeSVG value={qrValue} size={70} level="M" />
                   </div>
@@ -390,6 +402,37 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
       <p style={{ textAlign: 'center', fontSize: 10, color: '#9ca3af', marginTop: 8, userSelect: 'none' }}>
         Click to flip
       </p>
+
+      {/* QR Zoom Modal */}
+      {showQRModal && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+          onClick={() => setShowQRModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: 'white', borderRadius: 16, padding: 24,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+              cursor: 'default',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowQRModal(false)}
+              style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 8 }}
+            >
+              <X size={24} color="white" />
+            </button>
+            <QRCodeSVG value={qrValue} size={280} level="H" />
+            <p style={{ fontSize: 12, color: '#6b7280', textAlign: 'center' }}>Double-tap or tap outside to close</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
