@@ -45,6 +45,7 @@ export const listProgramsController = async (req: AuthRequest, res: Response): P
     const result = await listProgramsForResident(residentId, {
       search: (req.query.search as string) || undefined,
       type: (req.query.type as string) || undefined,
+      name: (req.query.name as string) || undefined,
       page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
       limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
     });

@@ -28,7 +28,7 @@ async function fetchETAs(
 }
 
 export function useNextBusETA(routeId: string, stop: RouteStop) {
-  const { data: buses = [] } = useBusLocations(30_000);
+  const { data: buses = [] } = useBusLocations(15_000);
 
   return useQuery({
     // Include buses in key so the query re-runs when bus locations refresh

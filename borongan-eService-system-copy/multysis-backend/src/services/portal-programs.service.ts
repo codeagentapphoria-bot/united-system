@@ -53,7 +53,7 @@ function isEligible(
 // ---------------------------------------------------------------------------
 export const listProgramsForResident = async (
   residentId: string | null,
-  params?: { search?: string; type?: string; page?: number; limit?: number }
+  params?: { search?: string; type?: string; name?: string; page?: number; limit?: number }
 ) => {
   const page = params?.page && params.page > 0 ? params.page : 1;
   const limit = Math.min(params?.limit && params.limit > 0 ? params.limit : 12, 50);
@@ -62,10 +62,13 @@ export const listProgramsForResident = async (
   const typeFilter =
     params?.type && params.type !== 'all' ? (params.type as GovernmentProgramType) : undefined;
   const searchFilter = params?.search?.trim() || undefined;
+  const nameFilter = params?.name?.trim() || undefined;
 
   const where: any = { isActive: true };
   if (typeFilter) where.types = { has: typeFilter };
-  if (searchFilter) {
+  if (nameFilter) {
+    where.name = { equals: nameFilter, mode: 'insensitive' };
+  } else if (searchFilter) {
     where.OR = [
       { name: { contains: searchFilter, mode: 'insensitive' } },
       { description: { contains: searchFilter, mode: 'insensitive' } },

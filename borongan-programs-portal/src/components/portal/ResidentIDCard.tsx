@@ -121,22 +121,23 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
   const FrontLeftPanel = () => (
     <div style={{
       width: PANEL_W, flexShrink: 0,
-      background: 'linear-gradient(160deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%)',
+      background: 'linear-gradient(160deg, #1a1a1a 0%, #0a0a0a 50%, #000000 100%)',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '14px 8px 10px', gap: 0, position: 'relative',
       zIndex: 1
     }}>
       {/* Municipality logo */}
       <div style={{
-        width: 56, height: 56, borderRadius: '50%', padding: 0,
+        width: 58, height: 58,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: '0 2px 8px rgba(0,0,0,0.25)', marginBottom: 8, flexShrink: 0,
-        backgroundColor: '#fff', position: 'relative', zIndex: 2
+        backgroundColor: '#fff', borderRadius: '50%',
+        position: 'relative', zIndex: 2, overflow: 'hidden'
       }}>
         <img
           src="/borongan-city-seal.png"
           alt="City of Borongan"
-          style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '50%' }}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           onError={e => { e.currentTarget.src = '/lgu-borongan.png'; }}
         />
       </div>
@@ -154,7 +155,7 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
 
       {/* SVG Wave Border */}
       <svg style={{ position: 'absolute', right: -1, top: 0, height: '100%', width: 24, zIndex: 2 }} viewBox="0 0 24 240" preserveAspectRatio="none">
-        <path d="M0,0 Q24,60 12,120 T24,240 L0,240 Z" fill="#1d4ed8" />
+        <path d="M0,0 Q24,60 12,120 T24,240 L0,240 Z" fill="#000000" />
         <path d="M0,0 Q24,60 12,120 T24,240" fill="none" stroke="#eab308" strokeWidth="2.5" />
       </svg>
     </div>
@@ -164,7 +165,7 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
   const BackLeftPanel = () => (
     <div style={{
       width: 90, flexShrink: 0,
-      backgroundColor: '#1e3a8a',
+      backgroundColor: '#000000',
       display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center',
       padding: '20px 10px', gap: 14, position: 'relative',
       zIndex: 1
@@ -208,25 +209,25 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
 
             {/* Right panel */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '12px 14px 10px 24px', position: 'relative', overflow: 'hidden' }}>
-              {/* City Hall Background with Blue Tint */}
+              {/* City Hall Background with Dark Tint */}
               <img
                 src="/assets/City Hall of Borongan in midday sun.png"
                 alt=""
                 aria-hidden
                 style={{ position: 'absolute', inset: 0, width: '130%', height: '130%', objectFit: 'cover', zIndex: 0, opacity: 0.08, transform: 'translate(-0%, -0%)' }}
               />
-              {/* Blue Tint Overlay */}
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(29,78,216,0.15) 0%, rgba(30,64,175,0.18) 50%, rgba(37,99,235,0.12) 100%)', zIndex: 0 }} />
+              {/* Dark Tint Overlay */}
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.05) 100%)', zIndex: 0 }} />
 
 
 
               {/* Header */}
-              <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2.5px solid #1d4ed8', paddingBottom: 4, marginBottom: 10 }}>
+              <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2.5px solid #374151', paddingBottom: 4, marginBottom: 10 }}>
                 <div>
                   <div style={{ fontSize: 6.5, color: '#4b5563', letterSpacing: 1.5, textTransform: 'uppercase' }}>
                     Republic of the Philippines
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: 1.5, color: '#1e3a8a', lineHeight: 1.1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: 1.5, color: '#111827', lineHeight: 1.1 }}>
                     BORONGANON ID
                   </div>
                 </div>
@@ -238,7 +239,7 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
                 {/* Photo */}
                 <div style={{
                   width: 70, height: 88, flexShrink: 0, borderRadius: 6, overflow: 'hidden',
-                  border: '2px solid #1d4ed8', backgroundColor: '#e5e7eb',
+                  border: '2px solid #ffffff', backgroundColor: '#e5e7eb',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {photo
@@ -251,45 +252,45 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
                   <div style={{ fontWeight: 900, fontSize: 11, color: '#111827', letterSpacing: 0.3, lineHeight: 1.2 }}>
                     {fullName || 'N/A'}
                   </div>
-                  <div style={{ fontFamily: 'monospace', fontSize: 8, color: '#1d4ed8', fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 8, color: '#111827', fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>
                     ID No. {r.residentId || '—'}
                   </div>
 
-                  {/* 2-col personal info grid with icons */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 6px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <UserIcon size={11} color="#1d4ed8" />
-                      <div>
-                        <div style={{ fontSize: 5, color: '#6b7280', letterSpacing: 0.5 }}>SEX</div>
-                        <div style={{ fontSize: 7.5, fontWeight: 700, color: '#111827', lineHeight: 1 }}>{fmt(r.sex)}</div>
+                    {/* 2-col personal info grid with icons */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <UserIcon size={11} color="#374151" />
+                        <div>
+                          <div style={{ fontSize: 5, color: '#9ca3af', letterSpacing: 0.5 }}>SEX</div>
+                          <div style={{ fontSize: 7.5, fontWeight: 700, color: '#111827', lineHeight: 1 }}>{fmt(r.sex)}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Users size={11} color="#374151" />
+                        <div>
+                          <div style={{ fontSize: 5, color: '#9ca3af', letterSpacing: 0.5 }}>CIVIL STATUS</div>
+                          <div style={{ fontSize: 7.5, fontWeight: 700, color: '#111827', lineHeight: 1 }}>{fmt(r.civilStatus)}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <CalendarDays size={11} color="#374151" />
+                        <div>
+                          <div style={{ fontSize: 5, color: '#9ca3af', letterSpacing: 0.5 }}>DATE OF BIRTH</div>
+                          <div style={{ fontSize: 7.5, fontWeight: 700, color: '#111827', lineHeight: 1 }}>{formatDate(r.birthdate)}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <IdCard size={11} color="#374151" />
+                        <div>
+                          <div style={{ fontSize: 5, color: '#9ca3af', letterSpacing: 0.5 }}>AGE</div>
+                          <div style={{ fontSize: 7.5, fontWeight: 700, color: '#111827', lineHeight: 1 }}>{getAge(r.birthdate)}</div>
+                        </div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Users size={11} color="#1d4ed8" />
-                      <div>
-                        <div style={{ fontSize: 5, color: '#6b7280', letterSpacing: 0.5 }}>CIVIL STATUS</div>
-                        <div style={{ fontSize: 7.5, fontWeight: 700, color: '#111827', lineHeight: 1 }}>{fmt(r.civilStatus)}</div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <CalendarDays size={11} color="#1d4ed8" />
-                      <div>
-                        <div style={{ fontSize: 5, color: '#6b7280', letterSpacing: 0.5 }}>DATE OF BIRTH</div>
-                        <div style={{ fontSize: 7.5, fontWeight: 700, color: '#111827', lineHeight: 1 }}>{formatDate(r.birthdate)}</div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <IdCard size={11} color="#1d4ed8" />
-                      <div>
-                        <div style={{ fontSize: 5, color: '#6b7280', letterSpacing: 0.5 }}>AGE</div>
-                        <div style={{ fontSize: 7.5, fontWeight: 700, color: '#111827', lineHeight: 1 }}>{getAge(r.birthdate)}</div>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Address */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4, marginTop: 4 }}>
-                    <MapPin size={11} color="#1d4ed8" style={{ marginTop: 1, flexShrink: 0 }} />
+                    {/* Address */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4, marginTop: 4 }}>
+                      <MapPin size={11} color="#374151" style={{ marginTop: 1, flexShrink: 0 }} />
                     <div>
                       <div style={{ fontSize: 5, color: '#6b7280', letterSpacing: 0.5 }}>ADDRESS</div>
                       <div style={{ fontSize: 7.5, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>
@@ -319,20 +320,20 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
 
             {/* Right panel */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
-              {/* City Hall Background with Blue Tint */}
+              {/* City Hall Background with Dark Tint */}
               <img
                 src="/assets/City Hall of Borongan in midday sun.png"
                 alt=""
                 aria-hidden
                 style={{ position: 'absolute', inset: 0, width: '130%', height: '130%', objectFit: 'cover', zIndex: 0, opacity: 0.08, transform: 'translate(-0%, 0%)' }}
               />
-              {/* Blue Tint Overlay */}
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(29,78,216,0.15) 0%, rgba(30,64,175,0.18) 50%, rgba(37,99,235,0.12) 100%)', zIndex: 0 }} />
+              {/* Dark Tint Overlay */}
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.05) 100%)', zIndex: 0 }} />
 
               <div style={{ padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, zIndex: 1 }}>
                 {/* Emergency contact */}
                 <div>
-                  <div style={{ fontSize: 7, fontWeight: 700, color: '#1e3a8a', letterSpacing: 0.8, marginBottom: 4 }}>
+                  <div style={{ fontSize: 7, fontWeight: 700, color: '#111827', letterSpacing: 0.8, marginBottom: 4 }}>
                     IN CASE OF EMERGENCY, NOTIFY:
                   </div>
                   <div style={{ border: '1px solid #93c5fd', borderRadius: 6, padding: '6px 10px', backgroundColor: '#eff6ff', width: '75%' }}>
@@ -352,8 +353,8 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
                   </div>
                   <div style={{ fontSize: 6.5, color: '#4b5563', lineHeight: 1.5, textAlign: 'justify', paddingRight: 40 }}>
                     This certifies that the bearer is a bonafide resident of Barangay{' '}
-                    <strong style={{ color: '#1e3a8a' }}>{barangayName}</strong>,{' '}
-                    <strong style={{ color: '#1e3a8a' }}>{municipalityName}</strong>, Eastern Samar, Philippines.
+                    <strong style={{ color: '#111827' }}>{barangayName}</strong>,{' '}
+                    <strong style={{ color: '#111827' }}>{municipalityName}</strong>, Eastern Samar, Philippines.
                   </div>
                 </div>
               </div>
@@ -361,7 +362,7 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
               {/* Bottom Gray Bar */}
               <div style={{ backgroundColor: '#e2e8f0', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ backgroundColor: '#1d4ed8', borderRadius: '50%', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ backgroundColor: '#374151', borderRadius: '50%', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Lock size={10} color="white" />
                   </div>
                   <div style={{ fontSize: 5.5, color: '#4b5563', fontWeight: 700, lineHeight: 1.3 }}>

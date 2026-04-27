@@ -5,11 +5,11 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { useQueryClient } from '@tanstack/react-query';
 import { type BusLocation } from '@/hooks/useBusLocations';
 import { queryKeys } from '@/lib/query-keys';
-import { Crosshair, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
+import { Crosshair, ZoomIn, ZoomOut, RefreshCw, MapPin } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AnimatedBusMarker } from './AnimatedBusMarker';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-if (!MAPBOX_TOKEN) throw new Error('VITE_MAPBOX_TOKEN is not set');
 
 const BORONGAN_LNG = 125.4377;
 const BORONGAN_LAT = 11.5077;
@@ -27,26 +27,6 @@ function getRouteName(bus: BusLocation['bus']): string {
 }
 
 // ── Marker components ──────────────────────────────────────────────────────────
-
-function BusPin({ busLocation, onClick }: { busLocation: BusLocation; onClick: () => void }) {
-  const isMoving = (busLocation.speed ?? 0) > 5;
-  const plate = busLocation.bus?.plate_number ?? 'N/A';
-  return (
-    <div
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      style={{
-        background: isMoving ? '#16a34a' : '#e11d48',
-        width: 36, height: 36, borderRadius: '50%',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        border: '2px solid white', boxShadow: '0 3px 8px rgba(0,0,0,.3)',
-        cursor: 'pointer', color: 'white', fontSize: 10, fontWeight: 'bold',
-        userSelect: 'none',
-      }}
-    >
-      {plate}
-    </div>
-  );
-}
 
 function UserPin() {
   return (
@@ -134,6 +114,22 @@ export function BusMap({
 
   const queryClient = useQueryClient();
 
+  // Graceful fallback when token is not configured
+  if (!MAPBOX_TOKEN) {
+    return (
+      <div
+        className="relative w-full rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center"
+        style={{ height }}
+      >
+        <div className="text-center">
+          <MapPin className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-sm text-gray-500 font-medium">Map unavailable</p>
+          <p className="text-xs text-gray-400 mt-1">Check back soon</p>
+        </div>
+      </div>
+    );
+  }
+
   const filteredBuses = selectedRouteId
     ? buses.filter(b => b.bus?.route?.id === selectedRouteId)
     : buses;
@@ -200,14 +196,11 @@ export function BusMap({
         onClick={handleMapClick}
       >
         {activeBuses.map(bus => (
-          <Marker
+          <AnimatedBusMarker
             key={bus.id}
-            longitude={bus.longitude}
-            latitude={bus.latitude}
-            anchor="center"
-          >
-            <BusPin busLocation={bus} onClick={() => setActiveSelectedBusId(bus.id)} />
-          </Marker>
+            busLocation={bus}
+            onClick={() => setActiveSelectedBusId(bus.id)}
+          />
         ))}
 
         {userLocation && (

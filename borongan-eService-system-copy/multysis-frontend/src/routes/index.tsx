@@ -20,7 +20,6 @@ const AdminLogin = lazy(() => import('../pages/admin/AdminLogin').then(m => ({ d
 const AdminPermissionsManagement = lazy(() =>
   import('../pages/admin/AdminPermissionsManagement').then(m => ({ default: m.AdminPermissionsManagement }))
 );
-const AdminProfile = lazy(() => import('../pages/admin/AdminProfile').then(m => ({ default: m.AdminProfile })));
 const AdminRoleManagement = lazy(() =>
   import('../pages/admin/AdminRoleManagement').then(m => ({ default: m.AdminRoleManagement }))
 );
@@ -124,18 +123,6 @@ export const router = createBrowserRouter([
             <ProtectedRoute>
               <LazyWrapper>
                 <AdminDashboard />
-              </LazyWrapper>
-            </ProtectedRoute>
-          </RequireAdmin>
-        ),
-      },
-      {
-        path: 'profile',
-        element: (
-          <RequireAdmin>
-            <ProtectedRoute>
-              <LazyWrapper>
-                <AdminProfile />
               </LazyWrapper>
             </ProtectedRoute>
           </RequireAdmin>
