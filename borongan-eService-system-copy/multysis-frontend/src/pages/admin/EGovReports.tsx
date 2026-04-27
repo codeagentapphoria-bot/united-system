@@ -3,6 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 
 // UI Components (shadcn/ui)
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -186,7 +187,8 @@ export const EGovReports: React.FC = () => {
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
-      <div className={cn('space-y-6')}>
+      <AccessControlGate pagePath="/admin/e-government/reports">
+        <div className={cn('space-y-6')}>
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -387,6 +389,7 @@ export const EGovReports: React.FC = () => {
           </div>
         </Tabs>
       </div>
+      </AccessControlGate>
     </DashboardLayout>
   );
 };

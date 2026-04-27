@@ -4,7 +4,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import React, { useState, useEffect } from 'react';
 import { FiChevronDown, FiChevronRight, FiLock, FiX } from 'react-icons/fi';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 interface SubmenuItem {
   path: string;
@@ -28,6 +28,7 @@ interface MenuItem {
 // List of implemented routes
 const implementedRoutes = [
   '/admin/dashboard',
+  '/admin/profile',
   '/admin/registration-workflow',
   '/admin/libre-sakay/dashboard',
   '/admin/libre-sakay/fleet',
@@ -38,6 +39,8 @@ const implementedRoutes = [
   '/admin/libre-sakay/ride-logs',
   '/admin/libre-sakay/applications',
   '/admin/libre-sakay/access-control',
+  '/admin/libre-sakay/verification',
+  '/admin/libre-sakay/settings',
   '/admin/e-government/social-amelioration',
   '/admin/e-government/reports',
   '/admin/general-settings/address',
@@ -49,6 +52,7 @@ const implementedRoutes = [
   '/admin/access-control/role-management',
   '/admin/access-control/permissions',
   '/admin/access-control/user-management',
+  '/admin/access-control/page-management',
 ];
 
 // Check if a route is implemented
@@ -90,6 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const [collapsedCategories, setCollapsedCategories] = useState<string[]>([]);
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Initialize all categories as collapsed by default
   useEffect(() => {
@@ -218,6 +223,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
 
                           {/* Submenu */}
                           {isExpanded && item.submenuItems && (
+                            <div onClick={(e) => e.stopPropagation()}>
                             <ul className="mt-1 ml-2 space-y-1">
                               {item.submenuItems.map((subItem, subIndex) => {
                                 // Check if this is a separator
@@ -272,21 +278,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
                                 return (
                                   <li key={subItem.path}>
                                     {isImplemented ? (
-                                      <NavLink
-                                        to={subItem.path}
-                                        onClick={onClose}
-                                        className={({ isActive }: { isActive: boolean }) =>
-                                          cn(
-                                            isCategoryService
-                                              ? 'flex items-center justify-between ml-6 px-2 py-1.5 rounded-md text-sm transition-colors'
-                                              : 'flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors',
-                                            isActive
-                                              ? 'bg-primary-600 text-white'
-                                              : isCategoryService
-                                                ? 'text-gray-500 hover:bg-primary-50 hover:text-primary-700'
-                                                : 'text-heading-500 hover:bg-primary-50 hover:text-primary-700'
-                                          )
-                                        }
+                                      <button
+                                        onClick={() => {
+                                          navigate(subItem.path);
+                                          onClose();
+                                        }}
+                                        className={cn(
+                                          isCategoryService
+                                            ? 'flex items-center justify-between ml-6 px-2 py-1.5 rounded-md text-sm transition-colors'
+                                            : 'flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors w-full',
+                                          location.pathname === subItem.path
+                                            ? 'bg-primary-600 text-white'
+                                            : isCategoryService
+                                              ? 'text-gray-500 hover:bg-primary-50 hover:text-primary-700'
+                                              : 'text-heading-500 hover:bg-primary-50 hover:text-primary-700'
+                                        )}
                                       >
                                         <span>{subItem.label}</span>
                                         {subItem.badgeCount !== undefined && subItem.badgeCount > 0 && (
@@ -294,7 +300,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
                                             {subItem.badgeCount > 99 ? '99+' : subItem.badgeCount}
                                           </Badge>
                                         )}
-                                      </NavLink>
+                                      </button>
                                     ) : (
                                       <div
                                         className={cn(
@@ -316,6 +322,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
                                 );
                               })}
                             </ul>
+                            </div>
                           )}
                         </div>
                       ) : (
@@ -324,7 +331,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
                           return isImplemented ? (
                             <NavLink
                               to={item.path || '#'}
-                              onClick={onClose}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onClose();
+                              }}
                               className={({ isActive }: { isActive: boolean }) =>
                                 cn(
                                   'flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',

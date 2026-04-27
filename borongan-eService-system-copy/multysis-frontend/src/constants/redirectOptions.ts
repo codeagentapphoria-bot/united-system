@@ -1,7 +1,8 @@
 export interface RedirectOption {
   value: string;
   label: string;
-  description: string;
+  description?: string;
+  category?: string;
 }
 
 export const redirectOptions: RedirectOption[] = [

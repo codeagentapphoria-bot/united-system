@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { adminMenuItems } from '@/config/admin-menu';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatDateWithoutTimezone, formatIdType } from '@/lib/utils';
 import { adminRegistrationService, type RegistrationRequestResponse, type RegistrationRequestFilters } from '@/services/api/citizen-registration.service';
+import { residentService } from '@/services/api/resident.service';
 import { classificationTypeService } from '@/services/api/classificationType.service';
 import { logger } from '@/utils/logger';
 import React, { useEffect, useState } from 'react';
@@ -153,23 +155,33 @@ export const AdminRegistrationWorkflow: React.FC = () => {
         setIsReviewModalOpen(false);
         fetchRequests();
       } else {
-        await adminRegistrationService.reviewRegistration(
+        const result = await adminRegistrationService.reviewRegistration(
           selectedRequest.id,
           reviewAction,
           adminNotes || undefined
         );
+        void result; // suppress unused variable warning
         toast({
           title: 'Success',
           description: `Registration ${reviewAction === 'APPROVED' ? 'approved' : 'rejected'} successfully`,
         });
 
-        // After approval, open the classification dialog
+        // After approval, fetch fresh resident data with auto-created classifications
         if (reviewAction === 'APPROVED' && selectedRequest.resident) {
-          // selectedRequest.resident already matches ResidentInfo shape (camelCase)
-          // and now includes classifications[] from the updated backend.
-          setClassifyResident(selectedRequest.resident as unknown as ResidentInfo);
+          try {
+            const residentId = selectedRequest.resident.id;
+            if (residentId) {
+              const freshResident = await residentService.getResident(residentId);
+              setClassifyResident(freshResident as unknown as ResidentInfo);
+            } else {
+              setClassifyResident(selectedRequest.resident as unknown as ResidentInfo);
+            }
+          } catch (err) {
+            logger.warn('Failed to fetch fresh resident for classification pre-fill', err);
+            setClassifyResident(selectedRequest.resident as unknown as ResidentInfo);
+          }
           setIsClassifyModalOpen(true);
-          setIsReviewModalOpen(false); // Close review modal; classification dialog will handle completion
+          setIsReviewModalOpen(false);
         } else {
           setIsReviewModalOpen(false);
           fetchRequests();
@@ -217,7 +229,10 @@ export const AdminRegistrationWorkflow: React.FC = () => {
       logger.error('Failed to save classifications:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to save classifications',
+        description:
+          (error as any).response?.data?.message ||
+          error.message ||
+          'Failed to save classifications',
         variant: 'destructive',
       });
       throw error; // Re-throw so the form doesn't close
@@ -259,7 +274,8 @@ export const AdminRegistrationWorkflow: React.FC = () => {
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
-      <div className="space-y-6">
+      <AccessControlGate pagePath="/admin/registration-workflow">
+        <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Registration Approvals</h1>
@@ -890,28 +906,74 @@ export const AdminRegistrationWorkflow: React.FC = () => {
           </div>
         </div>
       )}
+      </AccessControlGate>
 
       {/* Classification Dialog */}
       <Dialog open={isClassifyModalOpen} onOpenChange={setIsClassifyModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Assign Resident Classifications</DialogTitle>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 py-4 border-b shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary shrink-0">
+                {classifyResident?.firstName?.[0]}{classifyResident?.lastName?.[0]}
+              </div>
+              <div>
+                <DialogTitle className="text-sm">
+                  {classifyResident?.firstName}{' '}
+                  {classifyResident?.middleName ? classifyResident.middleName + ' ' : ''}
+                  {classifyResident?.lastName}
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground">
+                  Assign classifications — optional, can be updated later
+                </p>
+              </div>
+            </div>
           </DialogHeader>
-          {classifyResident && (
-            <ResidentClassificationsForm
-              resident={classifyResident}
-              municipalityId={classifyResident.barangay?.municipality?.id ?? 1}
-              onSubmit={handleClassificationSave}
-              onCancel={() => {
-                setIsClassifyModalOpen(false);
-                setClassifyResident(null);
-                fetchRequests();
-              }}
-              showResidentInfo
-              showActions
-              loading={isClassifying}
-            />
-          )}
+
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            {classifyResident && (
+              <ResidentClassificationsForm
+                resident={classifyResident}
+                municipalityId={classifyResident.barangay?.municipality?.id ?? 1}
+                onSubmit={handleClassificationSave}
+                onCancel={() => {
+                  setIsClassifyModalOpen(false);
+                  setClassifyResident(null);
+                  fetchRequests();
+                }}
+                showResidentInfo={false}
+                showActions={false}
+                loading={isClassifying}
+                formId="classification-form"
+              />
+            )}
+          </div>
+
+          <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30 shrink-0">
+            <p className="text-xs text-muted-foreground">
+              You can also assign classifications later from Resident Management.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsClassifyModalOpen(false);
+                  setClassifyResident(null);
+                  fetchRequests();
+                }}
+              >
+                Skip
+              </Button>
+              <Button
+                size="sm"
+                type="submit"
+                form="classification-form"
+                disabled={isClassifying}
+              >
+                {isClassifying ? 'Saving...' : 'Save Classifications'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>

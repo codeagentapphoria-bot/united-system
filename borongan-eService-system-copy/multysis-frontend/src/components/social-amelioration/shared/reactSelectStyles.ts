@@ -13,9 +13,19 @@ export const createReactSelectStyles = (hasError: boolean = false) => ({
     backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
     color: state.isSelected ? 'white' : '#374151',
   }),
+  container: (base: any) => ({
+    ...base,
+    overflow: 'visible',
+  }),
   menu: (base: any) => ({
     ...base,
     zIndex: 9999,
+    maxHeight: 240,
+    overflow: 'auto',
+  }),
+  menuPortal: (base: any) => ({
+    ...base,
+    overflow: 'visible',
   }),
 });
 

@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import {
     AddRoleModal,
     DeleteRoleModal,
@@ -19,90 +20,72 @@ import React, { useEffect, useState } from 'react';
 import { FiDownload, FiPlus, FiSearch, FiShield } from 'react-icons/fi';
 
 export const AdminRoleManagement: React.FC = () => {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+
+  // Debounce search query
+  const debouncedSearchQuery = useDebounce(localSearchQuery, 300);
+
   const {
     roles,
     permissions,
     selectedRole,
     setSelectedRole,
     isLoading,
+    isFetching,
+    isCreating,
+    isUpdating,
+    isDeleting,
     error,
     createRole,
     updateRole,
     deleteRole,
     // Pagination
     currentPage,
+    total,
+    totalPages,
     goToPage,
     goToNextPage: _goToNextPage,
     goToPreviousPage: _goToPreviousPage,
-  } = useRoles();
-  
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [localSearchQuery, setLocalSearchQuery] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  } = useRoles({ search: debouncedSearchQuery });
 
-  // Debounce search query
-  const debouncedSearchQuery = useDebounce(localSearchQuery, 300);
-
-  // Update the actual search query when debounced value changes
+  // Reset to page 1 when search changes
   useEffect(() => {
-    setSearchQuery(debouncedSearchQuery);
+    if (currentPage !== 1) {
+      goToPage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchQuery]);
 
-  // Reset page when filters change
-  useEffect(() => {
-    goToPage(1);
-  }, [debouncedSearchQuery, statusFilter]);
-
-  const filteredRoles = roles.filter((role) => {
-    const matchesSearch = role.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         role.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = statusFilter === 'all' || 
-                         (statusFilter === 'active' && role.isActive) ||
-                         (statusFilter === 'inactive' && !role.isActive);
-    return matchesSearch && matchesFilter;
-  });
-
-  // Apply pagination to filtered results
-  const totalFilteredPages = Math.max(1, Math.ceil(filteredRoles.length / 10));
-  const startIndex = (currentPage - 1) * 10;
-  const endIndex = startIndex + 10;
-  const paginatedFilteredRoles = filteredRoles.slice(startIndex, endIndex);
-
-  // Pagination wrapper functions that respect filtered results
+  // Guarded pagination handlers
   const handleGoToPage = (page: number) => {
-    const clampedPage = Math.max(1, Math.min(page, totalFilteredPages));
-    goToPage(clampedPage);
+    if (currentPage !== page) goToPage(page);
   };
 
   const handleGoToNextPage = () => {
-    if (currentPage < totalFilteredPages) {
-      goToPage(currentPage + 1);
-    }
+    if (currentPage < totalPages) goToPage(currentPage + 1);
   };
 
   const handleGoToPreviousPage = () => {
-    if (currentPage > 1) {
-      goToPage(currentPage - 1);
-    }
+    if (currentPage > 1) goToPage(currentPage - 1);
   };
 
   const handleDownload = () => {
     // Create CSV content
     const headers = ['Role Name', 'Description', 'Permissions Count', 'Status', 'Created Date'];
-    const rows = filteredRoles.map(role => [
+    const rows = roles.map((role) => [
       role.name,
       role.description,
       role.permissions.length.toString(),
       role.isActive ? 'Active' : 'Inactive',
       new Date(role.createdAt).toLocaleDateString()
     ]);
-    
+
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.join(','))
+      ...rows.map((row) => row.join(','))
     ].join('\n');
 
     // Download file
@@ -135,6 +118,7 @@ export const AdminRoleManagement: React.FC = () => {
     if (selectedRole) {
       try {
         await deleteRole(selectedRole.id);
+        setIsDeleteModalOpen(false);
       } catch (error) {
         console.error('Failed to delete role:', error);
       }
@@ -156,7 +140,8 @@ export const AdminRoleManagement: React.FC = () => {
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
-      <div className="space-y-4">
+      <AccessControlGate pagePath="/admin/access-control/role-management">
+        <div className="space-y-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -214,49 +199,25 @@ export const AdminRoleManagement: React.FC = () => {
                 />
               </div>
 
-              {/* Filter */}
-              <div className="flex gap-2 mt-3">
-                <Button
-                  size="sm"
-                  variant={statusFilter === 'all' ? 'default' : 'outline'}
-                  onClick={() => setStatusFilter('all')}
-                  className={statusFilter === 'all' ? 'bg-primary-600 hover:bg-primary-700' : 'text-primary-600 hover:bg-primary-50'}
-                >
-                  All
-                </Button>
-                <Button
-                  size="sm"
-                  variant={statusFilter === 'active' ? 'default' : 'outline'}
-                  onClick={() => setStatusFilter('active')}
-                  className={statusFilter === 'active' ? 'bg-primary-600 hover:bg-primary-700' : 'text-primary-600 hover:bg-primary-50'}
-                >
-                  Active
-                </Button>
-                <Button
-                  size="sm"
-                  variant={statusFilter === 'inactive' ? 'default' : 'outline'}
-                  onClick={() => setStatusFilter('inactive')}
-                  className={statusFilter === 'inactive' ? 'bg-primary-600 hover:bg-primary-700' : 'text-primary-600 hover:bg-primary-50'}
-                >
-                  Inactive
-                </Button>
-              </div>
-              
               {/* Total count */}
               <div className="flex justify-between items-center mt-3 text-sm text-gray-600">
-                <span>Total: {filteredRoles.length} roles</span>
-                <span>Page {currentPage} of {totalFilteredPages}</span>
+                <span>Total: {total} roles</span>
+                <span>Page {currentPage} of {totalPages}</span>
               </div>
             </CardHeader>
             
             <CardContent className="flex flex-col">
               <div className="space-y-2 max-h-[500px] overflow-y-auto overflow-x-visible pr-4">
-                {paginatedFilteredRoles.length === 0 ? (
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-[90px] bg-gray-100 rounded-lg animate-pulse" />
+                  ))
+                ) : roles.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     No roles found.
                   </div>
                 ) : (
-                  paginatedFilteredRoles.map((role) => (
+                  roles.map((role) => (
                     <div key={role.id} className="relative">
                       <Card
                         className={cn(
@@ -284,7 +245,7 @@ export const AdminRoleManagement: React.FC = () => {
                           </div>
                         </CardContent>
                       </Card>
-                      
+
                       {/* Pointing Arrow - Only on large screens */}
                       {selectedRole?.id === role.id && (
                         <div className="absolute -right-4 top-1/2 -translate-y-1/2 hidden lg:block z-20">
@@ -295,16 +256,16 @@ export const AdminRoleManagement: React.FC = () => {
                   ))
                 )}
               </div>
-              
+
               {/* Pagination */}
-              {totalFilteredPages > 1 && (
+              {totalPages > 1 && (
                 <Pagination
                   currentPage={currentPage}
-                  totalPages={totalFilteredPages}
+                  totalPages={totalPages}
                   onPageChange={handleGoToPage}
                   onPrevious={handleGoToPreviousPage}
                   onNext={handleGoToNextPage}
-                  isLoading={isLoading}
+                  isLoading={isFetching}
                 />
               )}
             </CardContent>
@@ -323,30 +284,32 @@ export const AdminRoleManagement: React.FC = () => {
         </div>
       </div>
 
+      </AccessControlGate>
+
       {/* Modals */}
-      <AddRoleModal 
+      <AddRoleModal
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSubmit={handleCreateRole}
         permissions={permissions}
-        isLoading={isLoading}
+        isLoading={isCreating}
       />
-      
-      <EditRoleModal 
+
+      <EditRoleModal
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSubmit={handleUpdateRole}
         role={selectedRole}
         permissions={permissions}
-        isLoading={isLoading}
+        isLoading={isUpdating}
       />
 
-      <DeleteRoleModal 
+      <DeleteRoleModal
         open={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteRole}
         roleName={selectedRole?.name || ''}
-        isLoading={isLoading}
+        isLoading={isDeleting}
       />
     </DashboardLayout>
   );

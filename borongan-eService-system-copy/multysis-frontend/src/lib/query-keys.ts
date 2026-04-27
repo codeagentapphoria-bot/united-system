@@ -19,13 +19,13 @@ export const queryKeys = {
 
   users: {
     all: ['users'] as const,
-    list: (page: number, limit?: number) => ['users', 'list', page, limit] as const,
+    list: (page: number, limit?: number, search?: string) => ['users', 'list', page, limit, search] as const,
     detail: (id: string) => ['users', 'detail', id] as const,
   },
 
   roles: {
     all: ['roles'] as const,
-    list: (page: number, limit?: number) => ['roles', 'list', page, limit] as const,
+    list: (page: number, limit?: number, search?: string) => ['roles', 'list', page, limit, search] as const,
     detail: (id: string) => ['roles', 'detail', id] as const,
   },
 
@@ -78,6 +78,13 @@ export const queryKeys = {
     list: (filters: Record<string, unknown>) => ['medicineRequests', 'list', filters] as const,
     detail: (id: string) => ['medicineRequests', 'detail', id] as const,
     stats: ['medicineRequests', 'stats'] as const,
+  },
+
+  pages: {
+    all: ['pages'] as const,
+    list: (page: number, limit: number, search?: string) => ['pages', 'list', page, limit, search] as const,
+    detail: (id: string) => ['pages', 'detail', id] as const,
+    systems: ['pages', 'systems'] as const,
   },
 
   libreSakay: {

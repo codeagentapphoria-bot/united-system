@@ -6,6 +6,7 @@ import {
   getUserController,
   getUsersController,
   updateUserController,
+  getAllowedPagesController,
 } from '../controllers/user.controller';
 import { verifyAdmin } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -22,6 +23,7 @@ const router = Router();
 router.use(verifyAdmin);
 
 router.get('/', getUsersController);
+router.get('/:id/allowed-pages', getAllowedPagesController);
 router.get('/:id', validate(getUserValidation), getUserController);
 router.post('/', validate(createUserValidation), createUserController);
 router.put('/:id', validate(updateUserValidation), updateUserController);

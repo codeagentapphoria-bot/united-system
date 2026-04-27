@@ -68,25 +68,52 @@ export const createUser = async (data: CreateUserData) => {
   });
 };
 
-export const getUsers = async () => {
-  return prisma.user.findMany({
-    include: {
-      userRoles: {
-        include: {
-          role: {
-            include: {
-              rolePermissions: {
-                include: {
-                  permission: true,
+export const getUsers = async (options: { page?: number; limit?: number; search?: string } = {}) => {
+  const { page = 1, limit = 10, search } = options;
+  const skip = (page - 1) * limit;
+
+  const where: Record<string, unknown> = {};
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      skip,
+      take: limit,
+      include: {
+        userRoles: {
+          include: {
+            role: {
+              include: {
+                rolePermissions: {
+                  include: {
+                    permission: true,
+                  },
                 },
               },
             },
           },
         },
       },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  return {
+    users,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
     },
-    orderBy: { createdAt: 'desc' },
-  });
+  };
 };
 
 export const getUser = async (id: string) => {
@@ -203,4 +230,48 @@ export const changeUserPassword = async (id: string, password: string) => {
       name: true,
     },
   });
+};
+
+/**
+ * Get all pages accessible to a user based on their role_pages assignments.
+ * A page is accessible if it is linked to the user's role via role_pages.
+ */
+export const getAllowedPages = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      userRoles: {
+        include: {
+          role: {
+            include: {
+              rolePages: {
+                include: {
+                  page: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Collect unique pages from all user's roles via role_pages
+  const pageMap = new Map<string, typeof user.userRoles[0]['role']['rolePages'][0]['page']>();
+  user.userRoles.forEach((userRole) => {
+    userRole.role.rolePages.forEach((rp) => {
+      pageMap.set(rp.page.id, rp.page);
+    });
+  });
+
+  const pages = Array.from(pageMap.values()).sort((a, b) => {
+    if (a.system !== b.system) return a.system.localeCompare(b.system);
+    return a.path.localeCompare(b.path);
+  });
+
+  return pages;
 };

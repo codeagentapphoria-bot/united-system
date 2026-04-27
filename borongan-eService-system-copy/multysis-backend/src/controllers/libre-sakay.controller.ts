@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { GovernmentProgramType } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import {
   getFleetStats, getFleetLocations,
@@ -11,6 +12,7 @@ import {
   assignStopToRoute, removeStopFromRoute, reorderStopsInRoute, replaceStopInRoute, getRoutesForStop,
   getDashboardStats, getRideLogs, getRidesTrend, deleteRideLog, reviewRideLog,
 } from '../services/libre-sakay.service';
+import prisma from '../config/database';
 
 // Helper to send paginated response
 const paginated = (data: any[], total: number, page: number, limit: number, res: Response) => {
@@ -438,5 +440,133 @@ export const reviewRideLogController = async (req: AuthRequest, res: Response): 
     res.status(200).json({ status: 'success' });
   } catch (error: any) {
     res.status(400).json({ status: 'error', message: error.message });
+  }
+};
+
+// =============================================================================
+// RESIDENT VERIFICATION (for Libre Sakay admin)
+// =============================================================================
+
+export const verifyResidentController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { residentId } = req.params;
+
+    // Auto-detect: if value contains '@', treat as email, otherwise as residentId
+    const isEmail = residentId.includes('@');
+    const whereClause = isEmail ? { email: residentId } : { residentId };
+
+    const resident = await prisma.resident.findFirst({
+      where: whereClause,
+      select: {
+        residentId: true,
+        firstName: true,
+        lastName: true,
+        status: true,
+        email: true,
+        barangay: { select: { barangayName: true } },
+      },
+    });
+
+    if (!resident) {
+      res.status(200).json({
+        status: 'success',
+        data: {
+          exists: false,
+          approved: false,
+          resident_id: null,
+          full_name: null,
+          barangay_name: null,
+        },
+      });
+      return;
+    }
+
+    const approved = resident.status === 'active' && resident.residentId != null;
+    const fullName = [resident.firstName, resident.lastName].filter(Boolean).join(' ');
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        exists: true,
+        approved,
+        resident_id: resident.residentId,
+        full_name: fullName,
+        barangay_name: resident.barangay?.barangayName ?? null,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+export const getProgramSettingsController = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const program = await prisma.governmentProgram.findFirst({
+      where: { id: 'gp-all-libre-sakay' },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        requirements: true,
+        types: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!program) {
+      res.status(404).json({ status: 'error', message: 'Libre Sakay program not found' });
+      return;
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: program,
+    });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+export const updateProgramSettingsController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { name, description, requirements, types, isActive } = req.body as {
+      name?: string;
+      description?: string;
+      requirements?: string;
+      types?: string[];
+      isActive?: boolean;
+    };
+
+    const updated = await prisma.governmentProgram.update({
+      where: { id: 'gp-all-libre-sakay' },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(description !== undefined && { description }),
+        ...(requirements !== undefined && { requirements }),
+        ...(isActive !== undefined && { isActive }),
+        ...(types !== undefined && {
+          types: { set: types as GovernmentProgramType[] },
+        }),
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        requirements: true,
+        types: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data: updated,
+    });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
   }
 };

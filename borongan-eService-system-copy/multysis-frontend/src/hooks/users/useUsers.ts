@@ -6,7 +6,8 @@ import type { AdminUser, CreateAdminUserInput, UpdateAdminUserInput } from '@/ty
 import { queryKeys } from '@/lib/query-keys';
 import { useState, useCallback } from 'react';
 
-export const useUsers = () => {
+export const useUsers = (options: { search?: string } = {}) => {
+  const { search = '' } = options;
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { roles } = useRoles();
@@ -15,9 +16,9 @@ export const useUsers = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  const { data: usersData, isLoading, error, refetch } = useQuery({
-    queryKey: queryKeys.users.list(currentPage, itemsPerPage),
-    queryFn: ({ signal }) => userService.getAllUsers(currentPage, itemsPerPage, signal),
+  const { data: usersData, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: queryKeys.users.list(currentPage, itemsPerPage, search),
+    queryFn: ({ signal }: { signal?: AbortSignal }) => userService.getAllUsers(currentPage, itemsPerPage, search || undefined, signal),
   });
 
   const users = usersData?.users ?? [];
@@ -111,6 +112,10 @@ export const useUsers = () => {
     setSelectedUser,
     roles,
     isLoading,
+    isFetching,
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
     error: error?.message || null,
     createUser,
     updateUser,

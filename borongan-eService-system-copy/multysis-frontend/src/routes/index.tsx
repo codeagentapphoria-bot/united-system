@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { BlockPortalUsers } from '../components/common/BlockPortalUsers';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
+import { RequireAdmin } from '../components/common/RequireAdmin';
 
 // Lazy load all pages for code splitting
 // Admin Pages
@@ -19,6 +20,7 @@ const AdminLogin = lazy(() => import('../pages/admin/AdminLogin').then(m => ({ d
 const AdminPermissionsManagement = lazy(() =>
   import('../pages/admin/AdminPermissionsManagement').then(m => ({ default: m.AdminPermissionsManagement }))
 );
+const AdminProfile = lazy(() => import('../pages/admin/AdminProfile').then(m => ({ default: m.AdminProfile })));
 const AdminRoleManagement = lazy(() =>
   import('../pages/admin/AdminRoleManagement').then(m => ({ default: m.AdminRoleManagement }))
 );
@@ -30,6 +32,9 @@ const AdminSubscribers = lazy(() =>
 );
 const AdminUserManagement = lazy(() =>
   import('../pages/admin/AdminUserManagement').then(m => ({ default: m.AdminUserManagement }))
+);
+const AdminPageManagement = lazy(() =>
+  import('../pages/admin/AdminPageManagement').then(m => ({ default: m.default }))
 );
 const ServicePage = lazy(() => import('../pages/admin/ServicePage').then(m => ({ default: m.ServicePage })));
 const SocialAmelioration = lazy(() =>
@@ -115,171 +120,229 @@ export const router = createBrowserRouter([
       {
         path: 'dashboard',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <AdminDashboard />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminDashboard />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
+        ),
+      },
+      {
+        path: 'profile',
+        element: (
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminProfile />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'citizens',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <AdminCitizens />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminCitizens />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'registration-workflow',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <AdminRegistrationWorkflow />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminRegistrationWorkflow />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'subscribers',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <AdminSubscribers />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminSubscribers />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'access-control/role-management',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <AdminRoleManagement />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminRoleManagement />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'access-control/permissions',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <AdminPermissionsManagement />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminPermissionsManagement />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'access-control/user-management',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <AdminUserManagement />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminUserManagement />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
+        ),
+      },
+      {
+        path: 'access-control/page-management',
+        element: (
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminPageManagement />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'general-settings/smart-city-services',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <AdminSmartCityServices />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminSmartCityServices />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'general-settings/government-program',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <AdminGovernmentPrograms />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminGovernmentPrograms />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'general-settings/address',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <AdminAddresses />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminAddresses />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'general-settings/appointment',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <AdminAppointments />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminAppointments />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'general-settings/faq',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <AdminFAQs />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminFAQs />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'general-settings/tax-profiles',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <TaxProfiles />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <TaxProfiles />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'e-government/social-amelioration',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <SocialAmelioration />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <SocialAmelioration />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'e-government/reports',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <EGovReports />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <EGovReports />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'e-government/:serviceCode',
         element: (
-          <ProtectedRoute requiredRole="admin">
-            <LazyWrapper>
-              <ServicePage />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <ServicePage />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
         path: 'libre-medisina',
         element: (
-          <ProtectedRoute requiredRole="libre_medisina_admin">
-            <LazyWrapper>
-              <AdminLibreMedisina />
-            </LazyWrapper>
-          </ProtectedRoute>
+          <RequireAdmin>
+            <ProtectedRoute>
+              <LazyWrapper>
+                <AdminLibreMedisina />
+              </LazyWrapper>
+            </ProtectedRoute>
+          </RequireAdmin>
         ),
       },
       {
@@ -287,16 +350,22 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <Navigate to="/admin/libre-sakay/dashboard" replace />,
+            element: (
+              <RequireAdmin>
+                <Navigate to="/admin/libre-sakay/dashboard" replace />
+              </RequireAdmin>
+            ),
           },
           {
             path: ':section',
             element: (
-              <ProtectedRoute requiredRole="libre_sakay_admin">
-                <LazyWrapper>
-                  <AdminLibreSakay />
-                </LazyWrapper>
-              </ProtectedRoute>
+              <RequireAdmin>
+                <ProtectedRoute>
+                  <LazyWrapper>
+                    <AdminLibreSakay />
+                  </LazyWrapper>
+                </ProtectedRoute>
+              </RequireAdmin>
             ),
           },
         ],
@@ -322,7 +391,7 @@ export const router = createBrowserRouter([
       {
         path: 'dashboard',
         element: (
-          <ProtectedRoute requiredRole="developer">
+          <ProtectedRoute>
             <LazyWrapper>
               <DevDashboard />
             </LazyWrapper>

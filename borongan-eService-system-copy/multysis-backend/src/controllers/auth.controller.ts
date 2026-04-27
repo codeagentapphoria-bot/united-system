@@ -23,7 +23,7 @@ import { AuthRequest } from '../middleware/auth';
 import prisma from '../config/database';
 import { createOrUpdateSession, deleteUserSessions } from '../middleware/sessionTimeout';
 import { addDevLog } from '../services/dev.service';
-import { adminLogin, getCurrentUser, portalLogin } from '../services/auth.service';
+import { adminLogin, changeOwnPassword, getCurrentUser, portalLogin } from '../services/auth.service';
 import {
   createRefreshToken,
   findRefreshTokenByJwt,
@@ -305,6 +305,38 @@ export const getCurrentUserController = async (req: AuthRequest, res: Response):
     res.status(200).json({ status: 'success', data: { [key]: user } });
   } catch (error: any) {
     res.status(404).json({ status: 'error', message: error.message });
+  }
+};
+
+// =============================================================================
+// CHANGE OWN PASSWORD  (self-service)
+// =============================================================================
+
+export const changeOwnPasswordController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user?.id) {
+      res.status(401).json({ status: 'error', message: 'Authentication required' });
+      return;
+    }
+
+    // Only admins can change their own password this way
+    if (req.user.type !== 'admin') {
+      res.status(403).json({ status: 'error', message: 'Forbidden' });
+      return;
+    }
+
+    const { oldPassword, newPassword } = req.body;
+    await changeOwnPassword(req.user.id, { oldPassword, newPassword });
+    res.status(200).json({
+      status: 'success',
+      message: 'Password changed successfully',
+    });
+  } catch (error: any) {
+    const statusCode = error.message === 'User not found' ? 404 : 400;
+    res.status(statusCode).json({
+      status: 'error',
+      message: error.message || 'Failed to change password',
+    });
   }
 };
 

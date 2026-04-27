@@ -7,6 +7,7 @@ export interface User {
   role: 'admin' | 'resident' | 'developer';
   status?: string;
   createdAt: string;
+  redirectPath?: string;
 }
 
 export interface LoginCredentials {

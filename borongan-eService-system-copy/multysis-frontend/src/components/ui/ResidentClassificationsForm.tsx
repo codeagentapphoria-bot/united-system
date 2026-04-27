@@ -40,19 +40,20 @@ type ClassificationsFormValues = z.infer<typeof classificationsSchema>;
 
 export interface ResidentInfo {
   id: string;
-  first_name: string;
-  middle_name?: string;
-  last_name: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
   suffix?: string;
   barangay?: {
     id?: number;
-    barangay_name?: string;
+    name?: string;
     municipality?: {
       id?: number;
-      municipality_name?: string;
+      name?: string;
     };
   };
   classifications?: Array<{
+    classification_id?: number;
     classification_type?: string;
     classification?: string;
     classification_details?: string | Record<string, unknown>;
@@ -367,7 +368,7 @@ const ResidentClassificationsForm = ({
               <div>
                 <Label className="text-sm text-muted-foreground">Name</Label>
                 <p className="font-medium">
-                  {[resident.first_name, resident.middle_name, resident.last_name]
+                  {[resident.firstName, resident.middleName, resident.lastName]
                     .filter(Boolean)
                     .join(' ')
                     .trim()}

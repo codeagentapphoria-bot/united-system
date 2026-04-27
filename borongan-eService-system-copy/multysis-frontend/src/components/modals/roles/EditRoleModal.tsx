@@ -52,7 +52,7 @@ export const EditRoleModal: React.FC<EditRoleModalProps> = ({
   permissions,
   isLoading = false,
 }) => {
-  const { redirectOptions, isLoading: pagesLoading } = usePages();
+  const { redirectOptions, isLoading: pagesLoading } = usePages(role?.system);
   
   const form = useForm<UpdateRoleInput>({
     resolver: zodResolver(updateRoleSchema),
@@ -60,7 +60,7 @@ export const EditRoleModal: React.FC<EditRoleModalProps> = ({
       name: '',
       description: '',
       permissionIds: [],
-      redirectPath: '',
+      redirectPageId: '',
       isActive: true,
     },
   });
@@ -74,7 +74,7 @@ export const EditRoleModal: React.FC<EditRoleModalProps> = ({
         name: role.name,
         description: role.description,
         permissionIds: role.permissions.map(p => p.id),
-        redirectPath: role.redirectPath || '',
+        redirectPageId: role.redirectPage?.id || '',
         isActive: role.isActive,
       });
     }
@@ -161,12 +161,25 @@ export const EditRoleModal: React.FC<EditRoleModalProps> = ({
                   )}
                 />
 
+                {/* System — read-only badge */}
+                <FormItem>
+                  <CustomFormLabel>System</CustomFormLabel>
+                  <div className="mt-1">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm font-medium capitalize">
+                      {role?.system}
+                    </span>
+                  </div>
+                  <FormDescription>
+                    System cannot be changed after creation.
+                  </FormDescription>
+                </FormItem>
+
                 <FormField
                   control={form.control}
-                  name="redirectPath"
+                  name="redirectPageId"
                   render={({ field }) => (
                     <FormItem>
-                      <CustomFormLabel required>Login Redirect Page</CustomFormLabel>
+                      <CustomFormLabel>Login Redirect Page</CustomFormLabel>
                       <FormControl>
                         <Select
                           value={redirectOptions.find(option => option.value === field.value)}
@@ -182,7 +195,7 @@ export const EditRoleModal: React.FC<EditRoleModalProps> = ({
                               <div className="flex items-center justify-between">
                                 <span className="font-medium">{option.label}</span>
                                 <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 capitalize">
-                                  {option.category}
+                                  {option.system}
                                 </span>
                               </div>
                               <span className="text-xs text-gray-500 mt-1">{option.description}</span>
@@ -192,9 +205,9 @@ export const EditRoleModal: React.FC<EditRoleModalProps> = ({
                             control: (base) => ({
                               ...base,
                               minHeight: '40px',
-                              borderColor: form.formState.errors.redirectPath ? '#ef4444' : '#d1d5db',
+                              borderColor: form.formState.errors.redirectPageId ? '#ef4444' : '#d1d5db',
                               '&:hover': {
-                                borderColor: form.formState.errors.redirectPath ? '#ef4444' : '#9ca3af',
+                                borderColor: form.formState.errors.redirectPageId ? '#ef4444' : '#9ca3af',
                               },
                             }),
                             option: (base, state) => ({

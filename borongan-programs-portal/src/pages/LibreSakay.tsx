@@ -75,8 +75,14 @@ function StatusBanner({ program, isLoading, isCancelling, onViewPrograms, onAppl
 
   const status = program?.applicationStatus ?? null;
   const eligible = program?.eligible ?? false;
+  const adminNotes = program?.adminNotes ?? null;
   const key = status ?? 'none';
   const config = STATUS_CONFIG[key];
+
+  // For rejected status, show admin notes if available
+  const description = key === 'rejected' && adminNotes
+    ? `Reason: ${adminNotes}`
+    : config.description;
 
   return (
     <Card className="border border-gray-100">
@@ -87,7 +93,7 @@ function StatusBanner({ program, isLoading, isCancelling, onViewPrograms, onAppl
               {config.icon}
               {config.label}
             </div>
-            <p className="text-sm text-gray-500 mt-0.5">{config.description}</p>
+            <p className="text-sm text-gray-500 mt-0.5">{description}</p>
           </div>
 
           <div className="flex items-center gap-2 ml-auto flex-shrink-0">
@@ -120,7 +126,7 @@ function StatusBanner({ program, isLoading, isCancelling, onViewPrograms, onAppl
                 )}
               </Button>
             )}
-            {(key === 'rejected' || key === 'cancelled') && eligible && (
+            {(key === 'rejected' || key === 'cancelled') && (
               <Button
                 size="sm"
                 className="bg-primary-600 hover:bg-primary-700"

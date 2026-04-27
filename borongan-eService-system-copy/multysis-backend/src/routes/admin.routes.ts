@@ -5,6 +5,7 @@ import {
   getDashboardStatisticsController,
 } from '../controllers/admin.controller';
 import { verifyAdmin, verifyToken } from '../middleware/auth';
+import { requirePageAccess } from '../middleware/pageAccess';
 
 const router = Router();
 
@@ -15,8 +16,9 @@ router.get(
   getSubscriberNotificationCountsController
 );
 
-// All admin routes require admin authentication
+// All admin routes require admin authentication + page-level access control
 router.use(verifyAdmin);
+router.use(requirePageAccess);
 
 // Get admin notification counts
 router.get('/notifications/counts', getAdminNotificationCountsController);

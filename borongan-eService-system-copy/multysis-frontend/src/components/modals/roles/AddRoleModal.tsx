@@ -34,6 +34,13 @@ import { createRoleSchema, type CreateRoleInput } from '@/validations/role.schem
 // Utils
 import { cn } from '@/lib/utils';
 
+const SYSTEMS = [
+  { value: 'core', label: 'Core' },
+  { value: 'libre-sakay', label: 'Libre Sakay' },
+  { value: 'government-programs', label: 'Government Programs' },
+  { value: 'services', label: 'Services' },
+];
+
 interface AddRoleModalProps {
   open: boolean;
   onClose: () => void;
@@ -49,17 +56,19 @@ export const AddRoleModal: React.FC<AddRoleModalProps> = ({
   permissions,
   isLoading = false,
 }) => {
-  const { redirectOptions, isLoading: pagesLoading } = usePages();
-  
   const form = useForm<CreateRoleInput>({
     resolver: zodResolver(createRoleSchema),
     defaultValues: {
       name: '',
       description: '',
+      system: '',
       permissionIds: [],
-      redirectPath: '',
+      redirectPageId: '',
     },
   });
+
+  const selectedSystem = form.watch('system');
+  const { redirectOptions, isLoading: pagesLoading } = usePages(selectedSystem);
 
   const selectedPermissionIds = form.watch('permissionIds') || [];
 
@@ -143,26 +152,55 @@ export const AddRoleModal: React.FC<AddRoleModalProps> = ({
 
                 <FormField
                   control={form.control}
-                  name="redirectPath"
+                  name="system"
                   render={({ field }) => (
                     <FormItem>
-                      <CustomFormLabel required>Login Redirect Page</CustomFormLabel>
+                      <CustomFormLabel required>System</CustomFormLabel>
+                      <FormControl>
+                        <Select
+                          value={SYSTEMS.find(s => s.value === field.value)}
+                          onChange={(selected) => {
+                            field.onChange(selected?.value || '');
+                            // Reset redirect page when system changes
+                            form.setValue('redirectPageId', '');
+                          }}
+                          options={SYSTEMS}
+                          placeholder="Select system"
+                          className="mt-1"
+                          classNamePrefix="react-select"
+                          isSearchable={false}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <FormDescription>
+                        The subsystem this role belongs to. Cannot be changed later.
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="redirectPageId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <CustomFormLabel>Login Redirect Page</CustomFormLabel>
                       <FormControl>
                         <Select
                           value={redirectOptions.find(option => option.value === field.value)}
                           onChange={(selectedOption) => field.onChange(selectedOption?.value || '')}
                           options={redirectOptions}
-                          placeholder={pagesLoading ? "Loading pages..." : "Select redirect page"}
+                          placeholder={pagesLoading ? "Loading pages..." : selectedSystem ? "Select redirect page" : "Select system first"}
                           className="mt-1"
                           classNamePrefix="react-select"
                           isLoading={pagesLoading}
-                          isDisabled={pagesLoading}
+                          isDisabled={pagesLoading || !selectedSystem}
                           formatOptionLabel={(option) => (
                             <div className="flex flex-col">
                               <div className="flex items-center justify-between">
                                 <span className="font-medium">{option.label}</span>
                                 <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 capitalize">
-                                  {option.category}
+                                  {option.system}
                                 </span>
                               </div>
                               <span className="text-xs text-gray-500 mt-1">{option.description}</span>
@@ -172,9 +210,9 @@ export const AddRoleModal: React.FC<AddRoleModalProps> = ({
                             control: (base) => ({
                               ...base,
                               minHeight: '40px',
-                              borderColor: form.formState.errors.redirectPath ? '#ef4444' : '#d1d5db',
+                              borderColor: form.formState.errors.redirectPageId ? '#ef4444' : '#d1d5db',
                               '&:hover': {
-                                borderColor: form.formState.errors.redirectPath ? '#ef4444' : '#9ca3af',
+                                borderColor: form.formState.errors.redirectPageId ? '#ef4444' : '#9ca3af',
                               },
                             }),
                             option: (base, state) => ({
@@ -192,7 +230,7 @@ export const AddRoleModal: React.FC<AddRoleModalProps> = ({
                             }),
                           }}
                           isSearchable={true}
-                          noOptionsMessage={() => "No pages found"}
+                          noOptionsMessage={() => selectedSystem ? "No pages found" : "Select a system first"}
                         />
                       </FormControl>
                       <FormMessage />

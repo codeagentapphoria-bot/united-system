@@ -89,4 +89,6 @@ export const SECTION_TITLES: Record<string, string> = {
   'ride-logs': 'Ride Logs',
   applications: 'Beneficiaries & Application',
   'access-control': 'Access Control',
+  verification: 'Verify Resident',
+  settings: 'Program Settings',
 };

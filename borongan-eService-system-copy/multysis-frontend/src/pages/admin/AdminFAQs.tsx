@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 
 // Custom Components
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import {
   ActivateFAQModal,
   AddFAQModal,
@@ -154,7 +155,8 @@ export const AdminFAQs: React.FC = () => {
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
-      <div className="space-y-4">
+      <AccessControlGate pagePath="/admin/general-settings/faq">
+        <div className="space-y-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -433,6 +435,7 @@ export const AdminFAQs: React.FC = () => {
           </Card>
         </div>
       </div>
+      </AccessControlGate>
 
       {/* Modals */}
       <AddFAQModal 

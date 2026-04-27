@@ -13,6 +13,7 @@ import { Pagination } from '@/components/ui/pagination';
 
 // Custom Components
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import {
   AddPermissionModal,
   DeletePermissionModal,
@@ -32,72 +33,50 @@ import { adminMenuItems } from '@/config/admin-menu';
 import { cn } from '@/lib/utils';
 
 export const AdminPermissionsManagement: React.FC = () => {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+  const [localResourceFilter, setLocalResourceFilter] = useState('all');
+
+  // Debounce search query
+  const debouncedSearchQuery = useDebounce(localSearchQuery, 300);
+
   const {
     permissions,
     selectedPermission,
     setSelectedPermission,
     isLoading,
+    isFetching,
+    isCreating,
+    isUpdating,
+    isDeleting,
     error,
     createPermission,
     updatePermission,
     deletePermission,
     currentPage,
+    total,
+    totalPages,
     goToPage,
-    goToNextPage: _goToNextPage,
-    goToPreviousPage: _goToPreviousPage,
-  } = usePermissions();
+  } = usePermissions({ search: debouncedSearchQuery, resource: localResourceFilter });
 
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [localSearchQuery, setLocalSearchQuery] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [resourceFilter, setResourceFilter] = useState<string>('all');
-
-  // Debounce search query
-  const debouncedSearchQuery = useDebounce(localSearchQuery, 300);
-
-  // Update the actual search query when debounced value changes
-  useEffect(() => {
-    setSearchQuery(debouncedSearchQuery);
-  }, [debouncedSearchQuery]);
-
-  // Reset page when filters change
+  // Reset to page 1 when filters change
   useEffect(() => {
     goToPage(1);
-  }, [debouncedSearchQuery, resourceFilter]);
+  }, [debouncedSearchQuery, localResourceFilter]);
 
-  const filteredPermissions = permissions.filter((permission) => {
-    const matchesSearch =
-      permission.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      permission.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      permission.resource.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = resourceFilter === 'all' || permission.resource === resourceFilter;
-    return matchesSearch && matchesFilter;
-  });
-
-  // Apply pagination to filtered results
-  const totalFilteredPages = Math.max(1, Math.ceil(filteredPermissions.length / 10));
-  const startIndex = (currentPage - 1) * 10;
-  const endIndex = startIndex + 10;
-  const paginatedFilteredPermissions = filteredPermissions.slice(startIndex, endIndex);
-
-  // Pagination wrapper functions that respect filtered results
+  // Guarded pagination handlers
   const handleGoToPage = (page: number) => {
-    const clampedPage = Math.max(1, Math.min(page, totalFilteredPages));
-    goToPage(clampedPage);
+    if (currentPage !== page) goToPage(page);
   };
 
   const handleGoToNextPage = () => {
-    if (currentPage < totalFilteredPages) {
-      goToPage(currentPage + 1);
-    }
+    if (currentPage < totalPages) goToPage(currentPage + 1);
   };
 
   const handleGoToPreviousPage = () => {
-    if (currentPage > 1) {
-      goToPage(currentPage - 1);
-    }
+    if (currentPage > 1) goToPage(currentPage - 1);
   };
 
   // Get unique resources for filter
@@ -106,9 +85,8 @@ export const AdminPermissionsManagement: React.FC = () => {
   ).sort();
 
   const handleDownload = () => {
-    // Create CSV content
     const headers = ['Permission Name', 'Description', 'Resource', 'Action', 'Created Date'];
-    const rows = filteredPermissions.map((permission) => [
+    const rows = permissions.map((permission) => [
       permission.name,
       permission.description,
       permission.resource,
@@ -118,7 +96,6 @@ export const AdminPermissionsManagement: React.FC = () => {
 
     const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
 
-    // Download file
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -177,7 +154,8 @@ export const AdminPermissionsManagement: React.FC = () => {
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
-      <div className="space-y-4">
+      <AccessControlGate pagePath="/admin/access-control/permissions">
+        <div className="space-y-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -243,10 +221,10 @@ export const AdminPermissionsManagement: React.FC = () => {
               <div className="flex flex-wrap gap-2 mt-3">
                 <Button
                   size="sm"
-                  variant={resourceFilter === 'all' ? 'default' : 'outline'}
-                  onClick={() => setResourceFilter('all')}
+                  variant={localResourceFilter === 'all' ? 'default' : 'outline'}
+                  onClick={() => setLocalResourceFilter('all')}
                   className={
-                    resourceFilter === 'all'
+                    localResourceFilter === 'all'
                       ? 'bg-primary-600 hover:bg-primary-700'
                       : 'text-primary-600 hover:bg-primary-50'
                   }
@@ -257,10 +235,10 @@ export const AdminPermissionsManagement: React.FC = () => {
                   <Button
                     key={resource}
                     size="sm"
-                    variant={resourceFilter === resource ? 'default' : 'outline'}
-                    onClick={() => setResourceFilter(resource)}
+                    variant={localResourceFilter === resource ? 'default' : 'outline'}
+                    onClick={() => setLocalResourceFilter(resource)}
                     className={
-                      resourceFilter === resource
+                      localResourceFilter === resource
                         ? 'bg-primary-600 hover:bg-primary-700'
                         : 'text-primary-600 hover:bg-primary-50'
                     }
@@ -272,19 +250,23 @@ export const AdminPermissionsManagement: React.FC = () => {
 
               {/* Total count */}
               <div className="flex justify-between items-center mt-3 text-sm text-gray-600">
-                <span>Total: {filteredPermissions.length} permissions</span>
-                <span>Page {currentPage} of {totalFilteredPages}</span>
+                <span>Total: {total} permissions</span>
+                <span>Page {currentPage} of {totalPages}</span>
               </div>
             </CardHeader>
 
             <CardContent className="flex flex-col">
               <div className="space-y-2 max-h-[500px] overflow-y-auto overflow-x-visible pr-4">
-                {paginatedFilteredPermissions.length === 0 ? (
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-[90px] bg-gray-100 rounded-lg animate-pulse" />
+                  ))
+                ) : permissions.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     No permissions found.
                   </div>
                 ) : (
-                  paginatedFilteredPermissions.map((permission) => (
+                  permissions.map((permission) => (
                     <div key={permission.id} className="relative">
                       <Card
                         className={cn(
@@ -325,14 +307,14 @@ export const AdminPermissionsManagement: React.FC = () => {
               </div>
 
               {/* Pagination */}
-              {totalFilteredPages > 1 && (
+              {totalPages > 1 && (
                 <Pagination
                   currentPage={currentPage}
-                  totalPages={totalFilteredPages}
+                  totalPages={totalPages}
                   onPageChange={handleGoToPage}
                   onPrevious={handleGoToPreviousPage}
                   onNext={handleGoToNextPage}
-                  isLoading={isLoading}
+                  isLoading={isFetching}
                 />
               )}
             </CardContent>
@@ -350,13 +332,14 @@ export const AdminPermissionsManagement: React.FC = () => {
           </Card>
         </div>
       </div>
+      </AccessControlGate>
 
       {/* Modals */}
       <AddPermissionModal
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSubmit={handleCreatePermission}
-        isLoading={isLoading}
+        isLoading={isCreating}
       />
 
       <EditPermissionModal
@@ -364,7 +347,7 @@ export const AdminPermissionsManagement: React.FC = () => {
         onClose={() => setIsEditModalOpen(false)}
         onSubmit={handleUpdatePermission}
         permission={selectedPermission}
-        isLoading={isLoading}
+        isLoading={isUpdating}
       />
 
       <DeletePermissionModal
@@ -372,7 +355,7 @@ export const AdminPermissionsManagement: React.FC = () => {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeletePermission}
         permissionName={selectedPermission?.name || ''}
-        isLoading={isLoading}
+        isLoading={isDeleting}
       />
     </DashboardLayout>
   );

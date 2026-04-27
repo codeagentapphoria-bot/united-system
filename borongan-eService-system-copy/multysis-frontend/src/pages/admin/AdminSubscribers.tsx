@@ -7,6 +7,7 @@
  */
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -269,7 +270,8 @@ export const AdminSubscribers: React.FC = () => {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <DashboardLayout menuItems={adminMenuItems}>
-      <div className="space-y-4">
+      <AccessControlGate pagePath="/admin/subscribers">
+        <div className="space-y-4">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -504,6 +506,7 @@ export const AdminSubscribers: React.FC = () => {
           </div>
         </div>
       )}
+      </AccessControlGate>
     </DashboardLayout>
   );
 };

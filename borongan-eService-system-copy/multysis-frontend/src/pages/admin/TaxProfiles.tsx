@@ -23,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 // Custom Components
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import {
   Dialog,
   DialogContent,
@@ -281,7 +282,8 @@ export const TaxProfiles: React.FC = () => {
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
-      <div className="space-y-6">
+      <AccessControlGate pagePath="/admin/general-settings/tax-profiles">
+        <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Tax Profiles</h1>
@@ -682,6 +684,7 @@ export const TaxProfiles: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </AccessControlGate>
     </DashboardLayout>
   );
 };

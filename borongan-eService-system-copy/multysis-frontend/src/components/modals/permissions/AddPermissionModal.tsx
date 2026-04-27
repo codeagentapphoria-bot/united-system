@@ -1,10 +1,11 @@
 // React imports
-import React from 'react';
+import React, { useMemo } from 'react';
 
 // Third-party libraries
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import Select from 'react-select';
+import { useQuery } from '@tanstack/react-query';
 
 // UI Components (shadcn/ui)
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ import { createPermissionSchema, type CreatePermissionInput } from '@/validation
 
 // Utils
 import { cn } from '@/lib/utils';
-import { getAdminResources } from '@/utils/admin-resources';
+import { pageService } from '@/services/api/page.service';
 
 interface AddPermissionModalProps {
   open: boolean;
@@ -68,7 +69,22 @@ export const AddPermissionModal: React.FC<AddPermissionModalProps> = ({
   onSubmit,
   isLoading = false,
 }) => {
-  const resourceOptions = getAdminResources();
+  // Fetch pages from backend instead of using static config
+  const { data: pagesData, isLoading: isLoadingPages } = useQuery({
+    queryKey: ['pages', 'all'],
+    queryFn: () => pageService.getAllPages(),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  // Transform pages to resource options format
+  const resourceOptions = useMemo(() => {
+    if (!pagesData) return [];
+    return pagesData.map((page) => ({
+      value: page.path,
+      label: page.name,
+      description: `${page.system} — ${page.path}`,
+    }));
+  }, [pagesData]);
 
   const form = useForm<CreatePermissionInput>({
     resolver: zodResolver(createPermissionSchema),
@@ -147,7 +163,7 @@ export const AddPermissionModal: React.FC<AddPermissionModalProps> = ({
                     <FormControl>
                       <Select
                         options={resourceOptions}
-                        placeholder="Select a resource/page"
+                        placeholder={isLoadingPages ? 'Loading pages...' : 'Select a resource/page'}
                         styles={reactSelectStyles}
                         value={resourceOptions.find(opt => opt.value === field.value)}
                         onChange={(option) => field.onChange(option?.value || '')}
@@ -160,11 +176,12 @@ export const AddPermissionModal: React.FC<AddPermissionModalProps> = ({
                           </div>
                         )}
                         isSearchable={true}
+                        isDisabled={isLoadingPages}
                       />
                     </FormControl>
-                    <FormDescription>
-                      Select an admin page/resource from the list
-                    </FormDescription>
+<FormDescription>
+                       Select a page from Page Management. Resources are fetched from the database.
+                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

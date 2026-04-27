@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { addDevLog } from '../services/dev.service';
 import {
   adminLoginController,
+  changeOwnPasswordController,
   getCurrentUserController,
   getIdCardInfoController,
   getSocketTokenController,
@@ -122,6 +123,7 @@ router.delete(
 // =============================================================================
 router.post('/logout', authenticatedLimiter, verifyToken, logoutController);
 router.get('/me', authenticatedLimiter, verifyToken, getCurrentUserController);
+router.patch('/me/password', authenticatedLimiter, verifyToken, changeOwnPasswordController);
 router.get('/id-card-info', authenticatedLimiter, verifyResident, getIdCardInfoController);
 router.post('/refresh', authenticatedLimiter, verifyToken, refreshTokenController);
 router.get('/socket-token', authenticatedLimiter, verifyToken, getSocketTokenController);

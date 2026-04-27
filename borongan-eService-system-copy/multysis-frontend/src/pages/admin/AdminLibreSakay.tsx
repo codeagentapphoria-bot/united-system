@@ -15,6 +15,8 @@ import {
   RideLogsSection,
   ApplicationsSection,
   AccessControlSection,
+  VerificationSection,
+  ProgramSettingsSection,
   SECTION_TITLES,
 } from './libre-sakay';
 
@@ -62,6 +64,10 @@ export const AdminLibreSakay: React.FC = () => {
         return <ApplicationsSection />;
       case 'access-control':
         return <AccessControlSection />;
+      case 'verification':
+        return <VerificationSection />;
+      case 'settings':
+        return <ProgramSettingsSection />;
       default:
         return <DashboardSection />;
     }
@@ -69,6 +75,7 @@ export const AdminLibreSakay: React.FC = () => {
 
   return (
     <DashboardLayout menuItems={menuItems}>
+      {/* Access control handled by child routes - parent is just a layout */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">{SECTION_TITLES[section] ?? 'Libre Sakay'}</h1>
         <p className="text-sm text-gray-500 mt-1">Libre Sakay Administration</p>

@@ -12,12 +12,17 @@ export const createRoleSchema = z.object({
     .min(1, 'Description is required')
     .min(10, 'Description must be at least 10 characters')
     .max(200, 'Description must not exceed 200 characters'),
+  system: z
+    .string()
+    .min(1, 'System is required'),
   permissionIds: z
     .array(z.string())
     .min(1, 'At least one permission must be selected'),
-  redirectPath: z
+  redirectPageId: z
     .string()
-    .min(1, 'Redirect page is required'),
+    .uuid('Invalid redirect page ID')
+    .optional()
+    .or(z.literal('')),
 });
 
 export const updateRoleSchema = z.object({
@@ -36,9 +41,11 @@ export const updateRoleSchema = z.object({
     .array(z.string())
     .min(1, 'At least one permission must be selected')
     .optional(),
-  redirectPath: z
+  redirectPageId: z
     .string()
-    .min(1, 'Redirect page is required'),
+    .uuid('Invalid redirect page ID')
+    .optional()
+    .or(z.literal('')),
   isActive: z.boolean().optional(),
 });
 

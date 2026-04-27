@@ -1,4 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { adminMenuItems } from '@/config/admin-menu';
@@ -32,7 +33,8 @@ export const SocialAmelioration: React.FC = () => {
 
   return (
     <DashboardLayout menuItems={adminMenuItems}>
-      <div className={cn('space-y-4')}>
+      <AccessControlGate pagePath="/admin/e-government/social-amelioration">
+        <div className={cn('space-y-4')}>
         {/* Header */}
         <div className={cn('flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4')}>
           <div>
@@ -147,6 +149,7 @@ export const SocialAmelioration: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+      </AccessControlGate>
     </DashboardLayout>
   );
 };

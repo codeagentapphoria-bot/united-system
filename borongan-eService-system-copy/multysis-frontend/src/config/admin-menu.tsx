@@ -187,9 +187,11 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
       icon: <FiShield />,
       hasSubmenu: true,
       submenuItems: [
+        { path: '/admin/profile', label: 'My Profile' },
         { path: '/admin/access-control/role-management', label: 'Role Management' },
         { path: '/admin/access-control/permissions', label: 'Permissions' },
         { path: '/admin/access-control/user-management', label: 'User Management' },
+        { path: '/admin/access-control/page-management', label: 'Page Management' },
       ],
     },
 
@@ -278,11 +280,13 @@ export const adminMenuItems: MenuItem[] = [
     label: 'Access Control',
     icon: <FiShield />,
     hasSubmenu: true,
-    submenuItems: [
-      { path: '/admin/access-control/role-management', label: 'Role Management' },
-      { path: '/admin/access-control/permissions', label: 'Permissions' },
-      { path: '/admin/access-control/user-management', label: 'User Management' },
-    ],
+submenuItems: [
+        { path: '/admin/profile', label: 'My Profile' },
+        { path: '/admin/access-control/role-management', label: 'Role Management' },
+        { path: '/admin/access-control/permissions', label: 'Permissions' },
+        { path: '/admin/access-control/user-management', label: 'User Management' },
+        { path: '/admin/access-control/page-management', label: 'Page Management' },
+      ],
   },
   { type: 'separator' as const },
   { path: '/admin/city-announcement', label: 'City Announcement', icon: <FiMessageSquare /> },

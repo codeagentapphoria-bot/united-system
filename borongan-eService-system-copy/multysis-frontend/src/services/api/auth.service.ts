@@ -28,6 +28,19 @@ const api = axios.create({
   timeout: 30000,
 });
 
+// X-Page-Path interceptor: sends the current admin page path to the backend
+// for server-side page-access validation (defense-in-depth alongside frontend guards)
+api.interceptors.request.use(
+  (config) => {
+    // Only set for admin routes — match frontend /admin/* paths
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
+      config.headers['X-Page-Path'] = window.location.pathname;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Error handling interceptor
 api.interceptors.response.use(
   (response) => response,
@@ -94,6 +107,7 @@ export const authService = {
           name: result.user.name,
           email: result.user.email,
           role: result.user.role,
+          redirectPath: result.user.redirectPath,
           createdAt: result.user.createdAt || new Date().toISOString(),
         } as any,
         token: 'stored-in-cookie',
@@ -198,6 +212,17 @@ export const authService = {
       throw new Error('Unrecognized user data');
     } catch (error: any) {
       throw new Error(error.response?.data?.message || error.message || 'Not authenticated');
+    }
+  },
+
+  // ---------------------------------------------------------------------------
+  // Change own password (self-service, requires old password verification)
+  // ---------------------------------------------------------------------------
+  async changeOwnPassword(oldPassword: string, newPassword: string): Promise<void> {
+    try {
+      await api.patch('/auth/me/password', { oldPassword, newPassword });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || error.message || 'Failed to change password');
     }
   },
 

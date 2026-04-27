@@ -52,6 +52,7 @@ export const userService = {
   async getAllUsers(
     page: number = 1,
     limit: number = 10,
+    search?: string,
     signal?: AbortSignal
   ): Promise<PaginatedUsers> {
     try {
@@ -59,6 +60,7 @@ export const userService = {
         page: page.toString(),
         limit: limit.toString(),
       });
+      if (search) params.set('search', search);
 
       const response = await api.get(`/users?${params.toString()}`, { signal });
       const backendUsers: BackendUser[] = response.data.data;
@@ -170,6 +172,23 @@ export const userService = {
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to change password';
       throw new Error(errorMessage);
+    }
+  },
+
+  /**
+   * Returns the list of page paths the given user is allowed to access.
+   * Used by DashboardLayout to filter sidebar menu items.
+   */
+  async getAllowedPagePaths(userId: string, signal?: AbortSignal): Promise<string[]> {
+    try {
+      const response = await api.get<{ data: Array<{ path: string }> }>(`/users/${userId}/allowed-pages`, {
+        signal,
+      });
+      return response.data.data.map((page) => page.path);
+    } catch (error: any) {
+      // If endpoint returns 404 or other error, return empty array (no filtering)
+      console.error('Failed to fetch allowed page paths:', error);
+      return [];
     }
   },
 };

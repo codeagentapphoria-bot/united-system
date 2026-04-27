@@ -5,9 +5,9 @@ import {
   getPermission,
   updatePermission,
   deletePermission,
+  getDistinctResources,
 } from '../services/permission.service';
 import { AuthRequest } from '../middleware/auth';
-import { getAdminResources } from '../utils/admin-resources';
 
 export const createPermissionController = async (
   req: AuthRequest,
@@ -27,12 +27,17 @@ export const createPermissionController = async (
   }
 };
 
-export const getPermissionsController = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getPermissionsController = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const permissions = await getPermissions();
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 10;
+    const search = (req.query.search as string) || undefined;
+    const resource = (req.query.resource as string) || undefined;
+    const result = await getPermissions({ page, limit, search, resource });
     res.status(200).json({
       status: 'success',
-      data: permissions,
+      data: result.permissions,
+      pagination: result.pagination,
     });
   } catch (error: any) {
     res.status(500).json({
@@ -86,7 +91,13 @@ export const deletePermissionController = async (
       message: 'Permission deleted successfully',
     });
   } catch (error: any) {
-    res.status(400).json({
+    let statusCode = 400;
+    if (error.message === 'Permission not found') {
+      statusCode = 404;
+    } else if (error.message === 'Cannot delete permission that is assigned to roles') {
+      statusCode = 409;
+    }
+    res.status(statusCode).json({
       status: 'error',
       message: error.message || 'Failed to delete permission',
     });
@@ -98,7 +109,7 @@ export const getAdminResourcesController = async (
   res: Response
 ): Promise<void> => {
   try {
-    const resources = getAdminResources();
+    const resources = await getDistinctResources();
     res.status(200).json({
       status: 'success',
       data: resources,

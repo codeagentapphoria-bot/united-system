@@ -6,7 +6,7 @@ export const createPermissionValidation: ValidationChain[] = [
 ];
 
 export const updatePermissionValidation: ValidationChain[] = [
-  param('id').isUUID().withMessage('Invalid permission ID'),
+  param('id').matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('Invalid permission ID'),
   body('resource').optional().trim().isLength({ min: 1 }).withMessage('Resource cannot be empty'),
   body('action')
     .optional()
@@ -15,5 +15,5 @@ export const updatePermissionValidation: ValidationChain[] = [
 ];
 
 export const getPermissionValidation: ValidationChain[] = [
-  param('id').isUUID().withMessage('Invalid permission ID'),
+  param('id').matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('Invalid permission ID'),
 ];
