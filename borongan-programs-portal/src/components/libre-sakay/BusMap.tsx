@@ -7,6 +7,7 @@ import { type BusLocation } from '@/hooks/useBusLocations';
 import { queryKeys } from '@/lib/query-keys';
 import { Crosshair, ZoomIn, ZoomOut, RefreshCw, MapPin } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AnimatedBusMarker } from './AnimatedBusMarker';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -26,26 +27,6 @@ function getRouteName(bus: BusLocation['bus']): string {
 }
 
 // ── Marker components ──────────────────────────────────────────────────────────
-
-function BusPin({ busLocation, onClick }: { busLocation: BusLocation; onClick: () => void }) {
-  const isMoving = (busLocation.speed ?? 0) > 5;
-  const plate = busLocation.bus?.plate_number ?? 'N/A';
-  return (
-    <div
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      style={{
-        background: isMoving ? '#16a34a' : '#e11d48',
-        width: 36, height: 36, borderRadius: '50%',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        border: '2px solid white', boxShadow: '0 3px 8px rgba(0,0,0,.3)',
-        cursor: 'pointer', color: 'white', fontSize: 10, fontWeight: 'bold',
-        userSelect: 'none',
-      }}
-    >
-      {plate}
-    </div>
-  );
-}
 
 function UserPin() {
   return (
@@ -215,14 +196,11 @@ export function BusMap({
         onClick={handleMapClick}
       >
         {activeBuses.map(bus => (
-          <Marker
+          <AnimatedBusMarker
             key={bus.id}
-            longitude={bus.longitude}
-            latitude={bus.latitude}
-            anchor="center"
-          >
-            <BusPin busLocation={bus} onClick={() => setActiveSelectedBusId(bus.id)} />
-          </Marker>
+            busLocation={bus}
+            onClick={() => setActiveSelectedBusId(bus.id)}
+          />
         ))}
 
         {userLocation && (

@@ -5,6 +5,7 @@ import type { BusLocation } from '@/hooks/useBusLocations';
 import type { RouteGeometry } from '@/lib/routing';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Crosshair, ZoomIn, ZoomOut, MapPin } from 'lucide-react';
+import { AnimatedBusMarker } from './AnimatedBusMarker';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -43,35 +44,6 @@ function StopPin({ stop, index, onClick }: { stop: RouteStop; index: number; onC
       title={stop.name}
     >
       {index + 1}
-    </div>
-  );
-}
-
-function BusMarker({ bus }: { bus: BusLocation }) {
-  const isMoving = (bus.speed ?? 0) > 5;
-  const plate = bus.bus?.plate_number ?? 'N/A';
-
-  return (
-    <div
-      style={{
-        background: isMoving ? '#16a34a' : '#e11d48',
-        width: 36,
-        height: 36,
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        border: '2px solid white',
-        boxShadow: '0 3px 8px rgba(0,0,0,.3)',
-        cursor: 'default',
-        color: 'white',
-        fontSize: 8,
-        fontWeight: 'bold',
-        userSelect: 'none',
-      }}
-      title={`${plate} — ${isMoving ? `Moving ${(bus.speed ?? 0).toFixed(1)} km/h` : 'Parked'}`}
-    >
-      {plate}
     </div>
   );
 }
@@ -185,14 +157,7 @@ export function RouteMap({ height = '350px', stops, routeGeometry, busLocations 
 
         {/* Bus markers */}
         {visibleBuses.map(bus => (
-          <Marker
-            key={bus.id}
-            longitude={bus.longitude}
-            latitude={bus.latitude}
-            anchor="center"
-          >
-            <BusMarker bus={bus} />
-          </Marker>
+          <AnimatedBusMarker key={bus.id} busLocation={bus} />
         ))}
 
         {/* Stop markers */}
