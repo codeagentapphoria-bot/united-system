@@ -347,6 +347,10 @@ export const listRegistrationRequests = async (filters: RegistrationRequestFilte
             birthdate: true,
             civilStatus: true,
             status: true,
+            picturePath: true,
+            idType: true,
+            idDocumentNumber: true,
+            proofOfIdentification: true,
             barangay: {
               select: {
                 id: true,

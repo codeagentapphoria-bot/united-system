@@ -470,7 +470,7 @@ export const AdminRegistrationWorkflow: React.FC = () => {
                     {STATUS_LABELS[selectedRequest.status]}
                   </Badge>
                   <span className="text-sm text-gray-500">
-                    ID: {selectedRequest.id.slice(0, 8)}...
+                    ID: {selectedRequest.resident?.residentId || 'Pending Approval'}
                   </span>
                 </div>
 
@@ -557,6 +557,10 @@ export const AdminRegistrationWorkflow: React.FC = () => {
                       <p className="text-gray-500">Civil Status</p>
                       <p className="font-medium">{selectedRequest.citizen?.civilStatus || 'N/A'}</p>
                     </div>
+                    <div>
+                      <p className="text-gray-500">Residency Status</p>
+                      <p className="font-medium">{selectedRequest.citizen?.residencyStatus || 'N/A'}</p>
+                    </div>
                   </div>
                 </div>
 
@@ -574,6 +578,14 @@ export const AdminRegistrationWorkflow: React.FC = () => {
                       <p className="text-gray-500">Email</p>
                       <p className="font-medium">{selectedRequest.citizen?.email || 'N/A'}</p>
                     </div>
+                    {selectedRequest.subscriberId && (
+                      <div>
+                        <p className="text-gray-500">Subscriber ID</p>
+                        <p className="font-medium text-xs text-gray-600">
+                          {selectedRequest.subscriberId.slice(0, 8)}...
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -608,9 +620,40 @@ export const AdminRegistrationWorkflow: React.FC = () => {
                       <p className="font-medium">{selectedRequest.citizen?.idDocumentNumber || 'N/A'}</p>
                     </div>
                   </div>
-                  {(selectedRequest.citizen?.proofOfIdentification || selectedRequest.selfieUrl) && (
+                  {(selectedRequest.citizen?.picturePath || selectedRequest.citizen?.proofOfIdentification || selectedRequest.selfieUrl) && (
                     <div className="mt-4">
                       <div className="flex gap-4">
+                        {selectedRequest.citizen?.picturePath && (
+                          <div className="relative group">
+                            <p className="text-gray-500 mb-2">Profile Picture</p>
+                            <div className="relative w-32 h-40">
+                              <img
+                                src={selectedRequest.citizen.picturePath}
+                                alt="Profile"
+                                className="w-full h-full object-cover rounded-lg border cursor-pointer"
+                                onClick={() => {
+                                  setPreviewImage({
+                                    src: selectedRequest.citizen!.picturePath!,
+                                    label: 'Profile Picture'
+                                  });
+                                  setIsImagePreviewOpen(true);
+                                }}
+                              />
+                              <div
+                                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center cursor-pointer"
+                                onClick={() => {
+                                  setPreviewImage({
+                                    src: selectedRequest.citizen!.picturePath!,
+                                    label: 'Profile Picture'
+                                  });
+                                  setIsImagePreviewOpen(true);
+                                }}
+                              >
+                                <FiZoomIn className="text-white h-8 w-8" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         {selectedRequest.citizen?.proofOfIdentification && (
                           <div className="relative group">
                             <p className="text-gray-500 mb-2">ID Document</p>
@@ -684,6 +727,29 @@ export const AdminRegistrationWorkflow: React.FC = () => {
                     <div>
                       <h3 className="font-medium text-gray-900 mb-2">Admin Notes</h3>
                       <p className="text-sm text-gray-600">{selectedRequest.adminNotes}</p>
+                    </div>
+                  </>
+                )}
+
+                {selectedRequest.reviewedBy && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h3 className="font-medium text-gray-900 mb-2">Review Information</h3>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-500">Reviewed By</p>
+                          <p className="font-medium">{selectedRequest.reviewedBy}</p>
+                        </div>
+                        {selectedRequest.reviewedAt && (
+                          <div>
+                            <p className="text-gray-500">Reviewed At</p>
+                            <p className="font-medium">
+                              {formatDateWithoutTimezone(selectedRequest.reviewedAt)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </>
                 )}

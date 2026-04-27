@@ -32,6 +32,7 @@ export interface Classification {
 // Resident/citizen info shape (same fields, two names for backward compat)
 interface ResidentInfo {
   id: string;
+  residentId?: string;  // human-readable ID, e.g. "RES-2026-0010001"
   firstName: string;
   middleName?: string;
   lastName: string;
@@ -58,6 +59,7 @@ interface ResidentInfo {
   idType?: string;
   proofOfIdentification?: string;
   idDocumentNumber?: string;
+  picturePath?: string;
   username?: string;
   status?: string;
   // Classifications from resident_classifications table (BIMS-managed)
