@@ -128,15 +128,16 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
     }}>
       {/* Municipality logo */}
       <div style={{
-        width: 56, height: 56, borderRadius: '50%', padding: 0,
+        width: 58, height: 58,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: '0 2px 8px rgba(0,0,0,0.25)', marginBottom: 8, flexShrink: 0,
-        backgroundColor: '#fff', position: 'relative', zIndex: 2
+        backgroundColor: '#fff', borderRadius: '50%',
+        position: 'relative', zIndex: 2, overflow: 'hidden'
       }}>
         <img
           src="/borongan-city-seal.png"
           alt="City of Borongan"
-          style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '50%' }}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           onError={e => { e.currentTarget.src = '/lgu-borongan.png'; }}
         />
       </div>
