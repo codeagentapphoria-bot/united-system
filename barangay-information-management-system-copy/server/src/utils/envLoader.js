@@ -29,7 +29,10 @@ export const loadEnvConfig = () => {
         const equalIndex = trimmedLine.indexOf('=');
         if (equalIndex > 0) {
           const key = trimmedLine.substring(0, equalIndex).trim();
-          const value = trimmedLine.substring(equalIndex + 1).trim();
+          let value = trimmedLine.substring(equalIndex + 1).trim();
+          if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+          }
           // Don't override variables already set in the environment
           // (allows PG_DATABASE=test node server.js to work correctly)
           if (process.env[key] === undefined) {
