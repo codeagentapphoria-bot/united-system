@@ -14,6 +14,7 @@ import { useLibreSakayBadgeOverrides } from '@/context/LibreSakayBadgeContext';
 import { cn } from '@/lib/utils';
 import { clearServiceCache } from '@/utils/dynamic-menu';
 import { userService } from '@/services/api/user.service';
+import { SYSTEM_LABELS } from '@/constants/systemLabels';
 
 // Custom Components
 import { Header } from './Header';
@@ -50,14 +51,6 @@ function isAllowed(path: string | undefined, allowedPaths: Set<string>): boolean
 }
 
 const SYSTEM_ORDER = ['core', 'libre-sakay', 'libre-medisina', 'government-programs', 'services'];
-
-const SYSTEM_LABELS: Record<string, string> = {
-  core: 'Core',
-  'libre-sakay': 'Libre Sakay',
-  'libre-medisina': 'Libre Medisina',
-  'government-programs': 'Government Programs',
-  services: 'E-Government Services',
-};
 
 /**
  * Builds a unified, system-grouped menu from all configured menu items.

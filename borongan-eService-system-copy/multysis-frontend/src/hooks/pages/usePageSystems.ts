@@ -1,13 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { pageService } from '@/services/api/page.service';
 import { queryKeys } from '@/lib/query-keys';
-
-const SYSTEM_LABELS: Record<string, string> = {
-  'core': 'Core',
-  'libre-sakay': 'Libre Sakay',
-  'government-programs': 'Government Programs',
-  'services': 'Services',
-};
+import { SYSTEM_LABELS } from '@/constants/systemLabels';
 
 export const usePageSystems = () => {
   const { data, isLoading, error } = useQuery({
