@@ -17,6 +17,8 @@ import {
   unlinkGoogleAccountController,
 } from '../controllers/auth.controller';
 import { verifyResident, verifyToken, type AuthRequest } from '../middleware/auth';
+import { validate } from '../middleware/validation';
+import { portalLoginValidation } from '../validations/auth.schema';
 
 const router = Router();
 
@@ -67,7 +69,7 @@ const credentialKey = (field: 'credential' | 'email') => (req: Request): string 
 const makeCredentialLimiter = (field: 'credential' | 'email') =>
   rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour — single-credential abuse is slow by nature
-    max: 10,
+    max: 4, // Stricter limit — credential-based abuse is the primary threat vector
     message: {
       status: 'error',
       message: 'Too many login attempts for this account, please try again later',
@@ -100,7 +102,7 @@ router.post('/admin/login', authLimiter, adminCredentialLimiter, adminLoginContr
 // =============================================================================
 // Portal resident auth  (username + password)
 // =============================================================================
-router.post('/portal/login', authLimiter, portalCredentialLimiter, portalLoginController);
+router.post('/portal/login', authLimiter, portalCredentialLimiter, validate(portalLoginValidation), portalLoginController);
 
 // =============================================================================
 // Google OAuth (portal)

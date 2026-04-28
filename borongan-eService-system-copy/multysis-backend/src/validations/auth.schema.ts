@@ -16,11 +16,11 @@ export const adminLoginValidation: ValidationChain[] = [
 ];
 
 export const portalLoginValidation: ValidationChain[] = [
-  body('phoneNumber')
-    .matches(phoneRegex)
-    .withMessage('Invalid Philippine phone number format (e.g., 09XXXXXXXXX)')
-    .notEmpty()
-    .withMessage('Phone number is required'),
+  body('credential')
+    .isString()
+    .trim()
+    .isLength({ min: 1 })
+    .withMessage('Username or email is required'),
   body('password')
     .isLength({ min: 8 })
     .withMessage('Password must be at least 8 characters')

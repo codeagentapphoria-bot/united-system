@@ -10,6 +10,26 @@
 import axios from 'axios';
 import type { User } from '../../types/auth';
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract user-friendly validation errors from axios error.
+ * Backend: { message: "Validation failed", errors: [{ field, message }] }
+ * Output: "Password must be at least 8 characters" or "Password required, Username required"
+ */
+function formatValidationError(error: any): string {
+  const data = error?.response?.data;
+  if (!data) return error?.message || 'An unexpected error occurred.';
+
+  if (Array.isArray(data.errors) && data.errors.length > 0) {
+    return data.errors.map((e: { field: string; message: string }) => e.message).join(', ');
+  }
+
+  return data.message || error?.message || 'An unexpected error occurred.';
+}
+
 const getApiUrl = (): string => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
   const isProduction = import.meta.env.PROD;
@@ -113,7 +133,7 @@ export const authService = {
         token: 'stored-in-cookie',
       };
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || error.message || 'Login failed');
+      throw new Error(formatValidationError(error));
     }
   },
 
@@ -140,7 +160,7 @@ export const authService = {
       if (!result?.resident) throw new Error('Invalid response from server');
       return { resident: result.resident, token: 'stored-in-cookie' };
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || error.message || 'Login failed');
+      throw new Error(formatValidationError(error));
     }
   },
 
