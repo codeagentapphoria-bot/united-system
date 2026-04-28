@@ -1,10 +1,6 @@
 /**
  * Single source of truth for system → human-readable label mapping.
  * Used by role modals, page modals, sidebar, and any UI displaying system names.
- *
- * NOTE: This maps page systems. Seeded roles have system='eservice' which is
- * a legacy value with no corresponding pages. Those roles will show 'eservice'
- * as the label (acceptable fallback). Fix seed data separately.
  */
 export const SYSTEM_LABELS: Record<string, string> = {
   core: 'Core',
