@@ -406,13 +406,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
                   }
                 });
 
+                const groupsWithItems = groups.filter(g => g.items.length > 0);
+                const singleSystem = groupsWithItems.length === 1;
+
                 return (
                   <ul className="space-y-1">
                     {/* Render standalone items first (no group) */}
                     {standaloneItems.map((item, index) => renderMenuItem(item, index))}
 
-                    {/* Render each system group */}
-                    {groups.map(group => {
+                    {/* Single-system: render items directly, no collapsible group */}
+                    {singleSystem && groupsWithItems[0].items.map((item, index) => renderMenuItem(item, index))}
+
+                    {/* Multi-system: collapsible groups */}
+                    {!singleSystem && groupsWithItems.map(group => {
                       const isCollapsed = collapsedSystemGroups.includes(group.system);
                       // Sum badge counts from all items in this group
                       const groupBadgeCount = group.items.reduce(
