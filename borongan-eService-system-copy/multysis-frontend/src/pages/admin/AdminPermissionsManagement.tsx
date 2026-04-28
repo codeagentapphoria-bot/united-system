@@ -29,7 +29,7 @@ import { usePermissions } from '@/hooks/permissions/usePermissions';
 import type { CreatePermissionInput, UpdatePermissionInput } from '@/validations/permission.schema';
 
 // Utils
-import { adminMenuItems } from '@/config/admin-menu';
+
 import { cn } from '@/lib/utils';
 
 export const AdminPermissionsManagement: React.FC = () => {
@@ -153,7 +153,7 @@ export const AdminPermissionsManagement: React.FC = () => {
   };
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
+    <DashboardLayout>
       <AccessControlGate pagePath="/admin/access-control/permissions">
         <div className="space-y-4">
         {/* Header */}

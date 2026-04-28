@@ -26,7 +26,7 @@ import { useFAQs, type CreateFAQInput, type UpdateFAQInput } from '@/hooks/faqs/
 import { useDebounce } from '@/hooks/useDebounce';
 
 // Utils
-import { adminMenuItems } from '@/config/admin-menu';
+
 import { cn } from '@/lib/utils';
 
 export const AdminFAQs: React.FC = () => {
@@ -154,7 +154,7 @@ export const AdminFAQs: React.FC = () => {
   };
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
+    <DashboardLayout>
       <AccessControlGate pagePath="/admin/general-settings/faq">
         <div className="space-y-4">
         {/* Header */}

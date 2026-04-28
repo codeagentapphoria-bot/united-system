@@ -21,7 +21,7 @@ import { DashboardStatisticsProvider } from '@/context/DashboardStatisticsContex
 import { useAdminNotifications } from '@/hooks/notifications/useAdminNotifications';
 
 // Utils
-import { adminMenuItems } from '@/config/admin-menu';
+
 import { cn } from '@/lib/utils';
 import { FiEdit, FiFileText, FiMessageSquare, FiUsers } from 'react-icons/fi';
 
@@ -65,7 +65,7 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <DashboardStatisticsProvider>
-      <DashboardLayout menuItems={adminMenuItems}>
+      <DashboardLayout>
         <AccessControlGate pagePath="/admin/dashboard">
           <div className={cn("space-y-6") }>
           {/* Welcome Section */}

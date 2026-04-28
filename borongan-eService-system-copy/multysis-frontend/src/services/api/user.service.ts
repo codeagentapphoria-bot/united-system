@@ -176,15 +176,19 @@ export const userService = {
   },
 
   /**
-   * Returns the list of page paths the given user is allowed to access.
-   * Used by DashboardLayout to filter sidebar menu items.
+   * Returns the list of pages (with path and system) the given user is allowed to access.
+   * Used by DashboardLayout to filter sidebar menu items and group them by system.
    */
-  async getAllowedPagePaths(userId: string, signal?: AbortSignal): Promise<string[]> {
+  async getAllowedPagePaths(
+    userId: string,
+    signal?: AbortSignal
+  ): Promise<Array<{ path: string; system: string }>> {
     try {
-      const response = await api.get<{ data: Array<{ path: string }> }>(`/users/${userId}/allowed-pages`, {
-        signal,
-      });
-      return response.data.data.map((page) => page.path);
+      const response = await api.get<{ data: Array<{ path: string; system: string }> }>(
+        `/users/${userId}/allowed-pages`,
+        { signal }
+      );
+      return response.data.data;
     } catch (error: any) {
       // If endpoint returns 404 or other error, return empty array (no filtering)
       console.error('Failed to fetch allowed page paths:', error);

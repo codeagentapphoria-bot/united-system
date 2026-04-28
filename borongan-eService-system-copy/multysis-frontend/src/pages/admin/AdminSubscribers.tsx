@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { adminMenuItems } from '@/config/admin-menu';
+
 import { useResidents } from '@/hooks/residents/useResidents';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatDateWithoutTimezone } from '@/lib/utils';
@@ -269,7 +269,7 @@ export const AdminSubscribers: React.FC = () => {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
+    <DashboardLayout>
       <AccessControlGate pagePath="/admin/subscribers">
         <div className="space-y-4">
 

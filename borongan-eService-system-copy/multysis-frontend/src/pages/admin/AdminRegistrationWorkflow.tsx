@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { Separator } from '@/components/ui/separator';
-import { adminMenuItems } from '@/config/admin-menu';
+
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatDateWithoutTimezone, formatIdType } from '@/lib/utils';
 import { adminRegistrationService, type RegistrationRequestResponse, type RegistrationRequestFilters } from '@/services/api/citizen-registration.service';
@@ -273,7 +273,7 @@ export const AdminRegistrationWorkflow: React.FC = () => {
   };
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
+    <DashboardLayout>
       <AccessControlGate pagePath="/admin/registration-workflow">
         <div className="space-y-6">
         {/* Header */}

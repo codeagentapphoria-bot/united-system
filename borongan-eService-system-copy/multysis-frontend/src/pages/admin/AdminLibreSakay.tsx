@@ -1,10 +1,10 @@
 // Thin router — all section logic has been extracted to ./libre-sakay/
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { libresakayMenuItems } from '@/config/libre-sakay-menu';
 import { portalProgramsService } from '@/services/api/portal-programs.service';
+import { useLibreSakayBadgeOverrides } from '@/context/LibreSakayBadgeContext';
 import {
   DashboardSection,
   FleetSection,
@@ -22,6 +22,7 @@ import {
 
 export const AdminLibreSakay: React.FC = () => {
   const { section = 'dashboard' } = useParams<{ section: string }>();
+  const { setBadgeOverrides } = useLibreSakayBadgeOverrides();
 
   const { data: pendingData } = useQuery({
     queryKey: ['libre-sakay', 'pending-apps-badge'],
@@ -34,15 +35,16 @@ export const AdminLibreSakay: React.FC = () => {
     retry: false,
   });
 
+  // Use ref to track the previous badge count — only call setBadgeOverrides when value actually changes
+  const prevBadgeRef = useRef<number | undefined>(undefined);
   const pendingCount = pendingData?.pagination.total ?? 0;
 
-  // Inject badge count into the Program Applications menu item
-  const menuItems = libresakayMenuItems.map(item => {
-    if (item.path === '/admin/libre-sakay/applications') {
-      return { ...item, badgeCount: pendingCount };
+  useEffect(() => {
+    if (prevBadgeRef.current !== pendingCount) {
+      prevBadgeRef.current = pendingCount;
+      setBadgeOverrides(new Map([['/admin/libre-sakay/applications', pendingCount]]));
     }
-    return item;
-  });
+  }, [pendingCount, setBadgeOverrides]);
 
   const renderSection = () => {
     switch (section) {
@@ -74,7 +76,7 @@ export const AdminLibreSakay: React.FC = () => {
   };
 
   return (
-    <DashboardLayout menuItems={menuItems}>
+    <DashboardLayout>
       {/* Access control handled by child routes - parent is just a layout */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">{SECTION_TITLES[section] ?? 'Libre Sakay'}</h1>

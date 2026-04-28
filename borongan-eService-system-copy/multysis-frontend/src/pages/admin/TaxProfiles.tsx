@@ -45,7 +45,7 @@ import { TaxProfileDesigner } from '@/components/tax/TaxProfileDesigner';
 import type { TaxConfiguration } from '@/types/tax';
 
 // Utils
-import { adminMenuItems } from '@/config/admin-menu';
+
 import { format } from 'date-fns';
 
 export const TaxProfiles: React.FC = () => {
@@ -281,7 +281,7 @@ export const TaxProfiles: React.FC = () => {
   });
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
+    <DashboardLayout>
       <AccessControlGate pagePath="/admin/general-settings/tax-profiles">
         <div className="space-y-6">
         <div className="flex items-center justify-between">

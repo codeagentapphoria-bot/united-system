@@ -13,6 +13,7 @@ interface SubmenuItem {
   isCategoryHeader?: boolean;
   type?: 'separator';
   category?: string;
+  system?: string;
 }
 
 interface MenuItem {
@@ -23,6 +24,7 @@ interface MenuItem {
   hasSubmenu?: boolean;
   submenuItems?: SubmenuItem[];
   badgeCount?: number;
+  system?: string;
 }
 
 // List of implemented routes
@@ -184,6 +186,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
               <ul className="space-y-1">
                 {menuItems.map((item, index) => {
                   if (item.type === 'separator') {
+                    // System group header separator — render as a labeled section header
+                    if (item.label && item.system) {
+                      return (
+                        <li key={`group-${item.system}`}>
+                          <div className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                            {item.label}
+                          </div>
+                        </li>
+                      );
+                    }
+                    // Plain visual separator
                     return (
                       <li key={`separator-${index}`} className="py-2">
                         <Separator />

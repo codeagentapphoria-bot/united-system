@@ -30,7 +30,7 @@ import {
 import { useDebounce } from '@/hooks/useDebounce';
 
 // Utils
-import { adminMenuItems } from '@/config/admin-menu';
+
 import { cn } from '@/lib/utils';
 
 export const AdminGovernmentPrograms: React.FC = () => {
@@ -170,7 +170,7 @@ export const AdminGovernmentPrograms: React.FC = () => {
   const getTypesLabel = (types: string[]) => types.map(getTypeLabel).join(', ');
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
+    <DashboardLayout>
       <AccessControlGate pagePath="/admin/general-settings/government-program">
         <div className="space-y-4">
         {/* Header */}

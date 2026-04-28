@@ -2,7 +2,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AccessControlGate } from '@/components/common/AccessControlGate';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { adminMenuItems } from '@/config/admin-menu';
+
 import { cn } from '@/lib/utils';
 import React, { useEffect, useState } from 'react';
 import { FiBookOpen, FiClipboard, FiHeart, FiSettings, FiUserCheck, FiUsers } from 'react-icons/fi';
@@ -32,7 +32,7 @@ export const SocialAmelioration: React.FC = () => {
   }, [activeTab]);
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
+    <DashboardLayout>
       <AccessControlGate pagePath="/admin/e-government/social-amelioration">
         <div className={cn('space-y-4')}>
         {/* Header */}

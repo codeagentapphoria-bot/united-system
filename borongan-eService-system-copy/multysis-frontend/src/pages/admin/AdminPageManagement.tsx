@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
-import { adminMenuItems } from '@/config/admin-menu';
+
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePageManagement } from '@/hooks/pages/usePageManagement';
 import { cn } from '@/lib/utils';
@@ -95,7 +95,7 @@ export default function AdminPageManagement() {
   };
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
+    <DashboardLayout>
       <AccessControlGate pagePath="/admin/access-control/page-management">
         <div className="space-y-4">
         {/* Header */}
