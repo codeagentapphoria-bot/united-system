@@ -46,12 +46,17 @@
     letter-spacing: -0.02em;
     margin-bottom: 0.4em;
   }
-  .reveal h1 { font-weight: 800; font-size: 2.6em; }
-  .reveal h2 { font-weight: 700; font-size: 1.85em; }
-  .reveal h3 { font-weight: 600; font-size: 1.35em; color: var(--navy-light); }
-  .reveal p, .reveal li { font-size: 0.78em; line-height: 1.6; }
+  .reveal h1 { font-weight: 800; font-size: 3em; }
+  .reveal h2 { font-weight: 700; font-size: 2.2em; }
+  .reveal h3 { font-weight: 600; font-size: 1.55em; color: var(--navy-light); }
+  .reveal p, .reveal li { font-size: 0.92em; line-height: 1.6; }
+  .reveal ul, .reveal ol { list-style-position: inside; padding-left: 0; }
+  .reveal .callouts { list-style-position: outside; }
   .reveal a { color: var(--gold); text-decoration: none; }
   .reveal strong { color: var(--navy); font-weight: 600; }
+  /* On dark backgrounds, navy strong = invisible. Use light gold instead. */
+  .reveal .slide-hero strong,
+  .reveal .section-divider strong { color: var(--gold-light); }
   .reveal code {
     font-family: 'JetBrains Mono', monospace;
     background: rgba(218, 165, 32, 0.12);
@@ -69,33 +74,34 @@
   .slide-hero h1, .slide-hero h2, .slide-hero h3 { color: white; }
   .slide-hero .accent { color: var(--gold-light); }
   .slide-hero .seal {
-    width: 130px; height: 130px; margin-bottom: 24px;
+    width: 170px; height: 170px; margin-bottom: 30px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 10px 40px rgba(218,165,32,0.35);
+    box-shadow: 0 12px 48px rgba(218,165,32,0.4);
     overflow: hidden;
     background: white;
   }
   .slide-hero .seal img { width: 100%; height: 100%; object-fit: contain; }
   .slide-hero .lede {
-    font-size: 0.7em; color: rgba(255,255,255,0.8);
-    max-width: 720px; line-height: 1.6; margin-top: 18px;
+    font-size: 1.15em; color: rgba(255,255,255,0.92);
+    max-width: 900px; line-height: 1.6; margin-top: 28px;
   }
 
   /* TOC slide */
   .toc-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px 40px;
-    margin-top: 30px;
-    font-size: 0.65em;
+    gap: 20px 40px;
+    margin-top: 40px;
+    font-size: 0.9em;
   }
   .toc-grid .toc-item {
-    display: flex; align-items: baseline; gap: 14px;
-    padding: 10px 14px;
-    border-left: 3px solid var(--gold);
+    display: flex; align-items: baseline; gap: 16px;
+    padding: 16px 20px;
+    border-left: 4px solid var(--gold);
     background: white;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border-radius: 4px;
   }
   .toc-grid .toc-num {
     font-family: 'JetBrains Mono', monospace;
@@ -111,11 +117,11 @@
     text-align: center;
   }
   .section-divider .kicker {
-    font-size: 0.5em;
+    font-size: 0.8em;
     letter-spacing: 0.4em; text-transform: uppercase;
-    color: var(--gold-light); margin-bottom: 16px;
+    color: var(--gold-light); margin-bottom: 22px;
   }
-  .section-divider h1 { color: white; font-size: 3em; }
+  .section-divider h1 { color: white; font-size: 4.2em; margin-bottom: 0.3em; }
 
   /* Annotated screenshot */
   .shot {
@@ -129,7 +135,7 @@
     max-width: 100%;
     vertical-align: top;
   }
-  .shot img { display: block; width: auto; height: auto; max-width: 100%; max-height: 760px; }
+  .shot img { display: block; width: auto; height: auto; max-width: 100%; max-height: 760px; image-rendering: -webkit-optimize-contrast; }
   .two-col > div:has(> .shot) { text-align: center; }
   .shot svg {
     position: absolute; inset: 0;
@@ -159,9 +165,9 @@
   .callouts { list-style: none; padding: 0; margin: 0; }
   .callouts li {
     display: flex; gap: 14px;
-    padding: 10px 0;
-    font-size: 0.7em;
-    line-height: 1.5;
+    padding: 14px 0;
+    font-size: 0.85em;
+    line-height: 1.55;
     border-bottom: 1px solid rgba(0,0,0,0.06);
   }
   .callouts li:last-child { border-bottom: 0; }
@@ -186,30 +192,32 @@
   }
   .step-flow .step {
     background: white;
-    border-top: 4px solid var(--gold);
-    padding: 18px 14px;
+    border-top: 5px solid var(--gold);
+    padding: 24px 18px;
     text-align: center;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     position: relative;
+    border-radius: 0 0 6px 6px;
   }
   .step-flow .step .num {
     font-family: 'JetBrains Mono', monospace;
     color: var(--gold); font-weight: 700;
-    font-size: 1.1em;
+    font-size: 1.3em;
   }
-  .step-flow .step h4 { font-size: 0.7em; color: var(--navy); margin: 6px 0 4px; }
-  .step-flow .step p { font-size: 0.5em; color: var(--muted); margin: 0; line-height: 1.4; }
+  .step-flow .step h4 { font-size: 1.1em; color: var(--navy); margin: 12px 0 8px; }
+  .step-flow .step p { font-size: 0.85em; color: var(--muted); margin: 0; line-height: 1.5; }
 
   /* Tag pills */
   .pill {
     display: inline-block;
     background: var(--navy);
     color: white;
-    font-size: 0.5em;
+    font-size: 0.72em;
     font-weight: 600;
-    padding: 3px 10px;
+    padding: 5px 14px;
     border-radius: 999px;
-    margin-right: 6px;
+    margin-right: 8px;
+    margin-bottom: 6px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -220,21 +228,22 @@
   .tip {
     background: rgba(218, 165, 32, 0.15);
     border-left: 4px solid var(--gold);
-    padding: 14px 18px;
-    margin-top: 18px;
-    font-size: 0.7em;
-    line-height: 1.5;
+    padding: 18px 22px;
+    margin-top: 22px;
+    font-size: 0.85em;
+    line-height: 1.55;
     color: var(--ink);
   }
   .tip strong { color: #a07410; }
 
   /* Tables */
   .reveal table {
-    font-size: 0.72em;
+    font-size: 0.85em;
     border-collapse: collapse;
     width: 100%;
-    margin: 14px 0;
+    margin: 20px 0;
   }
+  .reveal table td { padding: 12px 16px; }
   .reveal table th {
     background: var(--navy);
     color: white;
@@ -262,15 +271,14 @@
   /* Title block */
   .title-block { margin-bottom: 18px; }
   .title-block .kicker {
-    font-size: 0.45em;
+    font-size: 0.7em;
     letter-spacing: 0.3em;
     text-transform: uppercase;
     color: #a07410;
     font-weight: 700;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
   .reveal .slides section { padding: 20px 0; }
-  .shot { transform: translateZ(0); }
 
   /* Closing slide */
   .closing-grid {
@@ -281,13 +289,13 @@
   }
   .closing-grid .card {
     background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    padding: 20px;
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 10px;
+    padding: 28px 24px;
     color: white;
   }
-  .closing-grid .card h4 { color: var(--gold-light); font-size: 0.7em; }
-  .closing-grid .card p { font-size: 0.55em; color: rgba(255,255,255,0.85); }
+  .closing-grid .card h4 { color: var(--gold-light); font-size: 1.25em; margin-bottom: 12px; }
+  .closing-grid .card p { font-size: 0.95em; color: rgba(255,255,255,0.92); line-height: 1.6; }
 
   /* PDF download button */
   #pdf-btn {
@@ -331,11 +339,11 @@
     <section class="slide-hero" data-background-color="#2c3e5c">
       <div style="text-align: center; padding-top: 40px;">
         <div class="seal" style="margin: 0 auto;"><img src="screenshots/lgu-seal.png" alt="LGU Borongan"></div>
-        <div style="font-size: 0.5em; letter-spacing: 0.3em; color: var(--gold-light); text-transform: uppercase; margin-bottom: 14px;">City of Borongan · Eastern Samar</div>
-        <h1 style="font-size: 2.6em;">Residents <span class="accent">Portal</span></h1>
+        <div style="font-size: 0.7em; letter-spacing: 0.3em; color: var(--gold-light); text-transform: uppercase; margin-bottom: 16px;">City of Borongan · Eastern Samar</div>
+        <h1 style="font-size: 3.4em;">Residents <span class="accent">Portal</span></h1>
         <h3 style="color: rgba(255,255,255,0.85); font-weight: 400; margin-top: 8px;">User Guide &amp; Walkthrough</h3>
         <p class="lede" style="margin: 30px auto 0;">A complete visual guide to registering, signing in, and using the city services available at <strong style="color: white;">portal.borongancity.com</strong>.</p>
-        <div style="margin-top: 60px; font-size: 0.45em; color: rgba(255,255,255,0.5); letter-spacing: 0.2em;">PRESS → TO BEGIN</div>
+        <div style="margin-top: 60px; font-size: 0.65em; color: rgba(255,255,255,0.6); letter-spacing: 0.2em;">PRESS → TO BEGIN</div>
       </div>
     </section>
 
@@ -376,7 +384,7 @@
         </div>
         <div>
           <h3>The flow at a glance</h3>
-          <div style="background: white; padding: 20px; border-left: 4px solid var(--gold); font-size: 0.6em; line-height: 1.9; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+          <div style="background: white; padding: 22px; border-left: 4px solid var(--gold); font-size: 0.85em; line-height: 1.9; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
             <span class="pill">1</span> Register (4 steps)<br>
             <span style="color: var(--gold); font-size: 1.4em; font-weight: 700; padding-left: 10px;">↓</span><br>
             <span class="pill">2</span> Admin reviews application<br>
@@ -445,7 +453,7 @@
     <section class="section-divider">
       <div class="kicker">Section 3</div>
       <h1>Registration</h1>
-      <p style="font-size: 0.7em; color: rgba(255,255,255,0.85); max-width: 700px; margin: 20px auto 40px;">
+      <p style="font-size: 0.95em; color: rgba(255,255,255,0.92); max-width: 800px; margin: 20px auto 40px;">
         Four steps. Required fields are marked <strong style="color: var(--gold-light);">*</strong>. You can go <strong>Back</strong> without losing data — refreshing the page <em>does</em> lose data.
       </p>
       <div class="step-flow" style="max-width: 900px; margin: 0 auto;">
@@ -456,10 +464,10 @@
       </div>
     </section>
 
-    <!-- ============ 6. STEP 1 PERSONAL INFO (annotated) ============ -->
+    <!-- ============ 6a. STEP 1 PERSONAL INFO — TOP HALF ============ -->
     <section>
       <div class="title-block">
-        <div class="kicker">Step 1 of 4</div>
+        <div class="kicker">Step 1 of 4 · Part 1</div>
         <h1>Personal Information</h1>
       </div>
       <div class="two-col flip">
@@ -467,14 +475,11 @@
           <li><span class="ci-num">1</span><span class="ci-body"><strong>Step indicator</strong>Track progress through all 4 steps. Click "Back" to return — data is preserved.</span></li>
           <li><span class="ci-num">2</span><span class="ci-body"><strong>Required fields *</strong>First, Last name, Sex, Civil Status, DOB, Email — all required.</span></li>
           <li><span class="ci-num">3</span><span class="ci-body"><strong>Photo (optional)</strong>Click the avatar to upload. JPG or PNG.</span></li>
-          <li><span class="ci-num">4</span><span class="ci-body"><strong>Status checkboxes</strong>Tick if you're a Voter, IP, PWD, or have dependents. Reveals sub-fields when ticked.</span></li>
-          <li><span class="ci-num">5</span><span class="ci-body"><strong>Emergency Contact</strong>Required. Use Philippine mobile format <code>09XXXXXXXXX</code>.</span></li>
-          <li><span class="ci-num">6</span><span class="ci-body"><strong>Next</strong>Validates all required fields. Errors appear inline next to each field.</span></li>
         </ul>
         <div class="shot" style="max-width: 100%;">
-          <img src="screenshots/02-register-page.png" alt="Registration Step 1">
-          <svg viewBox="0 0 1265 1875" preserveAspectRatio="none">
-            <!-- 1: Step indicator (full sidebar with 4 steps) -->
+          <img src="screenshots/02a-register-top.png" alt="Registration Step 1 — top half">
+          <svg viewBox="0 0 1265 950" preserveAspectRatio="none">
+            <!-- 1: Step indicator (sidebar) -->
             <rect x="20" y="100" width="280" height="260" class="a-highlight"/>
             <path d="M 300 230 L 345 230" class="a-arrow"/>
             <polygon points="340,225 340,235 350,230" class="a-arrow-head"/>
@@ -486,30 +491,50 @@
             <polygon points="1235,235 1235,245 1245,240" class="a-arrow-head"/>
             <circle cx="1248" cy="180" r="22" class="a-circle"/>
             <text x="1248" y="180" class="a-num" font-size="22">2</text>
-            <!-- 3: Photo avatar (left of name fields) -->
+            <!-- 3: Photo avatar -->
             <rect x="386" y="200" width="100" height="100" class="a-highlight"/>
             <path d="M 386 250 L 350 250" class="a-arrow"/>
             <polygon points="356,245 356,255 346,250" class="a-arrow-head"/>
             <circle cx="320" cy="250" r="22" class="a-circle"/>
             <text x="320" y="250" class="a-num" font-size="22">3</text>
-            <!-- 4: Additional Status card (lower-left half) -->
-            <rect x="369" y="1182" width="420" height="573" class="a-highlight"/>
-            <path d="M 369 1469 L 325 1469" class="a-arrow"/>
-            <polygon points="332,1464 332,1474 322,1469" class="a-arrow-head"/>
-            <circle cx="295" cy="1469" r="26" class="a-circle"/>
-            <text x="295" y="1469" class="a-num" font-size="26">4</text>
-            <!-- 5: Emergency Contact card (lower-right half) -->
-            <rect x="800" y="1182" width="417" height="260" class="a-highlight"/>
-            <path d="M 1217 1312 L 1248 1312" class="a-arrow"/>
-            <polygon points="1243,1307 1243,1317 1253,1312" class="a-arrow-head"/>
-            <circle cx="1248" cy="1280" r="22" class="a-circle"/>
-            <text x="1248" y="1280" class="a-num" font-size="22">5</text>
-            <!-- 6: Next button (full width) -->
-            <rect x="369" y="1795" width="848" height="48" class="a-highlight"/>
-            <path d="M 1217 1819 L 1245 1819" class="a-arrow"/>
-            <polygon points="1240,1814 1240,1824 1250,1819" class="a-arrow-head"/>
-            <circle cx="1248" cy="1850" r="22" class="a-circle"/>
-            <text x="1248" y="1850" class="a-num" font-size="22">6</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 6b. STEP 1 PERSONAL INFO — BOTTOM HALF ============ -->
+    <section>
+      <div class="title-block">
+        <div class="kicker">Step 1 of 4 · Part 2</div>
+        <h1>Status &amp; Submit</h1>
+      </div>
+      <div class="two-col flip">
+        <ul class="callouts">
+          <li><span class="ci-num">4</span><span class="ci-body"><strong>Status checkboxes</strong>Tick if you're a Voter, IP, PWD, or have dependents. Reveals sub-fields when ticked.</span></li>
+          <li><span class="ci-num">5</span><span class="ci-body"><strong>Emergency Contact</strong>Required. Use Philippine mobile format <code>09XXXXXXXXX</code>.</span></li>
+          <li><span class="ci-num">6</span><span class="ci-body"><strong>Next</strong>Validates all required fields. Errors appear inline next to each field.</span></li>
+        </ul>
+        <div class="shot" style="max-width: 100%;">
+          <img src="screenshots/02b-register-bottom.png" alt="Registration Step 1 — bottom half">
+          <svg viewBox="0 0 1265 950" preserveAspectRatio="none">
+            <!-- 4: Additional Status card (lower-left half) — y -= 925 from original -->
+            <rect x="369" y="257" width="420" height="573" class="a-highlight"/>
+            <path d="M 369 544 L 325 544" class="a-arrow"/>
+            <polygon points="332,539 332,549 322,544" class="a-arrow-head"/>
+            <circle cx="295" cy="544" r="26" class="a-circle"/>
+            <text x="295" y="544" class="a-num" font-size="26">4</text>
+            <!-- 5: Emergency Contact card -->
+            <rect x="800" y="257" width="417" height="260" class="a-highlight"/>
+            <path d="M 1217 387 L 1245 387" class="a-arrow"/>
+            <polygon points="1240,382 1240,392 1250,387" class="a-arrow-head"/>
+            <circle cx="1248" cy="355" r="22" class="a-circle"/>
+            <text x="1248" y="355" class="a-num" font-size="22">5</text>
+            <!-- 6: Next button -->
+            <rect x="369" y="870" width="848" height="48" class="a-highlight"/>
+            <path d="M 1217 894 L 1245 894" class="a-arrow"/>
+            <polygon points="1240,889 1240,899 1250,894" class="a-arrow-head"/>
+            <circle cx="1248" cy="920" r="22" class="a-circle"/>
+            <text x="1248" y="920" class="a-num" font-size="22">6</text>
           </svg>
         </div>
       </div>
@@ -548,16 +573,16 @@
         <div style="background: white; padding: 20px; border-top: 4px solid var(--gold); box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
           <div style="font-family: monospace; color: var(--gold); font-weight: 700;">STEP 02</div>
           <h3 style="margin: 6px 0 12px;">Address</h3>
-          <ul style="font-size: 0.55em; padding-left: 18px;">
+          <ul style="font-size: 0.85em; padding-left: 22px;">
             <li><strong>Barangay *</strong> — dropdown, auto-scoped to Borongan</li>
             <li>Street Address — optional, up to 255 chars</li>
           </ul>
-          <div class="tip" style="margin-top: 12px; font-size: 0.5em;"><strong>Tip:</strong> Municipality auto-fills to Borongan. Barangay dropdown loads after.</div>
+          <div class="tip" style="margin-top: 14px; font-size: 0.78em;"><strong>Tip:</strong> Municipality auto-fills to Borongan. Barangay dropdown loads after.</div>
         </div>
         <div style="background: white; padding: 20px; border-top: 4px solid var(--gold); box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
           <div style="font-family: monospace; color: var(--gold); font-weight: 700;">STEP 03</div>
           <h3 style="margin: 6px 0 12px;">Identity Documents</h3>
-          <ul style="font-size: 0.55em; padding-left: 18px;">
+          <ul style="font-size: 0.85em; padding-left: 22px;">
             <li><strong>ID Type *</strong> — 10 options (PhilSys, Passport, Driver's, etc.)</li>
             <li><strong>ID Number *</strong> — letters, numbers, spaces, hyphens</li>
             <li><strong>ID Document Photo *</strong> — clear image upload</li>
@@ -568,12 +593,12 @@
         <div style="background: white; padding: 20px; border-top: 4px solid var(--gold); box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
           <div style="font-family: monospace; color: var(--gold); font-weight: 700;">STEP 04</div>
           <h3 style="margin: 6px 0 12px;">Account Setup</h3>
-          <ul style="font-size: 0.55em; padding-left: 18px;">
+          <ul style="font-size: 0.85em; padding-left: 22px;">
             <li><strong>Username *</strong> — 4-50 chars, lowercase, live-checked</li>
             <li><strong>Password *</strong> — 8+ chars, ≥1 uppercase, ≥1 number</li>
             <li><strong>Confirm Password *</strong> — must match</li>
           </ul>
-          <div class="tip" style="margin-top: 12px; font-size: 0.5em;"><strong>Tip:</strong> Green ✓ = username available. Red ✗ = pick another.</div>
+          <div class="tip" style="margin-top: 14px; font-size: 0.78em;"><strong>Tip:</strong> Green ✓ = username available. Red ✗ = pick another.</div>
         </div>
       </div>
     </section>
@@ -605,7 +630,7 @@
     <section class="section-divider">
       <div class="kicker">Section 4</div>
       <h1>Your Resident ID</h1>
-      <p style="font-size: 0.7em; color: rgba(255,255,255,0.85); max-width: 700px; margin: 20px auto 0;">
+      <p style="font-size: 0.95em; color: rgba(255,255,255,0.92); max-width: 800px; margin: 20px auto 0;">
         Your digital Borongan ID lives on the Home page. Click to flip — front shows identity, back shows verification QR &amp; emergency contact.
       </p>
     </section>
@@ -714,7 +739,7 @@
     <section class="section-divider">
       <div class="kicker">Section 5</div>
       <h1>Libre Sakay</h1>
-      <p style="font-size: 0.7em; color: rgba(255,255,255,0.85); max-width: 700px; margin: 20px auto 0;">
+      <p style="font-size: 0.95em; color: rgba(255,255,255,0.92); max-width: 800px; margin: 20px auto 0;">
         Free city bus service for <strong style="color: var(--gold-light);">Senior Citizens</strong>, <strong style="color: var(--gold-light);">PWDs</strong>, and <strong style="color: var(--gold-light);">Students</strong>. Live tracking, route browsing, ETA estimates.
       </p>
     </section>
@@ -887,7 +912,7 @@
         <div class="kicker">Section 7</div>
         <h1>Common Issues</h1>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 0.55em;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px; font-size: 0.88em;">
         <div style="background: white; padding: 14px 18px; border-left: 4px solid #e63946;">
           <strong style="color: var(--navy);">"Email already exists"</strong>
           <p style="margin: 4px 0 0;">You already have an account or a pending application. Try Sign In, or use forgot password.</p>
@@ -939,7 +964,7 @@
         </tbody>
       </table>
       <h3 style="margin-top: 30px;">Accepted ID types</h3>
-      <p style="font-size: 0.55em;">
+      <p style="font-size: 0.95em;">
         <span class="pill">PhilSys National ID</span>
         <span class="pill">Driver's License</span>
         <span class="pill">Passport</span>
@@ -957,8 +982,8 @@
     <section class="slide-hero" data-background-color="#2c3e5c">
       <div style="text-align: center; padding-top: 30px;">
         <div class="seal" style="margin: 0 auto;"><img src="screenshots/lgu-seal.png" alt="LGU Borongan"></div>
-        <h1 style="font-size: 2.2em;">Need <span class="accent">help?</span></h1>
-        <p style="font-size: 0.7em; color: rgba(255,255,255,0.85); max-width: 700px; margin: 16px auto 0;">
+        <h1 style="font-size: 3em;">Need <span class="accent">help?</span></h1>
+        <p style="font-size: 0.95em; color: rgba(255,255,255,0.92); max-width: 800px; margin: 16px auto 0;">
           Three ways to get assistance with your registration or portal account.
         </p>
         <div class="closing-grid" style="max-width: 900px; margin: 40px auto 0;">
@@ -975,7 +1000,7 @@
             <p>For lost ID cards or technical issues, contact the LGU Borongan IT desk at City Hall.</p>
           </div>
         </div>
-        <div style="margin-top: 60px; font-size: 0.45em; color: rgba(255,255,255,0.5); letter-spacing: 0.2em;">
+        <div style="margin-top: 60px; font-size: 0.65em; color: rgba(255,255,255,0.6); letter-spacing: 0.2em;">
           PORTAL.BORONGANCITY.COM &nbsp;·&nbsp; LGU BORONGAN &nbsp;·&nbsp; UPDATED 2026-04-28
         </div>
       </div>
