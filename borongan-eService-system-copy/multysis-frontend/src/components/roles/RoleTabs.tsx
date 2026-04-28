@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { getSystemLabel } from '@/constants/systemLabels';
 import type { Role } from '@/types/role';
 import type { Page } from '@/services/api/page.service';
 import { pageService } from '@/services/api/page.service';
@@ -202,7 +203,7 @@ export const RoleTabs: React.FC<RoleTabsProps> = ({
                     }, {})
                   ).map(([system, systemPages]) => (
                     <div key={system}>
-                      <h4 className="text-sm font-semibold text-gray-700 uppercase mb-2">{system}</h4>
+                      <h4 className="text-sm font-semibold text-gray-700 uppercase mb-2">{getSystemLabel(system)}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {systemPages.map((page) => {
                           const isChecked = assignedPageIds.includes(page.id);
