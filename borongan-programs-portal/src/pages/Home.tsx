@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiAlertCircle, FiCheck, FiChevronDown, FiClock, FiDownload, FiExternalLink, FiX } from 'react-icons/fi';
+import { FiAlertCircle, FiCheck, FiChevronDown, FiClock, FiDownload, FiExternalLink, FiHelpCircle, FiX } from 'react-icons/fi';
 
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +36,7 @@ const APPLICATION_STATUS_CONFIG: Record<string, { label: string; className: stri
 };
 
 const OTHER_PROGRAMS_URL = import.meta.env.VITE_OTHER_PROGRAMS_URL || '';
+const USER_GUIDE_URL = '/user-guide/presentation.html';
 
 // ---------------------------------------------------------------------------
 // ProgramCard
@@ -283,6 +284,17 @@ export const Home: React.FC = () => {
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => window.open(USER_GUIDE_URL, '_blank', 'noopener,noreferrer')}
+              className="gap-1.5"
+              aria-label="Open user guide"
+              title="User Guide"
+            >
+              <FiHelpCircle size={14} />
+              <span className="hidden sm:inline">Help</span>
+            </Button>
             {canInstall && !isInstalled && (
               <Button size="sm" variant="outline" onClick={install} className="gap-1.5">
                 <FiDownload size={14} />

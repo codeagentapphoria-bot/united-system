@@ -155,7 +155,7 @@ export const Login: React.FC = () => {
                   {isLoading ? 'Signing in...' : 'Sign In'}
                 </Button>
 
-                <div className="text-center text-sm">
+                <div className="text-center text-sm space-y-1.5">
                   <p className="text-gray-600">
                     New resident?{' '}
                     <button
@@ -164,6 +164,15 @@ export const Login: React.FC = () => {
                       className="font-medium text-primary hover:underline"
                     >
                       Register here
+                    </button>
+                  </p>
+                  <p className="text-gray-500">
+                    <button
+                      type="button"
+                      onClick={() => window.open('/user-guide/presentation.html', '_blank', 'noopener,noreferrer')}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      Need help? Read the user guide
                     </button>
                   </p>
                 </div>
