@@ -414,6 +414,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
                     {/* Render each system group */}
                     {groups.map(group => {
                       const isCollapsed = collapsedSystemGroups.includes(group.system);
+                      // Sum badge counts from all items in this group
+                      const groupBadgeCount = group.items.reduce(
+                        (sum, item) => sum + (item.badgeCount ?? 0),
+                        0
+                      );
                       return (
                         <li key={`system-group-${group.system}`}>
                           {/* Group header — clickable to expand/collapse */}
@@ -422,13 +427,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
                             className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-100 rounded-md transition-colors"
                           >
                             <span>{group.label}</span>
-                            <span
-                              className={cn(
-                                'transition-transform duration-200',
-                                isCollapsed ? '-rotate-90' : 'rotate-0'
+                            <span className="flex items-center gap-2">
+                              {groupBadgeCount > 0 && isCollapsed && (
+                                <Badge className="bg-red-600 text-white text-xs font-semibold px-1.5 py-0.5 min-w-[20px] text-center">
+                                  {groupBadgeCount > 99 ? '99+' : groupBadgeCount}
+                                </Badge>
                               )}
-                            >
-                              <FiChevronDown size={14} />
+                              <span
+                                className={cn(
+                                  'transition-transform duration-200',
+                                  isCollapsed ? '-rotate-90' : 'rotate-0'
+                                )}
+                              >
+                                <FiChevronDown size={14} />
+                              </span>
                             </span>
                           </button>
 
