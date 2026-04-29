@@ -45,6 +45,9 @@ const AdminLibreMedisina = lazy(() =>
 const AdminLibreSakay = lazy(() =>
   import('../pages/admin/AdminLibreSakay').then(m => ({ default: m.AdminLibreSakay }))
 );
+const AdminCityPopulation = lazy(() =>
+  import('../pages/admin/AdminCityPopulation').then(m => ({ default: m.AdminCityPopulation }))
+);
 const EGovReports = lazy(() => import('../pages/admin/EGovReports').then(m => ({ default: m.EGovReports })));
 const TaxProfiles = lazy(() => import('../pages/admin/TaxProfiles').then(m => ({ default: m.TaxProfiles })));
 const AdminRegistrationWorkflow = lazy(() =>
@@ -350,6 +353,31 @@ export const router = createBrowserRouter([
                 <ProtectedRoute>
                   <LazyWrapper>
                     <AdminLibreSakay />
+                  </LazyWrapper>
+                </ProtectedRoute>
+              </RequireAdmin>
+            ),
+          },
+        ],
+      },
+      {
+        path: 'city-population',
+        children: [
+          {
+            index: true,
+            element: (
+              <RequireAdmin>
+                <Navigate to="/admin/city-population/dashboard" replace />
+              </RequireAdmin>
+            ),
+          },
+          {
+            path: ':section',
+            element: (
+              <RequireAdmin>
+                <ProtectedRoute>
+                  <LazyWrapper>
+                    <AdminCityPopulation />
                   </LazyWrapper>
                 </ProtectedRoute>
               </RequireAdmin>

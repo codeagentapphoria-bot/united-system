@@ -64,8 +64,8 @@ ON CONFLICT (id) DO NOTHING;
 -- Assign page access — role_pages for city_pop_admin role
 -- =============================================================================
 INSERT INTO public.role_pages (id, role_id, page_id, created_at) VALUES
-    ('rp-cp-admin-city-pop',     'role-city-pop-admin', 'pg-cp-city-population', now()),
-    ('rp-cp-admin-dashboard',     'role-city-pop-admin', 'pg-cp-dashboard',     now()),
-    ('rp-cp-admin-registrations', 'role-city-pop-admin', 'pg-cp-registrations', now()),
-    ('rp-cp-admin-residents',     'role-city-pop-admin', 'pg-cp-residents',     now())
+    ('rp-cp-admin-city-pop',     'role-city-pop-admin', '3854ce44-49ec-4833-a033-839f90f269cf', now()),
+    ('rp-cp-admin-dashboard',     'role-city-pop-admin', '3b26481e-93f2-4159-a656-c88857e459c6', now()),
+    ('rp-cp-admin-registrations', 'role-city-pop-admin', 'fc9f47e1-1832-4818-b49e-b4f405c6c050', now()),
+    ('rp-cp-admin-residents',     'role-city-pop-admin', '526ec0b0-1d99-437f-be16-27268d70fb92', now())
 ON CONFLICT (id) DO NOTHING;
