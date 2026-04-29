@@ -50,7 +50,7 @@ function isAllowed(path: string | undefined, allowedPaths: Set<string>): boolean
   return allowedPaths.has(path);
 }
 
-const SYSTEM_ORDER = ['core', 'libre-sakay', 'libre-medisina', 'government-programs', 'services'];
+const SYSTEM_ORDER = ['core', 'libre-sakay', 'libre-medisina', 'government-programs', 'services', 'city-population'];
 
 /**
  * Builds a unified, system-grouped menu from all configured menu items.

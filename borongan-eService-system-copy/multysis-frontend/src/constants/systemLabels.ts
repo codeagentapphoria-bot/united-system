@@ -8,6 +8,7 @@ export const SYSTEM_LABELS: Record<string, string> = {
   'libre-medisina': 'Libre Medisina',
   'government-programs': 'Government Programs',
   services: 'E-Government Services',
+  'city-population': 'City Population',
 };
 
 /**
