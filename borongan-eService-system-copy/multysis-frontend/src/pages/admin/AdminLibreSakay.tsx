@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AccessControlGate } from '@/components/common/AccessControlGate';
 import { portalProgramsService } from '@/services/api/portal-programs.service';
 import { useLibreSakayBadgeOverrides } from '@/context/LibreSakayBadgeContext';
 import {
@@ -77,12 +78,13 @@ export const AdminLibreSakay: React.FC = () => {
 
   return (
     <DashboardLayout>
-      {/* Access control handled by child routes - parent is just a layout */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">{SECTION_TITLES[section] ?? 'Libre Sakay'}</h1>
-        <p className="text-sm text-gray-500 mt-1">Libre Sakay Administration</p>
-      </div>
-      {renderSection()}
+      <AccessControlGate pagePath="/admin/libre-sakay">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold">{SECTION_TITLES[section] ?? 'Libre Sakay'}</h1>
+          <p className="text-sm text-gray-500 mt-1">Libre Sakay Administration</p>
+        </div>
+        {renderSection()}
+      </AccessControlGate>
     </DashboardLayout>
   );
 };
