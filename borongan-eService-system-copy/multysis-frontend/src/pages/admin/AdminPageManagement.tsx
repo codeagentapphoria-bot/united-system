@@ -6,16 +6,18 @@ import {
   EditPageModal,
 } from '@/components/modals/pages';
 import { PageTabs } from '@/components/pages';
+import { SystemTabs } from '@/components/systems/SystemTabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePageManagement } from '@/hooks/pages/usePageManagement';
 import { cn } from '@/lib/utils';
-  import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FiDownload, FiFile, FiPlus, FiSearch } from 'react-icons/fi';
 
 export default function AdminPageManagement() {
@@ -24,6 +26,7 @@ export default function AdminPageManagement() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'pages' | 'systems'>('pages');
 
   const {
     pages,
@@ -137,9 +140,16 @@ export default function AdminPageManagement() {
         )}
 
         {/* Main Content: List + Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Left: Pages List */}
-          <Card className="lg:col-span-1 overflow-visible">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pages' | 'systems')} className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="pages">Pages</TabsTrigger>
+            <TabsTrigger value="systems">Systems</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pages" className="mt-0">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Left: Pages List */}
+              <Card className="lg:col-span-1 overflow-visible">
             <CardHeader>
               <CardTitle className="text-heading-700 text-lg flex items-center gap-2">
                 <FiFile size={20} />
@@ -243,8 +253,14 @@ export default function AdminPageManagement() {
             </CardContent>
           </Card>
         </div>
-      </div>
-      </AccessControlGate>
+      </TabsContent>
+
+      <TabsContent value="systems" className="mt-0">
+        <SystemTabs />
+      </TabsContent>
+    </Tabs>
+        </div>
+    </AccessControlGate>
 
       {/* Modals */}
       <AddPageModal

@@ -87,6 +87,10 @@ export const queryKeys = {
     systems: ['pages', 'systems'] as const,
   },
 
+  systems: {
+    all: ['systems'] as const,
+  },
+
   libreSakay: {
     fleet: ['libreSakay', 'fleet'] as const,
     fleetLocations: ['libreSakay', 'fleetLocations'] as const,

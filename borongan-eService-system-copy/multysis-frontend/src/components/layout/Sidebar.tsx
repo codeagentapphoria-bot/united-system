@@ -169,183 +169,184 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
     const isExpanded = item.label ? expandedMenus.includes(item.label) : false;
     const hasActiveSubmenu = isSubmenuActive(item);
 
-    return (
+    // When hasSubmenu: use <div> as outer wrapper — <li> cannot contain <div> which
+    // contains <ul><li>, so we avoid invalid nesting by using <div> for that branch.
+    // When no submenu: use <li> wrapper for semantic list item.
+    return item.hasSubmenu ? (
+      <div key={item.path || index}>
+        <button
+          onClick={() => item.label && toggleSubmenu(item.label)}
+          className={cn(
+            'flex items-center justify-between w-full px-3 py-2.5 rounded-md text-sm font-medium transition-colors text-left',
+            hasActiveSubmenu
+              ? 'bg-primary-600 text-white'
+              : 'text-heading-600 hover:bg-primary-50 hover:text-primary-700'
+          )}
+        >
+          <div className="flex items-center space-x-3">
+            <span className="h-5 w-5">{item.icon}</span>
+            <span>{item.label}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            {item.badgeCount !== undefined && item.badgeCount > 0 && (
+              <Badge className="bg-red-600 text-white text-xs font-semibold px-1.5 py-0.5 min-w-[20px] text-center">
+                {item.badgeCount > 99 ? '99+' : item.badgeCount}
+              </Badge>
+            )}
+            {isExpanded ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
+          </div>
+        </button>
+
+        {/* Submenu */}
+        {isExpanded && item.submenuItems && (
+          <div onClick={(e) => e.stopPropagation()}>
+            <ul className="mt-1 ml-2 space-y-1">
+              {item.submenuItems.map((subItem, subIndex) => {
+                if (subItem.type === 'separator') {
+                  return (
+                    <li key={`sep-${subIndex}`} className="py-2">
+                      <Separator className="my-1" />
+                    </li>
+                  );
+                }
+
+                const isCategoryHeader = subItem.label.startsWith('▾ ') || subItem.isCategoryHeader;
+
+                if (isCategoryHeader) {
+                  const categoryName = subItem.label.replace('▾ ', '').replace(' ▾', '');
+                  const isCategoryCollapsed = collapsedCategories.includes(categoryName);
+                  return (
+                    <li key={`cat-${subIndex}`}>
+                      <button
+                        onClick={() => toggleCategory(categoryName)}
+                        className="w-full flex items-center justify-between px-3 py-2 text-sm text-primary-700 bg-primary-50 rounded-md mt-2 first:mt-0 hover:bg-primary-100 transition-colors"
+                      >
+                        <span className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              'transition-transform',
+                              isCategoryCollapsed && 'rotate-[-90deg]'
+                            )}
+                          >
+                            <FiChevronDown size={14} />
+                          </span>
+                          {categoryName}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                }
+
+                const serviceCategory = subItem.category;
+                const isParentCategoryCollapsed =
+                  serviceCategory && collapsedCategories.includes(serviceCategory);
+
+                if (isParentCategoryCollapsed) {
+                  return null;
+                }
+
+                const isImplemented = isRouteImplemented(subItem.path);
+                const isCategoryService = !!subItem.category;
+
+                return (
+                  <li key={subItem.path}>
+                    {isImplemented ? (
+                      <button
+                        onClick={() => {
+                          navigate(subItem.path);
+                          onClose();
+                        }}
+                        className={cn(
+                          isCategoryService
+                            ? 'flex items-center justify-between ml-6 px-2 py-1.5 rounded-md text-sm transition-colors'
+                            : 'flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors w-full',
+                          location.pathname === subItem.path
+                            ? 'bg-primary-600 text-white'
+                            : isCategoryService
+                              ? 'text-gray-500 hover:bg-primary-50 hover:text-primary-700'
+                              : 'text-heading-500 hover:bg-primary-50 hover:text-primary-700'
+                        )}
+                      >
+                        <span>{subItem.label}</span>
+                        {subItem.badgeCount !== undefined && subItem.badgeCount > 0 && (
+                          <Badge className="bg-red-600 text-white text-xs font-semibold px-1.5 py-0.5 min-w-[20px] text-center">
+                            {subItem.badgeCount > 99 ? '99+' : subItem.badgeCount}
+                          </Badge>
+                        )}
+                      </button>
+                    ) : (
+                      <div
+                        className={cn(
+                          isCategoryService
+                            ? 'flex items-center justify-between ml-6 px-2 py-1.5 rounded-md text-xs transition-colors'
+                            : 'flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors',
+                          'text-gray-400 cursor-not-allowed bg-gray-50 opacity-60 hidden'
+                        )}
+                        title="Not yet implemented"
+                      >
+                        <span>{subItem.label}</span>
+                        <Badge variant="outline" className="text-xs border-gray-300 text-gray-400">
+                          <FiLock size={10} className="mr-1" />
+                          Soon
+                        </Badge>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </div>
+    ) : (
       <li key={item.path || index}>
-        {item.hasSubmenu ? (
-          <div>
-            <button
-              onClick={() => item.label && toggleSubmenu(item.label)}
-              className={cn(
-                'flex items-center justify-between w-full px-3 py-2.5 rounded-md text-sm font-medium transition-colors text-left',
-                hasActiveSubmenu
-                  ? 'bg-primary-600 text-white'
-                  : 'text-heading-600 hover:bg-primary-50 hover:text-primary-700'
-              )}
+        {(() => {
+          const isImplemented = item.path ? isRouteImplemented(item.path) : false;
+          return isImplemented ? (
+            <NavLink
+              to={item.path || '#'}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className={({ isActive }: { isActive: boolean }) =>
+                cn(
+                  'flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-primary-600 text-white'
+                    : 'text-heading-600 hover:bg-primary-50 hover:text-primary-700'
+                )
+              }
             >
               <div className="flex items-center space-x-3">
                 <span className="h-5 w-5">{item.icon}</span>
                 <span>{item.label}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                {item.badgeCount !== undefined && item.badgeCount > 0 && (
-                  <Badge className="bg-red-600 text-white text-xs font-semibold px-1.5 py-0.5 min-w-[20px] text-center">
-                    {item.badgeCount > 99 ? '99+' : item.badgeCount}
-                  </Badge>
-                )}
-                {isExpanded ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
-              </div>
-            </button>
-
-            {/* Submenu */}
-            {isExpanded && item.submenuItems && (
-              <div onClick={(e) => e.stopPropagation()}>
-                <ul className="mt-1 ml-2 space-y-1">
-                  {item.submenuItems.map((subItem, subIndex) => {
-                    if (subItem.type === 'separator') {
-                      return (
-                        <li key={`sep-${subIndex}`} className="py-2">
-                          <Separator className="my-1" />
-                        </li>
-                      );
-                    }
-
-                    const isCategoryHeader = subItem.label.startsWith('▾ ') || subItem.isCategoryHeader;
-
-                    if (isCategoryHeader) {
-                      const categoryName = subItem.label.replace('▾ ', '').replace(' ▾', '');
-                      const isCategoryCollapsed = collapsedCategories.includes(categoryName);
-                      return (
-                        <li key={`cat-${subIndex}`}>
-                          <button
-                            onClick={() => toggleCategory(categoryName)}
-                            className="w-full flex items-center justify-between px-3 py-2 text-sm text-primary-700 bg-primary-50 rounded-md mt-2 first:mt-0 hover:bg-primary-100 transition-colors"
-                          >
-                            <span className="flex items-center gap-2">
-                              <span
-                                className={cn(
-                                  'transition-transform',
-                                  isCategoryCollapsed && 'rotate-[-90deg]'
-                                )}
-                              >
-                                <FiChevronDown size={14} />
-                              </span>
-                              {categoryName}
-                            </span>
-                          </button>
-                        </li>
-                      );
-                    }
-
-                    const serviceCategory = subItem.category;
-                    const isParentCategoryCollapsed =
-                      serviceCategory && collapsedCategories.includes(serviceCategory);
-
-                    if (isParentCategoryCollapsed) {
-                      return null;
-                    }
-
-                    const isImplemented = isRouteImplemented(subItem.path);
-                    const isCategoryService = !!subItem.category;
-
-                    return (
-                      <li key={subItem.path}>
-                        {isImplemented ? (
-                          <button
-                            onClick={() => {
-                              navigate(subItem.path);
-                              onClose();
-                            }}
-                            className={cn(
-                              isCategoryService
-                                ? 'flex items-center justify-between ml-6 px-2 py-1.5 rounded-md text-sm transition-colors'
-                                : 'flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors w-full',
-                              location.pathname === subItem.path
-                                ? 'bg-primary-600 text-white'
-                                : isCategoryService
-                                  ? 'text-gray-500 hover:bg-primary-50 hover:text-primary-700'
-                                  : 'text-heading-500 hover:bg-primary-50 hover:text-primary-700'
-                            )}
-                          >
-                            <span>{subItem.label}</span>
-                            {subItem.badgeCount !== undefined && subItem.badgeCount > 0 && (
-                              <Badge className="bg-red-600 text-white text-xs font-semibold px-1.5 py-0.5 min-w-[20px] text-center">
-                                {subItem.badgeCount > 99 ? '99+' : subItem.badgeCount}
-                              </Badge>
-                            )}
-                          </button>
-                        ) : (
-                          <div
-                            className={cn(
-                              isCategoryService
-                                ? 'flex items-center justify-between ml-6 px-2 py-1.5 rounded-md text-xs transition-colors'
-                                : 'flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors',
-                              'text-gray-400 cursor-not-allowed bg-gray-50 opacity-60 hidden'
-                            )}
-                            title="Not yet implemented"
-                          >
-                            <span>{subItem.label}</span>
-                            <Badge variant="outline" className="text-xs border-gray-300 text-gray-400">
-                              <FiLock size={10} className="mr-1" />
-                              Soon
-                            </Badge>
-                          </div>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
-          </div>
-        ) : (
-          (() => {
-            const isImplemented = item.path ? isRouteImplemented(item.path) : false;
-            return isImplemented ? (
-              <NavLink
-                to={item.path || '#'}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClose();
-                }}
-                className={({ isActive }: { isActive: boolean }) =>
-                  cn(
-                    'flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-primary-600 text-white'
-                      : 'text-heading-600 hover:bg-primary-50 hover:text-primary-700'
-                  )
-                }
-              >
-                <div className="flex items-center space-x-3">
-                  <span className="h-5 w-5">{item.icon}</span>
-                  <span>{item.label}</span>
-                </div>
-                {item.badgeCount !== undefined && item.badgeCount > 0 && (
-                  <Badge className="bg-red-600 text-white text-xs font-semibold px-1.5 py-0.5 min-w-[20px] text-center">
-                    {item.badgeCount > 99 ? '99+' : item.badgeCount}
-                  </Badge>
-                )}
-              </NavLink>
-            ) : (
-              <div
-                className={cn(
-                  'flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
-                  'text-gray-400 cursor-not-allowed bg-gray-50 opacity-60 hidden'
-                )}
-                title="Not yet implemented"
-              >
-                <div className="flex items-center space-x-3">
-                  <span className="h-5 w-5">{item.icon}</span>
-                  <span>{item.label}</span>
-                </div>
-                <Badge variant="outline" className="text-xs border-gray-300 text-gray-400">
-                  <FiLock size={10} className="mr-1" />
-                  Soon
+              {item.badgeCount !== undefined && item.badgeCount > 0 && (
+                <Badge className="bg-red-600 text-white text-xs font-semibold px-1.5 py-0.5 min-w-[20px] text-center">
+                  {item.badgeCount > 99 ? '99+' : item.badgeCount}
                 </Badge>
+              )}
+            </NavLink>
+          ) : (
+            <div
+              className={cn(
+                'flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+                'text-gray-400 cursor-not-allowed bg-gray-50 opacity-60 hidden'
+              )}
+              title="Not yet implemented"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="h-5 w-5">{item.icon}</span>
+                <span>{item.label}</span>
               </div>
-            );
-          })()
-        )}
+              <Badge variant="outline" className="text-xs border-gray-300 text-gray-400">
+                <FiLock size={10} className="mr-1" />
+                Soon
+              </Badge>
+            </div>
+          );
+        })()}
       </li>
     );
   };
@@ -450,8 +451,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
                             </span>
                           </button>
 
-                          {/* Group items — hidden when collapsed */}
-                          {!isCollapsed && group.items.map((item, index) => renderMenuItem(item, index))}
+                          {/* Group items — hidden when collapsed. Wrap in <ul> since renderMenuItem returns <li> */}
+                          {!isCollapsed && (
+                            <ul className="pl-2">
+                              {group.items.map((item, index) => renderMenuItem(item, index))}
+                            </ul>
+                          )}
                         </li>
                       );
                     })}

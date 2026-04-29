@@ -791,6 +791,23 @@ model Faq {
 }
 
 // =============================================================================
+// SYSTEM CATALOG
+// Canonical source of truth for system slugs and human-readable labels.
+// Pages and roles reference system via the system field (TEXT) — no FK added
+// here to avoid a column type migration; application logic enforces consistency.
+// =============================================================================
+
+model System {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  label     String
+  createdAt DateTime @map("created_at") @default(now())
+  updatedAt DateTime @map("updated_at") @updatedAt
+
+  @@map("systems")
+}
+
+// =============================================================================
 // ENUMS
 // =============================================================================
 
