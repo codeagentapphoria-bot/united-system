@@ -81,7 +81,12 @@ export const systemService = {
   ): Promise<{ affectedPages: number; affectedRoles: number } | void> {
     try {
       const params = force ? '?force=true' : '';
-      await api.delete(`/systems/${slug}${params}`, { signal });
+      const response = await api.delete(`/systems/${slug}${params}`, { signal });
+
+      // Force delete succeeded — return affected counts from response body
+      if (force && response?.data?.data) {
+        return response.data.data;
+      }
     } catch (error: any) {
       const status = error.response?.status;
       const data: DeleteWarningResponse | undefined = error.response?.data;

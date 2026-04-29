@@ -19,14 +19,21 @@ import { usePageManagement } from '@/hooks/pages/usePageManagement';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { FiDownload, FiFile, FiPlus, FiSearch } from 'react-icons/fi';
+import { useSearchParams } from 'react-router-dom';
 
 export default function AdminPageManagement() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'pages' | 'systems'>('pages');
+  const activeTab = (searchParams.get('tab') as 'pages' | 'systems') || 'pages';
+
+  // Sync tab changes to URL so refresh preserves the tab
+  const handleTabChange = (tab: 'pages' | 'systems') => {
+    setSearchParams(tab === 'pages' ? {} : { tab: 'systems' });
+  };
 
   const {
     pages,
@@ -140,7 +147,7 @@ export default function AdminPageManagement() {
         )}
 
         {/* Main Content: List + Details */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pages' | 'systems')} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as 'pages' | 'systems')} className="space-y-4">
           <TabsList>
             <TabsTrigger value="pages">Pages</TabsTrigger>
             <TabsTrigger value="systems">Systems</TabsTrigger>
