@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 // Third-party libraries
 import { getAdminMenuItems, adminMenuItems as staticMenuItems } from '@/config/admin-menu';
 import { libresakayMenuItems } from '@/config/libre-sakay-menu';
+import { cityPopulationMenuItems } from '@/config/city-population-menu';
 
 // Hooks
 import { useAdminNotifications } from '@/hooks/notifications/useAdminNotifications';
@@ -218,7 +219,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
     if (isAllowedPagesLoading) return [];
     if (allowedPaths.size === 0) return [];
 
-    const allItems = [...menuItems, ...libresakayMenuItems];
+    const allItems = [...menuItems, ...libresakayMenuItems, ...cityPopulationMenuItems];
     return buildUnifiedMenu(allItems, allowedPaths, badgeOverrides);
   }, [isAllowedPagesLoading, allowedPaths, badgeOverrides, menuItems]);
 
