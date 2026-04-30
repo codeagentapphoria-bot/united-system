@@ -274,13 +274,13 @@ export const AdminRegistrationWorkflow: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <AccessControlGate pagePath="/admin/registration-workflow">
+      <AccessControlGate pagePath="/admin/city-population">
         <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Registration Approvals</h1>
-          <p className="text-gray-500">Review and process resident registration requests from the portal</p>
-        </div>
+          {/* Header */}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Registration Approvals</h1>
+            <p className="text-gray-500">Review and process resident registration requests from the portal</p>
+          </div>
 
 
 
@@ -972,7 +972,6 @@ export const AdminRegistrationWorkflow: React.FC = () => {
           </div>
         </div>
       )}
-      </AccessControlGate>
 
       {/* Classification Dialog */}
       <Dialog open={isClassifyModalOpen} onOpenChange={setIsClassifyModalOpen}>
@@ -1042,6 +1041,7 @@ export const AdminRegistrationWorkflow: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+      </AccessControlGate>
     </DashboardLayout>
   );
 };

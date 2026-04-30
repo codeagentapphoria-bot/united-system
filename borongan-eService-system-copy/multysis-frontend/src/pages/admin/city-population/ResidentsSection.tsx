@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { StatusBadge, LoadingRows, EmptyState } from '../shared';
+import { StatusBadge, LoadingRows, EmptyState } from './shared';
 import { residentService, type Resident } from '@/services/api/resident.service';
 import { formatDateWithoutTimezone } from '@/lib/utils';
 import {
@@ -200,14 +200,10 @@ export function ResidentsSection() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold text-heading-700">Residents</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            {total} {statusFilter !== 'all' ? statusFilter : 'total'} resident{total !== 1 ? 's' : ''}
-          </p>
-        </div>
+      {/* Summary row */}
+      <div className="flex items-center gap-2 text-sm text-gray-500">
+        <span className="font-medium text-heading-700">{total}</span>
+        <span>{statusFilter !== 'all' ? statusFilter : 'total'} resident{total !== 1 ? 's' : ''}</span>
       </div>
 
       {/* Content — master-detail grid */}
@@ -215,7 +211,7 @@ export function ResidentsSection() {
         {/* Left: List */}
         <Card className="xl:col-span-2">
           <CardHeader className="pb-3">
-            <CardTitle className="text-heading-700 text-lg">Residents List</CardTitle>
+            <CardTitle className="text-heading-700 text-lg">All Residents</CardTitle>
 
             <div className="relative mt-2">
               <FiSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
