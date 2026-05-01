@@ -40,14 +40,16 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) => {
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const [collapsedCategories, setCollapsedCategories] = useState<string[]>([]);
-  const [collapsedSystemGroups, setCollapsedSystemGroups] = useState<string[]>(() => {
-    // Default all system groups to collapsed on first load
+  const [collapsedSystemGroups, setCollapsedSystemGroups] = useState<string[]>([]);
+
+  // Default all system groups to collapsed when menuItems are available
+  useEffect(() => {
     const groups: string[] = [];
     menuItems.forEach(item => {
       if (item.type === 'separator' && item.system) groups.push(item.system);
     });
-    return groups;
-  });
+    setCollapsedSystemGroups(groups);
+  }, [menuItems]);
   const location = useLocation();
   const navigate = useNavigate();
 
