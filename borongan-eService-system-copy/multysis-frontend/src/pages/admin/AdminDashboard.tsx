@@ -6,7 +6,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useSuperAdminDashboard } from '@/hooks/admin/useDashboardStats';
 import { cn } from '@/lib/utils';
 import { FiServer, FiUsers, FiChevronRight } from 'react-icons/fi';
-import { Badge } from '@/components/ui/badge';
 
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -72,12 +71,9 @@ export const AdminDashboard: React.FC = () => {
                         <span className="text-sm font-semibold text-heading-700 capitalize">
                           {sys.name.replace(/-/g, '\u2014')}
                         </span>
-                        <Badge
-                          variant="secondary"
-                          className="text-xs font-normal text-gray-500"
-                        >
+                        <span className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-primary-50 text-primary-700 border border-primary-200">
                           {sys.roles.length} role{sys.roles.length !== 1 ? 's' : ''}
-                        </Badge>
+                        </span>
                       </div>
 
                       {/* Roles and their admins */}
@@ -101,12 +97,9 @@ export const AdminDashboard: React.FC = () => {
                                     — {role.description}
                                   </span>
                                 )}
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs font-normal"
-                                >
+                                  <span className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-primary-50 text-primary-700 border border-primary-200">
                                   {role.adminCount} admin{role.adminCount !== 1 ? 's' : ''}
-                                </Badge>
+                                </span>
                               </div>
 
                               {/* Admin list */}
@@ -187,17 +180,16 @@ export const AdminDashboard: React.FC = () => {
                           </td>
                           <td className="px-4 py-2.5 text-gray-600">{u.email}</td>
                           <td className="px-4 py-2.5">
-                            <Badge
-                              variant="secondary"
-                              className={cn(
-                                'text-xs font-normal capitalize',
-                                u.role === 'admin'
-                                  ? 'bg-primary-50 text-primary-700'
-                                  : 'bg-gray-100 text-gray-600'
-                              )}
-                            >
-                              {u.role}
-                            </Badge>
+                            <span
+                            className={cn(
+                              'inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize',
+                              u.role === 'admin'
+                                ? 'bg-primary-50 text-primary-700 border border-primary-200'
+                                : 'bg-gray-100 text-gray-600 border border-gray-200'
+                            )}
+                          >
+                            {u.role}
+                          </span>
                           </td>
                           <td className="px-4 py-2.5 text-gray-600">
                             {u.roles.length > 0
