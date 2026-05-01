@@ -27,65 +27,9 @@ interface MenuItem {
   system?: string;
 }
 
-// List of implemented routes
-const implementedRoutes = [
-  '/admin/dashboard',
-  '/admin/profile',
-  '/admin/registration-workflow',
-  '/admin/libre-sakay/dashboard',
-  '/admin/libre-sakay/fleet',
-  '/admin/libre-sakay/buses',
-  '/admin/libre-sakay/routes',
-  '/admin/libre-sakay/drivers',
-  '/admin/libre-sakay/stops',
-  '/admin/libre-sakay/ride-logs',
-  '/admin/libre-sakay/applications',
-  '/admin/libre-sakay/access-control',
-  '/admin/libre-sakay/verification',
-  '/admin/libre-sakay/settings',
-  '/admin/e-government/social-amelioration',
-  '/admin/e-government/reports',
-  '/admin/general-settings/address',
-  '/admin/general-settings/smart-city-services',
-  '/admin/general-settings/government-program',
-  '/admin/general-settings/appointment',
-  '/admin/general-settings/faq',
-  '/admin/general-settings/tax-profiles',
-  '/admin/access-control/role-management',
-  '/admin/access-control/permissions',
-  '/admin/access-control/user-management',
-  '/admin/access-control/page-management',
-  // City Population — driven by role_pages DB, not hardcoded here
-];
-
-// Check if a route is implemented
-const isRouteImplemented = (path: string): boolean => {
-  // Check if it's in the implemented routes list
-  if (implementedRoutes.includes(path)) {
-    return true;
-  }
-
-  // Check if it's a dynamic e-government service route (pattern: /admin/e-government/:serviceCode)
-  // Dynamic service routes are always implemented since we have the ServicePage component
-  if (path.startsWith('/admin/e-government/') && path !== '/admin/e-government') {
-    // Exclude known static routes that might not be implemented yet
-    const staticRoutes = [
-      '/admin/e-government/social-amelioration',
-      '/admin/e-government/gcash-reports',
-      '/admin/e-government/payments',
-      '/admin/e-government/billings',
-      '/admin/e-government/miscellaneous-fee',
-      '/admin/e-government/qr-scanner',
-    ];
-
-    // If it's not a static route, it's a dynamic service route and is implemented
-    if (!staticRoutes.includes(path)) {
-      return true;
-    }
-  }
-
-  return false;
-};
+// Route implementation status is now fully driven by the database (pages + role_pages tables).
+// The allowedPaths filter in buildUnifiedMenu is the single source of truth for access control.
+// No hardcoded allowlist should exist here.
 
 interface SidebarProps {
   isOpen: boolean;
@@ -246,52 +190,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
                   return null;
                 }
 
-                const isImplemented = isRouteImplemented(subItem.path);
                 const isCategoryService = !!subItem.category;
 
                 return (
                   <li key={subItem.path}>
-                    {isImplemented ? (
-                      <button
-                        onClick={() => {
-                          navigate(subItem.path);
-                          onClose();
-                        }}
-                        className={cn(
-                          isCategoryService
-                            ? 'flex items-center justify-between ml-6 px-2 py-1.5 rounded-md text-sm transition-colors'
-                            : 'flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors w-full',
-                          location.pathname === subItem.path
-                            ? 'bg-primary-600 text-white'
-                            : isCategoryService
-                              ? 'text-gray-500 hover:bg-primary-50 hover:text-primary-700'
-                              : 'text-heading-500 hover:bg-primary-50 hover:text-primary-700'
-                        )}
-                      >
-                        <span>{subItem.label}</span>
-                        {subItem.badgeCount !== undefined && subItem.badgeCount > 0 && (
-                          <Badge className="bg-red-600 text-white text-xs font-semibold px-1.5 py-0.5 min-w-[20px] text-center">
-                            {subItem.badgeCount > 99 ? '99+' : subItem.badgeCount}
-                          </Badge>
-                        )}
-                      </button>
-                    ) : (
-                      <div
-                        className={cn(
-                          isCategoryService
-                            ? 'flex items-center justify-between ml-6 px-2 py-1.5 rounded-md text-xs transition-colors'
-                            : 'flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors',
-                          'text-gray-400 cursor-not-allowed bg-gray-50 opacity-60 hidden'
-                        )}
-                        title="Not yet implemented"
-                      >
-                        <span>{subItem.label}</span>
-                        <Badge variant="outline" className="text-xs border-gray-300 text-gray-400">
-                          <FiLock size={10} className="mr-1" />
-                          Soon
+                    <button
+                      onClick={() => {
+                        navigate(subItem.path);
+                        onClose();
+                      }}
+                      className={cn(
+                        isCategoryService
+                          ? 'flex items-center justify-between ml-6 px-2 py-1.5 rounded-md text-sm transition-colors'
+                          : 'flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors w-full',
+                        location.pathname === subItem.path
+                          ? 'bg-primary-600 text-white'
+                          : isCategoryService
+                            ? 'text-gray-500 hover:bg-primary-50 hover:text-primary-700'
+                            : 'text-heading-500 hover:bg-primary-50 hover:text-primary-700'
+                      )}
+                    >
+                      <span>{subItem.label}</span>
+                      {subItem.badgeCount !== undefined && subItem.badgeCount > 0 && (
+                        <Badge className="bg-red-600 text-white text-xs font-semibold px-1.5 py-0.5 min-w-[20px] text-center">
+                          {subItem.badgeCount > 99 ? '99+' : subItem.badgeCount}
                         </Badge>
-                      </div>
-                    )}
+                      )}
+                    </button>
                   </li>
                 );
               })}
@@ -301,53 +226,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
       </div>
     ) : (
       <li key={item.path || index}>
-        {(() => {
-          const isImplemented = item.path ? isRouteImplemented(item.path) : false;
-          return isImplemented ? (
-            <NavLink
-              to={item.path || '#'}
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose();
-              }}
-              className={({ isActive }: { isActive: boolean }) =>
-                cn(
-                  'flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-primary-600 text-white'
-                    : 'text-heading-600 hover:bg-primary-50 hover:text-primary-700'
-                )
-              }
-            >
-              <div className="flex items-center space-x-3">
-                <span className="h-5 w-5">{item.icon}</span>
-                <span>{item.label}</span>
-              </div>
-              {item.badgeCount !== undefined && item.badgeCount > 0 && (
-                <Badge className="bg-red-600 text-white text-xs font-semibold px-1.5 py-0.5 min-w-[20px] text-center">
-                  {item.badgeCount > 99 ? '99+' : item.badgeCount}
-                </Badge>
-              )}
-            </NavLink>
-          ) : (
-            <div
-              className={cn(
-                'flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
-                'text-gray-400 cursor-not-allowed bg-gray-50 opacity-60 hidden'
-              )}
-              title="Not yet implemented"
-            >
-              <div className="flex items-center space-x-3">
-                <span className="h-5 w-5">{item.icon}</span>
-                <span>{item.label}</span>
-              </div>
-              <Badge variant="outline" className="text-xs border-gray-300 text-gray-400">
-                <FiLock size={10} className="mr-1" />
-                Soon
-              </Badge>
-            </div>
-          );
-        })()}
+        <NavLink
+          to={item.path || '#'}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          className={({ isActive }: { isActive: boolean }) =>
+            cn(
+              'flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+              isActive
+                ? 'bg-primary-600 text-white'
+                : 'text-heading-600 hover:bg-primary-50 hover:text-primary-700'
+            )
+          }
+        >
+          <div className="flex items-center space-x-3">
+            <span className="h-5 w-5">{item.icon}</span>
+            <span>{item.label}</span>
+          </div>
+          {item.badgeCount !== undefined && item.badgeCount > 0 && (
+            <Badge className="bg-red-600 text-white text-xs font-semibold px-1.5 py-0.5 min-w-[20px] text-center">
+              {item.badgeCount > 99 ? '99+' : item.badgeCount}
+            </Badge>
+          )}
+        </NavLink>
       </li>
     );
   };
