@@ -64,7 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
     setCollapsedCategories(Array.from(allCategories));
   }, [menuItems]);
 
-  // Auto-expand submenus when their submenu items are active
+  // Auto-expand submenus and system groups when their submenu items are active
   useEffect(() => {
     menuItems.forEach(item => {
       if (item.hasSubmenu && item.submenuItems && item.label) {
@@ -84,6 +84,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, menuItems }) 
           if (activeSubItem?.category) {
             setCollapsedCategories(prev => prev.filter(cat => cat !== activeSubItem.category));
           }
+        }
+      }
+
+      // Auto-expand system group if a top-level item or its submenu is active
+      if (item.type === 'separator' && item.system) {
+        // Find the next group of items belonging to this separator
+        const itemIndex = menuItems.indexOf(item);
+        const groupItems: MenuItem[] = [];
+        for (let j = itemIndex + 1; j < menuItems.length; j++) {
+          const next = menuItems[j];
+          if (next.type === 'separator') break;
+          groupItems.push(next);
+        }
+
+        const isAnyInGroupActive = groupItems.some(
+          gItem =>
+            gItem.path === location.pathname ||
+            (gItem.submenuItems?.some(sub => sub.path === location.pathname))
+        );
+
+        if (isAnyInGroupActive) {
+          setCollapsedSystemGroups(prev => prev.filter(s => s !== item.system));
         }
       }
     });
