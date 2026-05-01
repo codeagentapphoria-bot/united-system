@@ -159,9 +159,6 @@ export const AdminDashboard: React.FC = () => {
                           Email
                         </th>
                         <th className="px-4 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wide">
-                          Role
-                        </th>
-                        <th className="px-4 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wide">
                           System Roles
                         </th>
                         <th className="px-4 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wide">
@@ -179,18 +176,6 @@ export const AdminDashboard: React.FC = () => {
                             {u.name}
                           </td>
                           <td className="px-4 py-2.5 text-gray-600">{u.email}</td>
-                          <td className="px-4 py-2.5">
-                            <span
-                            className={cn(
-                              'inline-flex items-center rounded px-2 py-0.5 text-xs font-medium capitalize',
-                              u.role === 'admin'
-                                ? 'bg-primary-50 text-primary-700 border border-primary-200'
-                                : 'bg-gray-100 text-gray-600 border border-gray-200'
-                            )}
-                          >
-                            {u.role}
-                          </span>
-                          </td>
                           <td className="px-4 py-2.5 text-gray-600">
                             {u.roles.length > 0
                               ? u.roles.join(', ')

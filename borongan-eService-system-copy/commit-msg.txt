@@ -1,4 +1,5 @@
-fix: filter roles by name containing 'admin' (case-insensitive)
+fix: drop eservice_users.role column from e-service user accounts table
 
-Filter roles by role name (not eservice_users.role) so roles like
-'Libre Sakay Staff' are excluded while 'Admin' roles show all users.
+The 'Role' column showed the generic eservice_users.role flag (always
+'admin') which was confusing. Now table shows only: Name, Email,
+System Roles (actual role names), Created.
