@@ -1,7 +1,4 @@
-fix: only show admin-role users in systems list and fix badge readability
+fix: filter roles by name containing 'admin' (case-insensitive)
 
-- Backend: filter getSuperAdminDashboard userRoles to only include
-  users where eservice_users.role = 'admin', excluding staff/non-admin accounts
-- Frontend: replace Badge component (secondary variant too subtle on white card)
-  with inline styled spans using bg-primary-50 border-primary-200 for
-  primary-colored badges on all role/admin count badges
+Filter roles by role name (not eservice_users.role) so roles like
+'Libre Sakay Staff' are excluded while 'Admin' roles show all users.

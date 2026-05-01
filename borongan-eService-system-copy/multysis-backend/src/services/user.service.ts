@@ -329,14 +329,15 @@ export interface SuperAdminDashboard {
 }
 
 export const getSuperAdminDashboard = async (): Promise<SuperAdminDashboard> => {
-  // 1. Get all roles grouped by system, with their assigned admin users only
-  // "admin" here refers to eservice_users.role = 'admin', not staff
+  // 1. Get all roles whose name contains "admin" (case-insensitive),
+  // grouped by system, with all their assigned users.
+  // This excludes roles like "Libre Sakay Staff" that aren't admin-named.
   const roles = await prisma.role.findMany({
+    where: {
+      name: { contains: 'admin', mode: 'insensitive' },
+    },
     include: {
       userRoles: {
-        where: {
-          user: { role: 'admin' },
-        },
         include: {
           user: {
             select: { id: true, name: true, email: true },
