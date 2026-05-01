@@ -195,5 +195,15 @@ export const userService = {
       return [];
     }
   },
+
+  /**
+   * Returns dashboard overview stats: total users and total admin accounts.
+   */
+  async getDashboardStats(): Promise<{ totalUsers: number; totalAdmins: number }> {
+    const response = await api.get<{ data: { totalUsers: number; totalAdmins: number } }>(
+      '/admin/dashboard/stats'
+    );
+    return response.data.data;
+  },
 };
 

@@ -275,3 +275,16 @@ export const getAllowedPages = async (userId: string) => {
 
   return pages;
 };
+
+export interface DashboardStats {
+  totalUsers: number;
+  totalAdmins: number;
+}
+
+export const getDashboardStats = async (): Promise<DashboardStats> => {
+  const [totalUsers, totalAdmins] = await Promise.all([
+    prisma.user.count(),
+    prisma.user.count({ where: { role: 'admin' } }),
+  ]);
+  return { totalUsers, totalAdmins };
+};

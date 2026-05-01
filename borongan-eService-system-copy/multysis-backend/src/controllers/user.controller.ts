@@ -7,6 +7,7 @@ import {
   deleteUser,
   changeUserPassword,
   getAllowedPages,
+  getDashboardStats,
 } from '../services/user.service';
 import { AuthRequest } from '../middleware/auth';
 
@@ -40,6 +41,21 @@ export const getUsersController = async (req: AuthRequest, res: Response): Promi
     res.status(500).json({
       status: 'error',
       message: error.message || 'Failed to fetch users',
+    });
+  }
+};
+
+export const getDashboardStatsController = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const stats = await getDashboardStats();
+    res.status(200).json({
+      status: 'success',
+      data: stats,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to fetch dashboard stats',
     });
   }
 };
