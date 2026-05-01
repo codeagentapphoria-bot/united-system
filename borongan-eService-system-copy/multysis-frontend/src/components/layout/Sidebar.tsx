@@ -55,10 +55,7 @@ const implementedRoutes = [
   '/admin/access-control/permissions',
   '/admin/access-control/user-management',
   '/admin/access-control/page-management',
-  // City Population
-  '/admin/city-population/dashboard',
-  '/admin/city-population/registrations',
-  '/admin/city-population/residents',
+  // City Population — driven by role_pages DB, not hardcoded here
 ];
 
 // Check if a route is implemented
