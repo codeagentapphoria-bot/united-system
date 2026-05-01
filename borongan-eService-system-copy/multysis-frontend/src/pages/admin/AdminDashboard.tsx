@@ -1,132 +1,214 @@
-// React imports
 import React from 'react';
-
-// UI Components (shadcn/ui)
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
-// Access Control
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AccessControlGate } from '@/components/common/AccessControlGate';
-
-// Layout
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-
-// Context
 import { useAuth } from '@/context/AuthContext';
 import { useAllowedPages } from '@/context/AllowedPagesContext';
-
-// Hooks
 import { useDashboardStats } from '@/hooks/admin/useDashboardStats';
-
-// Utils
 import { cn } from '@/lib/utils';
+import {
+  FiUsers,
+  FiShield,
+  FiGrid,
+  FiKey,
+  FiCheckCircle,
+} from 'react-icons/fi';
 
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const { allowedPaths } = useAllowedPages();
   const { stats, isLoading: statsLoading } = useDashboardStats();
 
-  // Derive unique systems from allowedPaths
-  // Paths look like /admin/city-population/dashboard, /admin/e-government/reports, etc.
-  // Extract the system prefix: /admin/{system}/
   const systems = React.useMemo(() => {
     const uniqueSystems = new Set<string>();
     allowedPaths.forEach((path) => {
-      // Match /admin/{system}/
       const match = path.match(/^\/admin\/([^/]+)\//);
-      if (match) {
-        uniqueSystems.add(match[1]);
-      }
+      if (match) uniqueSystems.add(match[1]);
     });
     return uniqueSystems;
   }, [allowedPaths]);
 
-  const statCards = [
-    {
-      title: 'Accessible Systems',
-      value: systems.size.toLocaleString(),
-      subtitle: 'Systems you have access to',
-      icon: '🏛️',
-      color: 'bg-blue-100 text-blue-600',
-    },
-    {
-      title: 'Accessible Pages',
-      value: allowedPaths.size.toLocaleString(),
-      subtitle: 'Pages in your access control',
-      icon: '📄',
-      color: 'bg-purple-100 text-purple-600',
-    },
-    {
-      title: 'Total Users',
-      value: statsLoading ? '—' : (stats?.totalUsers ?? 0).toLocaleString(),
-      subtitle: 'All registered users',
-      icon: '👥',
-      color: 'bg-green-100 text-green-600',
-    },
-    {
-      title: 'Total Admins',
-      value: statsLoading ? '—' : (stats?.totalAdmins ?? 0).toLocaleString(),
-      subtitle: 'Admin accounts',
-      icon: '🛡️',
-      color: 'bg-orange-100 text-orange-600',
-    },
-  ];
+  const today = new Date().toLocaleDateString('en-PH', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
   return (
     <DashboardLayout>
       <AccessControlGate pagePath="/admin/dashboard">
-        <div className={cn("space-y-6")}>
-          {/* Welcome Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">
-                Welcome back, {user?.name || 'Admin'}!
-              </CardTitle>
-              <CardDescription>
-                Here is your access control overview.
-              </CardDescription>
-            </CardHeader>
-          </Card>
+        <div className="space-y-5">
 
-          {/* Access Control Stats Grid */}
-          <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4")}>
-            {statsLoading ? (
-              Array.from({ length: 4 }).map((_, index) => (
-                <Card key={`loading-${index}`}>
-                  <CardContent className="pt-6">
-                    <div className={cn("flex items-center justify-between")}>
-                      <div className="flex-1">
-                        <div className="h-4 bg-gray-200 rounded w-28 mb-2 animate-pulse"></div>
-                        <div className="h-8 bg-gray-200 rounded w-16 mb-2 animate-pulse"></div>
-                        <div className="h-3 bg-gray-200 rounded w-24 animate-pulse"></div>
-                      </div>
-                      <div className={cn("p-3 bg-gray-100 rounded-lg animate-pulse")}>
-                        <div className="w-6 h-6"></div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              statCards.map((stat) => (
-                <Card key={stat.title}>
-                  <CardContent className="pt-6">
-                    <div className={cn("flex items-center justify-between")}>
-                      <div>
-                        <p className={cn("text-sm font-medium text-gray-600")}>{stat.title}</p>
-                        <p className={cn("text-2xl font-bold text-gray-900 mt-2")}>{stat.value}</p>
-                        <p className={cn("text-sm mt-1 text-gray-500")}>{stat.subtitle}</p>
-                      </div>
-                      <div className={cn("p-3 rounded-lg flex-shrink-0 ml-2", stat.color)}>
-                        <span className="text-xl">{stat.icon}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+          {/* Page header — name + date */}
+          <div className="border-b border-gray-200 pb-4">
+            <h1 className="text-2xl font-semibold text-heading-700">
+              {user?.name || 'Administrator'}
+            </h1>
+            <p className="text-sm text-gray-500 mt-0.5">{today}</p>
+          </div>
+
+          {/* Condensed metrics row */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <MetricBox
+              label="Systems accessible"
+              value={systems.size}
+              icon={<FiGrid size={18} />}
+              loading={statsLoading}
+            />
+            <MetricBox
+              label="Pages accessible"
+              value={allowedPaths.size}
+              icon={<FiKey size={18} />}
+              loading={statsLoading}
+            />
+            <MetricBox
+              label="Registered residents"
+              value={stats?.totalUsers ?? 0}
+              icon={<FiUsers size={18} />}
+              loading={statsLoading}
+            />
+            <MetricBox
+              label="Admin accounts"
+              value={stats?.totalAdmins ?? 0}
+              icon={<FiShield size={18} />}
+              loading={statsLoading}
+            />
+          </div>
+
+          {/* Two-column info section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Accessible systems */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium text-heading-700 flex items-center gap-2">
+                  <FiGrid size={16} className="text-primary-600" />
+                  Systems in your access profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {statsLoading ? (
+                  <SystemLoadingSkeleton />
+                ) : systems.size === 0 ? (
+                  <p className="text-sm text-gray-400 italic py-2">
+                    No systems assigned yet.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {Array.from(systems).map((sys) => (
+                      <li key={sys} className="flex items-center gap-2 text-sm">
+                        <FiCheckCircle
+                          size={14}
+                          className="text-success-600 flex-shrink-0"
+                        />
+                        <span className="text-gray-700 capitalize">
+                          {sys.replace(/-/g, '\u2014')}
+                        </span>
+                        <span className="text-gray-400 text-xs ml-auto">
+                          /admin/{sys}/*
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Quick reference */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium text-heading-700 flex items-center gap-2">
+                  <FiShield size={16} className="text-primary-600" />
+                  Access control reference
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm text-gray-600">
+                  <div className="flex justify-between items-center py-1 border-b border-gray-100">
+                    <span>Total accessible paths</span>
+                    <span className="font-semibold text-heading-700">
+                      {statsLoading ? '—' : allowedPaths.size}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-gray-100">
+                    <span>Distinct systems</span>
+                    <span className="font-semibold text-heading-700">
+                      {statsLoading ? '—' : systems.size}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-gray-100">
+                    <span>Resident accounts</span>
+                    <span className="font-semibold text-heading-700">
+                      {statsLoading ? '—' : (stats?.totalUsers ?? 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span>Admin accounts</span>
+                    <span className="font-semibold text-heading-700">
+                      {statsLoading ? '—' : (stats?.totalAdmins ?? 0).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </AccessControlGate>
     </DashboardLayout>
   );
 };
+
+function MetricBox({
+  label,
+  value,
+  icon,
+  loading,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  loading: boolean;
+}) {
+  return (
+    <Card>
+      <CardContent className="pt-4 pb-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              {label}
+            </p>
+            <p className={cn(
+              "text-2xl font-bold mt-1",
+              loading ? "text-gray-300" : "text-heading-800"
+            )}>
+              {loading ? '—' : value.toLocaleString()}
+            </p>
+          </div>
+          <div className={cn(
+            "p-2 rounded-md mt-0.5",
+            loading ? "bg-gray-100" : "bg-primary-50 text-primary-600"
+          )}>
+            {loading ? (
+              <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
+            ) : (
+              icon
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SystemLoadingSkeleton() {
+  return (
+    <ul className="space-y-2">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <li key={i} className="flex items-center gap-2">
+          <div className="w-3.5 h-3.5 bg-gray-200 rounded-full animate-pulse" />
+          <div className="h-3.5 bg-gray-200 rounded animate-pulse flex-1" />
+        </li>
+      ))}
+    </ul>
+  );
+}

@@ -201,7 +201,7 @@ export const userService = {
    */
   async getDashboardStats(): Promise<{ totalUsers: number; totalAdmins: number }> {
     const response = await api.get<{ data: { totalUsers: number; totalAdmins: number } }>(
-      '/admin/dashboard/stats'
+      '/users/dashboard/stats'
     );
     return response.data.data;
   },
