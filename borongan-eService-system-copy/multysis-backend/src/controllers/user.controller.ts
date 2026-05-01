@@ -7,7 +7,7 @@ import {
   deleteUser,
   changeUserPassword,
   getAllowedPages,
-  getDashboardStats,
+  getSuperAdminDashboard,
 } from '../services/user.service';
 import { AuthRequest } from '../middleware/auth';
 
@@ -47,7 +47,7 @@ export const getUsersController = async (req: AuthRequest, res: Response): Promi
 
 export const getDashboardStatsController = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const stats = await getDashboardStats();
+    const stats = await getSuperAdminDashboard();
     res.status(200).json({
       status: 'success',
       data: stats,

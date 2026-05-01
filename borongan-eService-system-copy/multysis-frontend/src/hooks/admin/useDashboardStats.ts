@@ -1,34 +1,69 @@
 import { useCallback, useEffect, useState } from 'react';
 import { userService } from '@/services/api/user.service';
 
-interface UseDashboardStatsReturn {
-  stats: { totalUsers: number; totalAdmins: number } | null;
+export interface SystemAdmin {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface RoleWithAdmins {
+  id: string;
+  name: string;
+  description: string | null;
+  adminCount: number;
+  admins: SystemAdmin[];
+}
+
+export interface SystemWithAdmins {
+  name: string;
+  roles: RoleWithAdmins[];
+}
+
+export interface EserviceUserRow {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  roles: string[];
+}
+
+export interface SuperAdminDashboard {
+  systems: SystemWithAdmins[];
+  eserviceUsers: EserviceUserRow[];
+  totalSystems: number;
+  totalEserviceUsers: number;
+}
+
+interface UseSuperAdminDashboardReturn {
+  data: SuperAdminDashboard | null;
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
 }
 
-export const useDashboardStats = (): UseDashboardStatsReturn => {
-  const [stats, setStats] = useState<{ totalUsers: number; totalAdmins: number } | null>(null);
+export const useSuperAdminDashboard = (): UseSuperAdminDashboardReturn => {
+  const [data, setData] = useState<SuperAdminDashboard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStats = useCallback(async () => {
+  const fetch = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await userService.getDashboardStats();
-      setStats(data);
+      const result = await userService.getDashboardStats();
+      setData(result);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch dashboard stats');
+      setError(err.message || 'Failed to fetch dashboard data');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    fetch();
+  }, [fetch]);
 
-  return { stats, isLoading, error, refetch: fetchStats };
+  return { data, isLoading, error, refetch: fetch };
 };

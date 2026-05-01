@@ -288,3 +288,113 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
   ]);
   return { totalUsers, totalAdmins };
 };
+
+// ---------------------------------------------------------------------------
+// Super Admin Dashboard
+// ---------------------------------------------------------------------------
+
+export interface SystemAdmin {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface RoleWithAdmins {
+  id: string;
+  name: string;
+  description: string | null;
+  adminCount: number;
+  admins: SystemAdmin[];
+}
+
+export interface SystemWithAdmins {
+  name: string;
+  roles: RoleWithAdmins[];
+}
+
+export interface EserviceUserRow {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: Date;
+  roles: string[];
+}
+
+export interface SuperAdminDashboard {
+  systems: SystemWithAdmins[];
+  eserviceUsers: EserviceUserRow[];
+  totalSystems: number;
+  totalEserviceUsers: number;
+}
+
+export const getSuperAdminDashboard = async (): Promise<SuperAdminDashboard> => {
+  // 1. Get all roles grouped by system, with their assigned users
+  const roles = await prisma.role.findMany({
+    include: {
+      userRoles: {
+        include: {
+          user: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      },
+    },
+    orderBy: { name: 'asc' },
+  });
+
+  // Group roles by system
+  const systemMap = new Map<string, RoleWithAdmins[]>();
+  for (const r of roles) {
+    const existing = systemMap.get(r.system) ?? [];
+    existing.push({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      adminCount: r.userRoles.length,
+      admins: r.userRoles.map((ur) => ({
+        id: ur.user.id,
+        name: ur.user.name,
+        email: ur.user.email,
+      })),
+    });
+    systemMap.set(r.system, existing);
+  }
+
+  const systems: SystemWithAdmins[] = Array.from(systemMap.entries())
+    .map(([name, roles]) => ({ name, roles }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  // 2. Get all eservice users with their role names
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      createdAt: true,
+      userRoles: {
+        select: {
+          role: { select: { name: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const eserviceUsers: EserviceUserRow[] = users.map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    createdAt: u.createdAt,
+    roles: u.userRoles.map((ur) => ur.role.name),
+  }));
+
+  return {
+    systems,
+    eserviceUsers,
+    totalSystems: systems.length,
+    totalEserviceUsers: eserviceUsers.length,
+  };
+};
