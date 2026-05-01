@@ -121,7 +121,6 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
         ...dynamicSubmenuItems,
         // Static items that are not services
         { path: '/admin/e-government/reports', label: 'Reports' },
-        { path: '/admin/e-government/social-amelioration', label: 'Social Amelioration' },
         { path: '/admin/e-government/gcash-reports', label: 'Gcash Reports' },
         { path: '/admin/e-government/payments', label: 'Payments' },
         { path: '/admin/e-government/billings', label: 'Billings' },
@@ -223,7 +222,6 @@ export const adminMenuItems: MenuItem[] = [
     system: 'core',
     submenuItems: [
       { path: '/admin/e-government/reports', label: 'Reports' },
-      { path: '/admin/e-government/social-amelioration', label: 'Social Amelioration' },
       { path: '/admin/e-government/gcash-reports', label: 'Gcash Reports' },
       { path: '/admin/e-government/payments', label: 'Payments' },
       { path: '/admin/e-government/billings', label: 'Billings' },

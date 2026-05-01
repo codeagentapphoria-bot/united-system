@@ -33,7 +33,7 @@ export const SocialAmelioration: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <AccessControlGate pagePath="/admin/e-government/social-amelioration">
+      <AccessControlGate pagePath="/admin/city-population/social-amelioration">
         <div className={cn('space-y-4')}>
         {/* Header */}
         <div className={cn('flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4')}>

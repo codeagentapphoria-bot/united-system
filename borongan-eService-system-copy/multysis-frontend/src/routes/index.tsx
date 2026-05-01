@@ -291,11 +291,7 @@ export const router = createBrowserRouter([
         path: 'e-government/social-amelioration',
         element: (
           <RequireAdmin>
-            <ProtectedRoute>
-              <LazyWrapper>
-                <SocialAmelioration />
-              </LazyWrapper>
-            </ProtectedRoute>
+            <Navigate to="/admin/city-population/social-amelioration" replace />
           </RequireAdmin>
         ),
       },
@@ -368,6 +364,18 @@ export const router = createBrowserRouter([
             element: (
               <RequireAdmin>
                 <Navigate to="/admin/city-population/dashboard" replace />
+              </RequireAdmin>
+            ),
+          },
+          {
+            path: 'social-amelioration',
+            element: (
+              <RequireAdmin>
+                <ProtectedRoute>
+                  <LazyWrapper>
+                    <SocialAmelioration />
+                  </LazyWrapper>
+                </ProtectedRoute>
               </RequireAdmin>
             ),
           },
