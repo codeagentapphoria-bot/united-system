@@ -1,3 +1,0 @@
-fix: remove Program Applications tab from Social Amelioration page
-
-Confirmation is handled by each individual program page instead.
