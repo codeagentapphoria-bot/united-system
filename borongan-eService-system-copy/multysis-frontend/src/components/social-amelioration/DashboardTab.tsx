@@ -220,8 +220,8 @@ export const DashboardTab: React.FC = () => {
                       ? 'bg-primary-600 text-white hover:bg-primary-700'
                       : 'text-gray-600 hover:text-gray-700 hover:bg-gray-50 border-gray-300'
                   )}
-                >
-                  Daily
+                  >
+                  By Date
                 </Button>
                 <Button
                   variant={trendRange === 'monthly' ? 'default' : 'outline'}
@@ -233,7 +233,7 @@ export const DashboardTab: React.FC = () => {
                       : 'text-gray-600 hover:text-gray-700 hover:bg-gray-50 border-gray-300'
                   )}
                 >
-                  Monthly
+                  By Month
                 </Button>
                 <Button
                   variant={trendRange === 'yearly' ? 'default' : 'outline'}
@@ -245,7 +245,7 @@ export const DashboardTab: React.FC = () => {
                       : 'text-gray-600 hover:text-gray-700 hover:bg-gray-50 border-gray-300'
                   )}
                 >
-                  Yearly
+                  By Year
                 </Button>
               </div>
             </div>
