@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSocialAmeliorationData } from '@/hooks/social-amelioration/useSocialAmelioration';
 import { cn } from '@/lib/utils';
@@ -70,34 +69,40 @@ const MonthlyChart: React.FC<{ data: TrendChartDatum[] }> = ({ data }) => {
 export const DashboardTab: React.FC = () => {
   const {
     dashboardStats,
-    monthlyStats: allMonthlyStats,
+    monthlyStats,
     trendRange,
     setTrendRange,
     isLoading,
   } = useSocialAmeliorationData();
 
-  const [filterDate, setFilterDate] = React.useState(new Date().toISOString().split('T')[0]);
-  const [filterMonth, setFilterMonth] = React.useState(new Date().getMonth() + 1);
-  const [filterYear, setFilterYear] = React.useState(new Date().getFullYear());
+  // null = "Show All" (no filter applied)
+  const [filterDate, setFilterDate] = React.useState<string | null>(null);
+  const [filterMonth, setFilterMonth] = React.useState<number | null>(null);
+  const [filterYear, setFilterYear] = React.useState<number | null>(null);
 
-  // Filter monthly stats based on selected filters
-  const filteredMonthlyStats = useMemo(() => {
-    if (!allMonthlyStats || allMonthlyStats.length === 0) {
-      return [];
-    }
+  // Filter stats based on selected filters — null means "show all"
+  const filteredStats = useMemo(() => {
+    if (!monthlyStats || monthlyStats.length === 0) return [];
 
     if (trendRange === 'daily') {
-      return allMonthlyStats.filter((stat) => stat.period === filterDate);
+      if (!filterDate) return monthlyStats;
+      return monthlyStats.filter((stat) => stat.period === filterDate);
     }
 
     if (trendRange === 'monthly') {
-      const targetPeriod = `${filterYear}-${String(filterMonth).padStart(2, '0')}`;
-      return allMonthlyStats.filter((stat) => stat.period === targetPeriod);
+      if (!filterMonth && !filterYear) return monthlyStats;
+      return monthlyStats.filter((stat) => {
+        const [statYear] = stat.period.split('-');
+        const matchYear = !filterYear || statYear === String(filterYear);
+        const matchMonth = !filterMonth || stat.period.endsWith(`-${String(filterMonth).padStart(2, '0')}`);
+        return matchYear && matchMonth;
+      });
     }
 
-    // trendRange === 'yearly'
-    return allMonthlyStats.filter((stat) => stat.period === String(filterYear));
-  }, [trendRange, filterDate, filterMonth, filterYear, allMonthlyStats]);
+    // yearly
+    if (!filterYear) return monthlyStats;
+    return monthlyStats.filter((stat) => stat.period === String(filterYear));
+  }, [trendRange, filterDate, filterMonth, filterYear, monthlyStats]);
 
   const overviewCards = [
     {
@@ -130,10 +135,8 @@ export const DashboardTab: React.FC = () => {
     },
   ];
 
-  const years = Array.from({ length: 5 }, (_, i) => ({
-    value: new Date().getFullYear() - i,
-    label: (new Date().getFullYear() - i).toString()
-  }));
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+
   const months = [
     { value: 1, label: 'January' },
     { value: 2, label: 'February' },
@@ -148,6 +151,30 @@ export const DashboardTab: React.FC = () => {
     { value: 11, label: 'November' },
     { value: 12, label: 'December' },
   ];
+
+  // Pre-compute available daily dates from rolling 6-day window (independent of monthlyStats)
+  const availableDailyDates = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const period = d.toISOString().split('T')[0];
+    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return { value: period, label };
+  });
+
+  // Pre-compute available monthly periods from rolling 6-month window
+  const availableMonthlyPeriods = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return { value: period, label };
+  });
+
+  // Pre-compute available yearly periods from rolling 5-year window
+  const availableYearlyPeriods = years.map((year) => ({
+    value: String(year),
+    label: String(year),
+  }));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
@@ -197,10 +224,10 @@ export const DashboardTab: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Filter Controls */}
+          {/* View toggle + filters */}
           <div className="space-y-4 mb-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Filter Statistics</h3>
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Registration Trends</h3>
               <div className="flex gap-2">
                 <Button
                   variant={trendRange === 'daily' ? 'default' : 'outline'}
@@ -241,16 +268,26 @@ export const DashboardTab: React.FC = () => {
               </div>
             </div>
 
-            {/* Filter Input Fields */}
+            {/* Filter inputs */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-200">
               {trendRange === 'daily' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-                  <Input
-                    type="date"
-                    value={filterDate}
-                    onChange={(e) => setFilterDate(e.target.value)}
-                    className="w-full h-10"
+                  <Select
+                    isClearable
+                    value={filterDate ? { value: filterDate, label: filterDate } : null}
+                    onChange={(opt) => setFilterDate(opt?.value ?? null)}
+                    options={availableDailyDates}
+                    placeholder="Show all dates"
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        minHeight: '40px',
+                        borderColor: '#d1d5db',
+                      }),
+                    }}
                   />
                 </div>
               )}
@@ -260,10 +297,11 @@ export const DashboardTab: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
                     <Select
-                      value={months.find(month => month.value === filterMonth)}
-                      onChange={(selectedOption) => setFilterMonth(selectedOption?.value || 1)}
+                      isClearable
+                      value={filterMonth ? months.find((m) => m.value === filterMonth) : null}
+                      onChange={(opt) => setFilterMonth(opt?.value ?? null)}
                       options={months}
-                      placeholder="Select Month"
+                      placeholder="Show all months"
                       className="react-select-container"
                       classNamePrefix="react-select"
                       styles={{
@@ -271,9 +309,6 @@ export const DashboardTab: React.FC = () => {
                           ...base,
                           minHeight: '40px',
                           borderColor: '#d1d5db',
-                          '&:hover': {
-                            borderColor: '#9ca3af',
-                          },
                         }),
                       }}
                     />
@@ -281,10 +316,11 @@ export const DashboardTab: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
                     <Select
-                      value={years.find(year => year.value === filterYear)}
-                      onChange={(selectedOption) => setFilterYear(selectedOption?.value || new Date().getFullYear())}
-                      options={years}
-                      placeholder="Select Year"
+                      isClearable
+                      value={filterYear ? { value: filterYear, label: String(filterYear) } : null}
+                      onChange={(opt) => setFilterYear(opt?.value ?? null)}
+                      options={years.map((y) => ({ value: y, label: String(y) }))}
+                      placeholder="Show all years"
                       className="react-select-container"
                       classNamePrefix="react-select"
                       styles={{
@@ -292,9 +328,6 @@ export const DashboardTab: React.FC = () => {
                           ...base,
                           minHeight: '40px',
                           borderColor: '#d1d5db',
-                          '&:hover': {
-                            borderColor: '#9ca3af',
-                          },
                         }),
                       }}
                     />
@@ -306,10 +339,11 @@ export const DashboardTab: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
                   <Select
-                    value={years.find(year => year.value === filterYear)}
-                    onChange={(selectedOption) => setFilterYear(selectedOption?.value || new Date().getFullYear())}
-                    options={years}
-                    placeholder="Select Year"
+                    isClearable
+                    value={filterYear ? { value: filterYear, label: String(filterYear) } : null}
+                    onChange={(opt) => setFilterYear(opt?.value ?? null)}
+                    options={availableYearlyPeriods}
+                    placeholder="Show all years"
                     className="react-select-container"
                     classNamePrefix="react-select"
                     styles={{
@@ -317,9 +351,6 @@ export const DashboardTab: React.FC = () => {
                         ...base,
                         minHeight: '40px',
                         borderColor: '#d1d5db',
-                        '&:hover': {
-                          borderColor: '#9ca3af',
-                        },
                       }),
                     }}
                   />
@@ -331,7 +362,7 @@ export const DashboardTab: React.FC = () => {
           {isLoading ? (
             <Skeleton className="h-[400px] w-full rounded-xl" />
           ) : (
-            <MonthlyChart data={filteredMonthlyStats} />
+            <MonthlyChart data={filteredStats} />
           )}
         </CardContent>
       </Card>
