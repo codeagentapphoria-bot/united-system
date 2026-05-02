@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSocialAmeliorationData } from '@/hooks/social-amelioration/useSocialAmelioration';
 import { cn } from '@/lib/utils';
 import React, { useMemo } from 'react';
-import { FiBookOpen, FiHeart, FiTrendingUp, FiUserCheck, FiUsers } from 'react-icons/fi';
+import { FiBookOpen, FiTrendingUp, FiUserCheck, FiUsers } from 'react-icons/fi';
 import Select from 'react-select';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
@@ -119,7 +119,7 @@ export const DashboardTab: React.FC = () => {
     {
       title: 'PWD',
       count: dashboardStats.totalPWD,
-      icon: <FiHeart className="h-5 w-5" />,
+      icon: <FiUsers className="h-5 w-5" />,
       iconColor: 'text-green-600',
       countColor: 'text-green-700',
     },
@@ -133,7 +133,7 @@ export const DashboardTab: React.FC = () => {
     {
       title: 'Solo Parents',
       count: dashboardStats.totalSoloParents,
-      icon: <FiHeart className="h-5 w-5" />,
+      icon: <FiUsers className="h-5 w-5" />,
       iconColor: 'text-orange-600',
       countColor: 'text-orange-700',
     },

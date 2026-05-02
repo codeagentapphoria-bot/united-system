@@ -883,35 +883,6 @@ const PWDInfo: React.FC<{
           </div>
         </div>
 
-        <Separator />
-
-        {/* Contact Information */}
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Contact Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone Number</label>
-              <div className="min-h-[40px] flex items-center">
-                {beneficiary.phoneNumber || beneficiary.mobileNumber || beneficiary.contactNumber || beneficiary.citizen?.phoneNumber ? (
-                  <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.phoneNumber || beneficiary.mobileNumber || beneficiary.contactNumber || beneficiary.citizen?.phoneNumber}</p>
-                ) : (
-                  <p className="text-sm text-gray-400 italic bg-gray-50 px-3 py-2 rounded border w-full">Not provided</p>
-                )}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</label>
-              <div className="min-h-[40px] flex items-center">
-                {beneficiary.email || beneficiary.citizen?.email ? (
-                  <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.email || beneficiary.citizen?.email}</p>
-                ) : (
-                  <p className="text-sm text-gray-400 italic bg-gray-50 px-3 py-2 rounded border w-full">Not provided</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* See Full Information Button */}
         <div className="flex justify-center pt-4">
           <Button
