@@ -477,7 +477,7 @@ export const getOverviewStatsController = async (_req: Request, res: Response) =
 
 export const getTrendStatsController = async (req: Request, res: Response) => {
   try {
-    const range = (req.query.range as 'daily' | 'monthly' | 'yearly') || 'monthly';
+    const range = (req.query.range as 'daily' | 'monthly' | 'yearly' | 'all') || 'monthly';
     const stats = await socialAmeliorationService.getTrendStats(range);
     res.status(200).json({ status: 'success', data: stats });
   } catch (error: any) {

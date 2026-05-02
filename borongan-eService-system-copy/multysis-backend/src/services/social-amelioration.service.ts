@@ -1021,7 +1021,7 @@ export const socialAmeliorationService = {
     };
   },
 
-  async getTrendStats(range: 'daily' | 'monthly' | 'yearly' = 'monthly') {
+  async getTrendStats(range: 'daily' | 'monthly' | 'yearly' | 'all' = 'monthly') {
     const now = new Date();
     let start: Date;
 
@@ -1033,6 +1033,10 @@ export const socialAmeliorationService = {
       case 'yearly':
         start = new Date(now);
         start.setFullYear(now.getFullYear() - 4);
+        break;
+      case 'all':
+        // Fetch all records — set start to year 2000
+        start = new Date('2000-01-01');
         break;
       case 'monthly':
       default:
