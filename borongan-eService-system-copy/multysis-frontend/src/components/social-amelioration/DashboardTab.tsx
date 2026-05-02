@@ -84,6 +84,10 @@ export const DashboardTab: React.FC = () => {
   const filteredStats = useMemo(() => {
     if (!monthlyStats || monthlyStats.length === 0) return [];
 
+    if (trendRange === 'all') {
+      return monthlyStats;
+    }
+
     if (trendRange === 'daily') {
       if (!filterDate) return monthlyStats;
       return monthlyStats.filter((stat) => stat.period === filterDate);
@@ -212,6 +216,18 @@ export const DashboardTab: React.FC = () => {
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Registration Trends</h3>
               <div className="flex gap-2">
                 <Button
+                  variant={trendRange === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setTrendRange('all')}
+                  className={cn(
+                    trendRange === 'all'
+                      ? 'bg-primary-600 text-white hover:bg-primary-700'
+                      : 'text-gray-600 hover:text-gray-700 hover:bg-gray-50 border-gray-300'
+                  )}
+                >
+                  All
+                </Button>
+                <Button
                   variant={trendRange === 'daily' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setTrendRange('daily')}
@@ -220,7 +236,7 @@ export const DashboardTab: React.FC = () => {
                       ? 'bg-primary-600 text-white hover:bg-primary-700'
                       : 'text-gray-600 hover:text-gray-700 hover:bg-gray-50 border-gray-300'
                   )}
-                  >
+                >
                   By Date
                 </Button>
                 <Button
@@ -250,8 +266,9 @@ export const DashboardTab: React.FC = () => {
               </div>
             </div>
 
-            {/* Filter inputs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-200">
+            {/* Filter inputs — hidden when "All" is selected */}
+            {trendRange !== 'all' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-200">
               {trendRange === 'daily' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
@@ -329,6 +346,7 @@ export const DashboardTab: React.FC = () => {
                 </div>
               )}
             </div>
+            )}
           </div>
 
           {isLoading ? (
