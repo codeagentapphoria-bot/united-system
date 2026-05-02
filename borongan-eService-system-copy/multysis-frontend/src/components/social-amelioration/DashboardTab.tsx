@@ -152,24 +152,6 @@ export const DashboardTab: React.FC = () => {
     { value: 12, label: 'December' },
   ];
 
-  // Pre-compute available daily dates from rolling 6-day window (independent of monthlyStats)
-  const availableDailyDates = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const period = d.toISOString().split('T')[0];
-    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    return { value: period, label };
-  });
-
-  // Pre-compute available monthly periods from rolling 6-month window
-  const availableMonthlyPeriods = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    return { value: period, label };
-  });
-
   // Pre-compute available yearly periods from rolling 5-year window
   const availableYearlyPeriods = years.map((year) => ({
     value: String(year),
@@ -273,21 +255,11 @@ export const DashboardTab: React.FC = () => {
               {trendRange === 'daily' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-                  <Select
-                    isClearable
-                    value={filterDate ? { value: filterDate, label: filterDate } : null}
-                    onChange={(opt) => setFilterDate(opt?.value ?? null)}
-                    options={availableDailyDates}
-                    placeholder="Show all dates"
-                    className="react-select-container"
-                    classNamePrefix="react-select"
-                    styles={{
-                      control: (base) => ({
-                        ...base,
-                        minHeight: '40px',
-                        borderColor: '#d1d5db',
-                      }),
-                    }}
+                  <input
+                    type="date"
+                    value={filterDate ?? ''}
+                    onChange={(e) => setFilterDate(e.target.value || null)}
+                    className="w-full h-10 px-3 rounded-md border border-[#d1d5db] bg-white text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
               )}
