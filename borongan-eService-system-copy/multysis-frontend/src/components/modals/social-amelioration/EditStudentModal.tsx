@@ -15,8 +15,8 @@ import { EditStudentFields } from '@/components/social-amelioration/forms/EditSt
 import { createReactSelectStyles, useCitizenSearch } from '@/components/social-amelioration/shared';
 
 // Hooks
-import { useGovernmentPrograms } from '@/hooks/social-amelioration/useGovernmentPrograms';
 import { useGradeLevels } from '@/hooks/social-amelioration/useGradeLevels';
+import { residentService } from '@/services/api/resident.service';
 
 // Types and Schemas
 import { studentSchema, type StudentInput } from '@/validations/beneficiary.schema';
@@ -38,7 +38,6 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   initialData,
 }) => {
   const { activeGradeLevels } = useGradeLevels();
-  const { getActiveProgramsByType } = useGovernmentPrograms();
   const {
     citizens,
     setSelectedCitizen,
@@ -51,7 +50,6 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
     defaultValues: {
       citizenId: '',
       gradeLevel: '',
-      programs: [],
     },
   });
 
@@ -59,11 +57,6 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
     value: gl.id, // Use ID instead of name
     label: gl.name,
     description: gl.description,
-  }));
-
-  const programOptions = getActiveProgramsByType('STUDENT').map(program => ({
-    value: program.id,
-    label: program.name,
   }));
 
   const reactSelectStyles = createReactSelectStyles(!!form.formState.errors.gradeLevel);
@@ -80,7 +73,6 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
       form.reset({
         citizenId: '',
         gradeLevel: '',
-        programs: [],
       });
       setSelectedCitizen(null);
       resetSearch();
@@ -99,31 +91,35 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
         const citizenId = initialData.citizenId || initialData.citizen?.id || '';
         const gradeLevel = initialData.gradeLevel || '';
-        const programs = initialData.programs || [];
 
         form.reset({
           citizenId,
           gradeLevel,
-          programs,
         });
       }
     }
   }, [open, initialData?.id, form]);
 
-  // Set selected citizen separately to avoid infinite loops
+  // Set selected citizen - fetch directly from API when editing
   useEffect(() => {
-    if (open && initialData && citizens.length > 0) {
+    if (open && initialData && !selectedCitizen) {
       const citizenId = initialData.citizenId || initialData.citizen?.id || '';
-      if (citizenId && selectedCitizen?.id !== citizenId) {
-        const citizen = citizens.find(c => c.id === citizenId);
-        if (citizen) {
-          setSelectedCitizen(citizen);
-        }
+      if (citizenId) {
+        residentService.getResident(citizenId)
+          .then(citizen => {
+            setSelectedCitizen(citizen);
+          })
+          .catch(() => {
+            // Fallback: try to find in citizens array if search was done
+            const citizen = citizens.find(c => c.id === citizenId);
+            if (citizen) {
+              setSelectedCitizen(citizen);
+            }
+          });
       }
     }
-    // Only depend on open, initialData.id, and citizens.length to prevent infinite loops
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialData?.id, citizens.length]);
+  }, [open, initialData?.id]);
 
   const handleSubmit = async (data: StudentInput) => {
     try {
@@ -159,7 +155,6 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
               <EditStudentFields
                 selectedCitizen={selectedCitizen}
                 gradeLevelOptions={gradeLevelOptions}
-                programOptions={programOptions}
                 reactSelectStyles={reactSelectStyles}
               />
             </form>

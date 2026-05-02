@@ -15,7 +15,7 @@ import { EditSoloParentFields } from '@/components/social-amelioration/forms/Edi
 import { useCitizenSearch, createReactSelectStyles } from '@/components/social-amelioration/shared';
 
 // Hooks
-import { useGovernmentPrograms } from '@/hooks/social-amelioration/useGovernmentPrograms';
+import { residentService } from '@/services/api/resident.service';
 
 // Types and Schemas
 import { soloParentSchema, type SoloParentInput } from '@/validations/beneficiary.schema';
@@ -36,7 +36,6 @@ export const EditSoloParentModal: React.FC<EditSoloParentModalProps> = ({
   onEdit,
   initialData,
 }) => {
-  const { getActiveProgramsByType } = useGovernmentPrograms();
   const {
     citizens,
     selectedCitizen,
@@ -49,14 +48,8 @@ export const EditSoloParentModal: React.FC<EditSoloParentModalProps> = ({
     defaultValues: {
       citizenId: '',
       category: '',
-      assistancePrograms: [],
     },
   });
-
-  const programOptions = getActiveProgramsByType('SOLO_PARENT').map(program => ({
-    value: program.id,
-    label: program.name,
-  }));
 
   const reactSelectStyles = createReactSelectStyles(false);
 
@@ -72,7 +65,6 @@ export const EditSoloParentModal: React.FC<EditSoloParentModalProps> = ({
       form.reset({
         citizenId: '',
         category: '',
-        assistancePrograms: [],
       });
       resetSearch();
     }
@@ -92,32 +84,35 @@ export const EditSoloParentModal: React.FC<EditSoloParentModalProps> = ({
 
         const citizenId = initialData.citizenId || initialData.citizen?.id || '';
         const category = initialData.category || '';
-        // Handle migration from boolean fields to assistancePrograms array
-        const assistancePrograms = initialData.assistancePrograms || [];
 
         form.reset({
           citizenId,
           category,
-          assistancePrograms,
         });
       }
     }
   }, [open, initialData?.id, form]);
 
-  // Set selected citizen separately to avoid infinite loops
+  // Set selected citizen - fetch directly from API when editing
   useEffect(() => {
-    if (open && initialData && citizens.length > 0) {
+    if (open && initialData && !selectedCitizen) {
       const citizenId = initialData.citizenId || initialData.citizen?.id || '';
-      if (citizenId && selectedCitizen?.id !== citizenId) {
-        const citizen = citizens.find(c => c.id === citizenId);
-        if (citizen) {
-          setSelectedCitizen(citizen);
-        }
+      if (citizenId) {
+        residentService.getResident(citizenId)
+          .then(citizen => {
+            setSelectedCitizen(citizen);
+          })
+          .catch(() => {
+            // Fallback: try to find in citizens array if search was done
+            const citizen = citizens.find(c => c.id === citizenId);
+            if (citizen) {
+              setSelectedCitizen(citizen);
+            }
+          });
       }
     }
-    // Only depend on open, initialData.id, and citizens.length to prevent infinite loops
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialData?.id, citizens.length]);
+  }, [open, initialData?.id]);
 
   const handleSubmit = async (data: SoloParentInput) => {
     try {
@@ -148,9 +143,8 @@ export const EditSoloParentModal: React.FC<EditSoloParentModalProps> = ({
         <div className="flex-1 overflow-y-auto px-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pb-6">
-              <EditSoloParentFields 
+              <EditSoloParentFields
                 selectedCitizen={selectedCitizen}
-                programOptions={programOptions}
                 reactSelectStyles={reactSelectStyles}
               />
             </form>

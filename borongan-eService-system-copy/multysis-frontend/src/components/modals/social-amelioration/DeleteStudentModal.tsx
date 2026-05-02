@@ -28,7 +28,6 @@ export const DeleteStudentModal: React.FC<DeleteStudentModalProps> = ({
 }) => {
   const handleConfirm = () => {
     onConfirm();
-    onClose();
   };
 
   return (

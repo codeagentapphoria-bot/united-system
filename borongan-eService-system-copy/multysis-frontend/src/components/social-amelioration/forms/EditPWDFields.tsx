@@ -25,14 +25,12 @@ import { useDisabilityTypes } from '@/hooks/social-amelioration/useDisabilityTyp
 
 interface EditPWDFieldsProps {
   selectedCitizen: any;
-  programOptions: Array<{ value: string; label: string }>;
   reactSelectStyles: any;
 }
 
-export const EditPWDFields: React.FC<EditPWDFieldsProps> = ({ 
+export const EditPWDFields: React.FC<EditPWDFieldsProps> = ({
   selectedCitizen,
-  programOptions,
-  reactSelectStyles,
+  reactSelectStyles: _reactSelectStyles,
 }) => {
   const form = useFormContext<PWDInput>();
   const { activeDisabilityTypes } = useDisabilityTypes();
@@ -118,35 +116,6 @@ export const EditPWDFields: React.FC<EditPWDFieldsProps> = ({
       </div>
 
       <Separator />
-
-      {/* 3. Government Programs */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-primary-600">Government Programs</h3>
-        
-        <FormField
-          control={form.control}
-          name="governmentPrograms"
-          render={({ field }) => (
-            <FormItem>
-              <CustomFormLabel>Select Government Programs</CustomFormLabel>
-              <Select
-                isMulti
-                value={programOptions.filter(option => field.value?.includes(option.value))}
-                onChange={(selectedOptions) => {
-                  field.onChange(selectedOptions ? selectedOptions.map(option => option.value) : []);
-                }}
-                options={programOptions}
-                placeholder="Select government programs (optional)"
-                className="mt-1"
-                classNamePrefix="react-select"
-                isSearchable={true}
-                styles={reactSelectStyles}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
     </div>
   );
 };

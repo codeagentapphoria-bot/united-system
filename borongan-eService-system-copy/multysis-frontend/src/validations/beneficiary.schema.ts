@@ -40,7 +40,6 @@ import { z } from 'zod';
 export const seniorCitizenSchema = z.object({
   citizenId: z.string().min(1, 'Citizen is required'), // Required - must select a citizen
   pensionTypes: z.array(z.string()).min(1, 'At least one pension type is required'),
-  governmentPrograms: z.array(z.string()).optional().default([]), // Optional - government assistance programs
 });
 
 export type SeniorCitizenInput = z.infer<typeof seniorCitizenSchema>;
@@ -53,7 +52,6 @@ export const pwdSchema = z.object({
   monetaryAllowance: z.boolean().default(false),
   assistedDevice: z.boolean().default(false),
   donorDevice: z.string().optional(),
-  governmentPrograms: z.array(z.string()).optional().default([]), // Optional - government assistance programs
 }).superRefine((data, ctx) => {
   // If assistedDevice is true, donorDevice is required
   if (data.assistedDevice && (!data.donorDevice || data.donorDevice.trim() === '')) {
@@ -71,7 +69,6 @@ export type PWDInput = z.infer<typeof pwdSchema>;
 export const studentSchema = z.object({
   citizenId: z.string().min(1, 'Citizen is required'), // Required - must select a citizen
   gradeLevel: z.string().min(1, 'Grade level is required'),
-  programs: z.array(z.string()).optional().default([]), // Optional - government assistance programs
 });
 
 export type StudentInput = z.infer<typeof studentSchema>;
@@ -80,7 +77,6 @@ export type StudentInput = z.infer<typeof studentSchema>;
 export const soloParentSchema = z.object({
   citizenId: z.string().min(1, 'Citizen is required'), // Required - must select a citizen
   category: z.string().min(1, 'Category is required'),
-  assistancePrograms: z.array(z.string()).optional().default([]), // Optional - government assistance programs
 });
 
 export type SoloParentInput = z.infer<typeof soloParentSchema>;

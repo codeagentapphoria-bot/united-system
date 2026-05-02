@@ -379,7 +379,7 @@ export const useBeneficiaryManagement = (type: BeneficiaryType) => {
           title: 'Success',
           description: 'Beneficiary saved successfully',
         });
-        await fetchBeneficiaries();
+        fetchBeneficiaries();
       } catch (error: unknown) {
         toast({
           variant: 'destructive',
@@ -416,7 +416,7 @@ export const useBeneficiaryManagement = (type: BeneficiaryType) => {
           title: 'Success',
           description: 'Beneficiary updated successfully',
         });
-        await fetchBeneficiaries();
+        fetchBeneficiaries();
       } catch (error: unknown) {
         toast({
           variant: 'destructive',
@@ -450,7 +450,7 @@ export const useBeneficiaryManagement = (type: BeneficiaryType) => {
           title: 'Success',
           description: 'Beneficiary activated successfully',
         });
-        await fetchBeneficiaries();
+        fetchBeneficiaries();
       } catch (error: unknown) {
         toast({
           variant: 'destructive',
@@ -483,7 +483,7 @@ export const useBeneficiaryManagement = (type: BeneficiaryType) => {
           title: 'Success',
           description: 'Beneficiary deactivated successfully',
         });
-        await fetchBeneficiaries();
+        fetchBeneficiaries();
       } catch (error: unknown) {
         toast({
           variant: 'destructive',
@@ -518,7 +518,7 @@ export const useBeneficiaryManagement = (type: BeneficiaryType) => {
         });
         // Clear selection if deleted beneficiary was selected
         setSelectedBeneficiary((prev) => (prev?.id === id ? null : prev));
-        await fetchBeneficiaries();
+        fetchBeneficiaries();
       } catch (error: unknown) {
         toast({
           variant: 'destructive',

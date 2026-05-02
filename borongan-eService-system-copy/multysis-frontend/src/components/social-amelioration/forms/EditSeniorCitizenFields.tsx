@@ -23,7 +23,6 @@ interface EditSeniorCitizenFieldsProps {
   selectedCitizen: any;
   initialData?: any;
   existingBeneficiaries?: any[];
-  programOptions: Array<{ value: string; label: string }>;
   reactSelectStyles: any;
 }
 
@@ -31,7 +30,6 @@ export const EditSeniorCitizenFields: React.FC<EditSeniorCitizenFieldsProps> = (
   selectedCitizen,
   initialData,
   existingBeneficiaries = [],
-  programOptions,
   reactSelectStyles: _reactSelectStyles,
 }) => {
   const form = useFormContext<SeniorCitizenInput>();
@@ -59,7 +57,6 @@ export const EditSeniorCitizenFields: React.FC<EditSeniorCitizenFieldsProps> = (
     }));
 
   const pensionReactSelectStyles = createReactSelectStyles(!!form.formState.errors.pensionTypes);
-  const programReactSelectStyles = createReactSelectStyles(!!form.formState.errors.governmentPrograms);
 
   return (
     <div className="space-y-6">
@@ -118,35 +115,6 @@ export const EditSeniorCitizenFields: React.FC<EditSeniorCitizenFieldsProps> = (
       />
 
       <Separator />
-
-      {/* 3. Government Programs */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-primary-600">Government Programs</h3>
-        
-        <FormField
-          control={form.control}
-          name="governmentPrograms"
-          render={({ field }) => (
-            <FormItem>
-              <CustomFormLabel>Select Government Programs</CustomFormLabel>
-              <Select
-                isMulti
-                value={programOptions.filter(option => field.value?.includes(option.value))}
-                onChange={(selectedOptions) => {
-                  field.onChange(selectedOptions ? selectedOptions.map(option => option.value) : []);
-                }}
-                options={programOptions}
-                placeholder="Select government programs (optional)"
-                className="mt-1"
-                classNamePrefix="react-select"
-                isSearchable={true}
-                styles={programReactSelectStyles}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
     </div>
   );
 };
