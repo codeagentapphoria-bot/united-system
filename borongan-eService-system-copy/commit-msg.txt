@@ -1,5 +1,3 @@
-fix: drop eservice_users.role column from e-service user accounts table
+fix: remove Program Applications tab from Social Amelioration page
 
-The 'Role' column showed the generic eservice_users.role flag (always
-'admin') which was confusing. Now table shows only: Name, Email,
-System Roles (actual role names), Created.
+Confirmation is handled by each individual program page instead.

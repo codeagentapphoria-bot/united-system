@@ -5,13 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { cn } from '@/lib/utils';
 import React, { useEffect, useState } from 'react';
-import { FiBookOpen, FiClipboard, FiHeart, FiSettings, FiUserCheck, FiUsers } from 'react-icons/fi';
+import { FiBookOpen, FiHeart, FiSettings, FiUserCheck, FiUsers } from 'react-icons/fi';
 import { useSearchParams } from 'react-router-dom';
 
 // Import tab components
 import {
   DashboardTab,
-  ProgramApplicationsTab,
   PWDTab,
   SeniorCitizenTab,
   SettingsTab,
@@ -95,15 +94,6 @@ export const SocialAmelioration: React.FC = () => {
                     <span className="hidden sm:inline">Solo Parents</span>
                   </TabsTrigger>
                   <TabsTrigger
-                    value="program-applications"
-                    className={cn(
-                      'flex items-center gap-2 px-3 sm:px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
-                    )}
-                  >
-                    <FiClipboard size={18} />
-                    <span className="hidden sm:inline">Program Applications</span>
-                  </TabsTrigger>
-                  <TabsTrigger
                     value="settings"
                     className={cn(
                       'flex items-center gap-2 px-3 sm:px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
@@ -135,10 +125,6 @@ export const SocialAmelioration: React.FC = () => {
 
                 <TabsContent value="solo-parents" className={cn('mt-0')}>
                   <SoloParentsTab />
-                </TabsContent>
-
-                <TabsContent value="program-applications" className={cn('mt-0')}>
-                  <ProgramApplicationsTab />
                 </TabsContent>
 
                 <TabsContent value="settings" className={cn('mt-0')}>
