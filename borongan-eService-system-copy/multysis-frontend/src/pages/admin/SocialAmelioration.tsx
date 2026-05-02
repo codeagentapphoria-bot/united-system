@@ -105,29 +105,29 @@ export const SocialAmelioration: React.FC = () => {
                 </TabsList>
               </div>
 
-              {/* Tab Contents */}
+              {/* Tab Contents - forceMount keeps all tabs mounted to prevent data refetch */}
               <div className={cn('p-6')}>
-                <TabsContent value="dashboard" className={cn('mt-0')}>
+                <TabsContent value="dashboard" className={cn('mt-0')} forceMount hidden={activeTab !== 'dashboard'}>
                   <DashboardTab />
                 </TabsContent>
 
-                <TabsContent value="senior-citizen" className={cn('mt-0')}>
+                <TabsContent value="senior-citizen" className={cn('mt-0')} forceMount hidden={activeTab !== 'senior-citizen'}>
                   <SeniorCitizenTab />
                 </TabsContent>
 
-                <TabsContent value="pwd" className={cn('mt-0')}>
+                <TabsContent value="pwd" className={cn('mt-0')} forceMount hidden={activeTab !== 'pwd'}>
                   <PWDTab />
                 </TabsContent>
 
-                <TabsContent value="students" className={cn('mt-0')}>
+                <TabsContent value="students" className={cn('mt-0')} forceMount hidden={activeTab !== 'students'}>
                   <StudentsTab />
                 </TabsContent>
 
-                <TabsContent value="solo-parents" className={cn('mt-0')}>
+                <TabsContent value="solo-parents" className={cn('mt-0')} forceMount hidden={activeTab !== 'solo-parents'}>
                   <SoloParentsTab />
                 </TabsContent>
 
-                <TabsContent value="settings" className={cn('mt-0')}>
+                <TabsContent value="settings" className={cn('mt-0')} forceMount hidden={activeTab !== 'settings'}>
                   <SettingsTab />
                 </TabsContent>
               </div>
