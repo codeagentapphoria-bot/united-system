@@ -7,12 +7,40 @@ import { BusCard } from '@/components/libre-sakay/BusCard';
 import { ApplyModal } from '@/components/libre-sakay/ApplyModal';
 import { useBusLocations } from '@/hooks/useBusLocations';
 import { useRoutes } from '@/hooks/useRoutes';
-import { portalProgramsService, type PortalProgram } from '@/services/api/portal-programs.service';
+import { portalProgramsService, type PortalProgram, type ProgramApplication } from '@/services/api/portal-programs.service';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { FiArrowLeft, FiCheck, FiClock, FiX, FiInfo, FiMap, FiNavigation } from 'react-icons/fi';
-import { Loader2 } from 'lucide-react';
+import { Loader2, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// ── Lightbox ──────────────────────────────────────────────────────────────────
+
+function Lightbox({ url, label, onClose }: { url: string; label: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-w-3xl w-full max-h-[90vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between bg-black/60 px-4 py-2 rounded-t-lg">
+          <p className="text-white text-sm font-medium truncate">{label}</p>
+          <button onClick={onClose} className="text-white/70 hover:text-white ml-4 shrink-0">
+            <FiX size={20} />
+          </button>
+        </div>
+        <img
+          src={url}
+          alt={label}
+          className="w-full max-h-[80vh] object-contain rounded-b-lg bg-black"
+        />
+      </div>
+    </div>
+  );
+}
 
 const LOCATION_STORAGE_KEY = 'libre_sakay_user_location';
 
@@ -62,12 +90,14 @@ interface StatusBannerProps {
   program: PortalProgram | null;
   isLoading: boolean;
   isCancelling: boolean;
+  isLoadingDetails: boolean;
   onViewPrograms: () => void;
   onApply: () => void;
   onCancel: () => void;
+  onViewDetails: () => void;
 }
 
-function StatusBanner({ program, isLoading, isCancelling, onViewPrograms, onApply, onCancel }: StatusBannerProps) {
+function StatusBanner({ program, isLoading, isCancelling, isLoadingDetails, onViewPrograms, onApply, onCancel, onViewDetails }: StatusBannerProps) {
   if (isLoading) {
     return <div className="h-20 rounded-xl bg-gray-100 animate-pulse" />;
   }
@@ -134,12 +164,160 @@ function StatusBanner({ program, isLoading, isCancelling, onViewPrograms, onAppl
                 Apply Again
               </Button>
             )}
+            {key === 'approved' && (
+              <Button size="sm" variant="outline" onClick={onViewDetails} disabled={isLoadingDetails}>
+                {isLoadingDetails ? (
+                  <><Loader2 className="w-3 h-3 animate-spin mr-1" />Loading…</>
+                ) : (
+                  'View Details'
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>
     </Card>
   );
 }
+
+// ── Application Details Modal ─────────────────────────────────────────────────────
+
+interface ApplicationDetailsModalProps {
+  application: ProgramApplication | null;
+  isLoading: boolean;
+  onClose: () => void;
+}
+
+function formatDate(dateStr: string | undefined) {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('en-PH', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = ({ application, isLoading, onClose }) => {
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxLabel, setLightboxLabel] = useState('');
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center">
+        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between rounded-t-2xl z-10">
+            <div>
+              <h2 className="text-base font-bold text-heading-900">Application Details</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{application?.program?.name ?? '—'}</p>
+            </div>
+            <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
+              <FiX className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+
+          <div className="p-4 space-y-4">
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+                <p className="text-sm text-gray-400">Loading details…</p>
+              </div>
+            ) : application ? (
+              <>
+                {/* Status */}
+                <div className="flex items-center gap-2">
+                  <span className={cn('px-3 py-1.5 rounded-full text-xs font-semibold', {
+                    'bg-green-100 text-green-700': application.status === 'approved',
+                    'bg-yellow-100 text-yellow-700': application.status === 'pending',
+                    'bg-red-100 text-red-700': application.status === 'rejected',
+                    'bg-gray-100 text-gray-600': application.status === 'cancelled',
+                  })}>
+                    {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                  </span>
+                </div>
+
+                {/* Dates */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Date Applied</span>
+                    <span className="font-medium text-heading-700">{formatDate(application.appliedAt)}</span>
+                  </div>
+                  {application.reviewedAt && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Date Reviewed</span>
+                      <span className="font-medium text-heading-700">{formatDate(application.reviewedAt)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Admin notes */}
+                {application.adminNotes && (
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 mb-1 font-medium">Admin Notes</p>
+                    <p className="text-sm text-heading-700">{application.adminNotes}</p>
+                  </div>
+                )}
+
+                {/* Submitted data */}
+                {application.submittedData && Object.keys(application.submittedData).length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">Submitted Information</p>
+                    <div className="space-y-2">
+                      {Object.entries(application.submittedData).map(([k, value]) => (
+                        <div key={k} className="flex flex-col gap-0.5">
+                          <span className="text-xs text-gray-400">{k}</span>
+                          <span className="text-sm text-heading-700">{value || '—'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Attachments */}
+                {application.attachments && application.attachments.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">Attachments</p>
+                    <div className="space-y-2">
+                      {application.attachments.map((att, i) => (
+                        <button
+                          key={i}
+                          onClick={() => { setLightboxUrl(att.url); setLightboxLabel(att.label); }}
+                          className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-800 underline"
+                        >
+                          <FileText size={14} />
+                          {att.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {application.status === 'approved' && !application.adminNotes && Object.keys(application.submittedData || {}).length === 0 && !application.attachments?.length && (
+                  <p className="text-sm text-gray-400 text-center py-2">No additional details available.</p>
+                )}
+
+                <div className="flex justify-end pt-2 border-t">
+                  <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <p className="text-sm text-gray-400">No application found.</p>
+                <div className="flex justify-end pt-2 border-t w-full">
+                  <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {lightboxUrl && (
+        <Lightbox url={lightboxUrl} label={lightboxLabel} onClose={() => setLightboxUrl(null)} />
+      )}
+    </>
+  );
+};
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
@@ -153,6 +331,9 @@ export function LibreSakay() {
   const [statusLoading, setStatusLoading] = useState(true);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [myApplication, setMyApplication] = useState<ProgramApplication | null>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
 
@@ -240,6 +421,22 @@ export function LibreSakay() {
     }
   };
 
+  const handleViewDetails = async () => {
+    if (!libreSakayProgram) return;
+    setMyApplication(null);
+    setDetailsModalOpen(true);
+    setIsLoadingDetails(true);
+    try {
+      const applications = await portalProgramsService.getMyApplications();
+      const app = applications.find(a => a.programId === libreSakayProgram.id);
+      setMyApplication(app ?? null);
+    } catch {
+      setMyApplication(null);
+    } finally {
+      setIsLoadingDetails(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Nav */}
@@ -278,9 +475,11 @@ export function LibreSakay() {
           program={libreSakayProgram}
           isLoading={statusLoading}
           isCancelling={isCancelling}
+          isLoadingDetails={isLoadingDetails}
           onViewPrograms={() => navigate('/')}
           onApply={() => setApplyModalOpen(true)}
           onCancel={handleCancel}
+          onViewDetails={handleViewDetails}
         />
 
         {/* Live map */}
@@ -349,6 +548,14 @@ export function LibreSakay() {
           program={libreSakayProgram}
           onClose={() => setApplyModalOpen(false)}
           onSuccess={fetchLibreSakayProgram}
+        />
+      )}
+
+      {detailsModalOpen && (
+        <ApplicationDetailsModal
+          application={myApplication}
+          isLoading={isLoadingDetails}
+          onClose={() => setDetailsModalOpen(false)}
         />
       )}
     </div>

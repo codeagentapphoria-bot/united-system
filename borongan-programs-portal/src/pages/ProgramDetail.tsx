@@ -8,6 +8,7 @@ import { Loader2, CheckCircle, FileText, Upload, ZoomIn, X } from 'lucide-react'
 import {
   portalProgramsService,
   type PortalProgram,
+  type ProgramApplication,
 } from '@/services/api/portal-programs.service';
 import type { GovernmentProgramType } from '@/services/api/government-program.service';
 import { useAuth } from '@/context/AuthContext';
@@ -349,6 +350,145 @@ function ApplyModal({ program, onClose, onSuccess }: ApplyModalProps) {
   );
 }
 
+// ── Application Details Modal ───────────────────────────────────────────────────
+
+interface ApplicationDetailsModalProps {
+  application: ProgramApplication | null;
+  isLoading: boolean;
+  onClose: () => void;
+}
+
+function formatDate(dateStr: string | undefined) {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('en-PH', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = ({ application, isLoading, onClose }) => {
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxLabel, setLightboxLabel] = useState('');
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center">
+        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between rounded-t-2xl z-10">
+            <div>
+              <h2 className="text-base font-bold text-heading-900">Application Details</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{application?.program?.name ?? '—'}</p>
+            </div>
+            <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+
+          <div className="p-4 space-y-4">
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+                <p className="text-sm text-gray-400">Loading details…</p>
+              </div>
+            ) : application ? (
+              <>
+                {/* Status */}
+                <div className="flex items-center gap-2">
+                  <span className={cn('px-3 py-1.5 rounded-full text-xs font-semibold', {
+                    'bg-green-100 text-green-700': application.status === 'approved',
+                    'bg-yellow-100 text-yellow-700': application.status === 'pending',
+                    'bg-red-100 text-red-700': application.status === 'rejected',
+                    'bg-gray-100 text-gray-600': application.status === 'cancelled',
+                  })}>
+                    {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                  </span>
+                </div>
+
+                {/* Dates */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Date Applied</span>
+                    <span className="font-medium text-heading-700">{formatDate(application.appliedAt)}</span>
+                  </div>
+                  {application.reviewedAt && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Date Reviewed</span>
+                      <span className="font-medium text-heading-700">{formatDate(application.reviewedAt)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Admin notes */}
+                {application.adminNotes && (
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 mb-1 font-medium">Admin Notes</p>
+                    <p className="text-sm text-heading-700">{application.adminNotes}</p>
+                  </div>
+                )}
+
+                {/* Submitted data */}
+                {application.submittedData && Object.keys(application.submittedData).length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">Submitted Information</p>
+                    <div className="space-y-2">
+                      {Object.entries(application.submittedData).map(([key, value]) => (
+                        <div key={key} className="flex flex-col gap-0.5">
+                          <span className="text-xs text-gray-400">{key}</span>
+                          <span className="text-sm text-heading-700">{value || '—'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Attachments */}
+                {application.attachments && application.attachments.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">Attachments</p>
+                    <div className="space-y-2">
+                      {application.attachments.map((att, i) => (
+                        <button
+                          key={i}
+                          onClick={() => { setLightboxUrl(att.url); setLightboxLabel(att.label); }}
+                          className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-800 underline"
+                        >
+                          <FileText size={14} />
+                          {att.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {application.status === 'approved' && !application.adminNotes && Object.keys(application.submittedData || {}).length === 0 && !application.attachments?.length && (
+                  <p className="text-sm text-gray-400 text-center py-2">No additional details available.</p>
+                )}
+
+                <div className="flex justify-end pt-2 border-t">
+                  <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <p className="text-sm text-gray-400">No application found.</p>
+                <div className="flex justify-end pt-2 border-t w-full">
+                  <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {lightboxUrl && (
+        <Lightbox url={lightboxUrl} label={lightboxLabel} onClose={() => setLightboxUrl(null)} />
+      )}
+    </>
+  );
+};
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export function ProgramDetail() {
@@ -360,6 +500,9 @@ export function ProgramDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [myApplication, setMyApplication] = useState<ProgramApplication | null>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   const fetchProgram = useCallback(async () => {
     if (!id || !isAuthenticated) return;
@@ -392,6 +535,22 @@ export function ProgramDetail() {
       // Silently fail — user can retry
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  const handleViewDetails = async () => {
+    if (!program) return;
+    setMyApplication(null);
+    setDetailsModalOpen(true);
+    setIsLoadingDetails(true);
+    try {
+      const applications = await portalProgramsService.getMyApplications();
+      const app = applications.find(a => a.programId === program.id);
+      setMyApplication(app ?? null);
+    } catch {
+      setMyApplication(null);
+    } finally {
+      setIsLoadingDetails(false);
     }
   };
 
@@ -496,6 +655,15 @@ export function ProgramDetail() {
                         Apply Again
                       </Button>
                     )}
+                    {key === 'approved' && (
+                      <Button size="sm" variant="outline" onClick={handleViewDetails} disabled={isLoadingDetails}>
+                        {isLoadingDetails ? (
+                          <><Loader2 className="w-3 h-3 animate-spin mr-1" />Loading…</>
+                        ) : (
+                          'View Details'
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -530,6 +698,14 @@ export function ProgramDetail() {
           program={program}
           onClose={() => setApplyModalOpen(false)}
           onSuccess={fetchProgram}
+        />
+      )}
+
+      {detailsModalOpen && (
+        <ApplicationDetailsModal
+          application={myApplication}
+          isLoading={isLoadingDetails}
+          onClose={() => setDetailsModalOpen(false)}
         />
       )}
     </div>
