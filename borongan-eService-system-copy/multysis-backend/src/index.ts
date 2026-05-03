@@ -18,7 +18,7 @@ import { initializeSocket } from './socket/socket';
 import { parseTimeString } from './utils/timeParser';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: __dirname + '/../.env' });
 
 // Validate required environment variables
 const validateEnvironment = (): void => {
