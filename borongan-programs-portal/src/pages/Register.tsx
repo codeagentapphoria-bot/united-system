@@ -568,9 +568,15 @@ export const Register: React.FC = () => {
           <div className="mt-8 bg-primary-900/50 rounded-xl p-4 text-xs text-primary-200 leading-relaxed border border-primary-700">
             <p className="font-semibold text-white mb-2">What happens next?</p>
             <p>
-              After submitting, a barangay administrator will review your application. You'll be notified by email once
-              approved.
+              After submitting, an admin will review your application. You'll be notified by email once approved.
             </p>
+            <button
+              type="button"
+              onClick={() => window.open('/user-guide/presentation.html', '_blank', 'noopener,noreferrer')}
+              className="mt-3 text-primary-100 hover:text-white underline underline-offset-2 font-medium"
+            >
+              Need help? Read the user guide
+            </button>
           </div>
         </aside>
 
@@ -603,6 +609,13 @@ export const Register: React.FC = () => {
                   />
                 ))}
               </div>
+              <button
+                type="button"
+                onClick={() => window.open('/user-guide/presentation.html', '_blank', 'noopener,noreferrer')}
+                className="mt-3 text-xs text-primary-700 hover:underline font-medium"
+              >
+                Need help? Read the user guide
+              </button>
             </div>
 
             {/* Step heading */}
