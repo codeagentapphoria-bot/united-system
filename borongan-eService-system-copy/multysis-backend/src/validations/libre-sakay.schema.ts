@@ -102,3 +102,38 @@ export const replaceStopInRouteValidation: ValidationChain[] = [
 export const reviewRideLogValidation: ValidationChain[] = [
   param('id').notEmpty().withMessage('Invalid ride log ID'),
 ];
+
+// ============ BENEFICIARIES ============
+
+export const listBeneficiariesValidation: ValidationChain[] = [
+  query('filter')
+    .optional()
+    .isIn(['all', 'active', 'suspended'])
+    .withMessage('Filter must be: all, active, or suspended'),
+  query('page').optional().isInt({ min: 1 }).withMessage('page must be a positive integer'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('limit must be between 1 and 100'),
+  query('search').optional().isString().trim(),
+];
+
+export const getBeneficiaryByIdValidation: ValidationChain[] = [
+  param('id').notEmpty().withMessage('Invalid beneficiary ID'),
+];
+
+export const suspendBeneficiaryValidation: ValidationChain[] = [
+  param('id').notEmpty().withMessage('Invalid beneficiary ID'),
+];
+
+export const activateBeneficiaryValidation: ValidationChain[] = [
+  param('id').notEmpty().withMessage('Invalid beneficiary ID'),
+];
+
+export const removeBeneficiaryValidation: ValidationChain[] = [
+  param('id').notEmpty().withMessage('Invalid beneficiary ID'),
+];
+
+export const exportBeneficiariesValidation: ValidationChain[] = [
+  query('filter')
+    .optional()
+    .isIn(['all', 'active', 'suspended'])
+    .withMessage('Filter must be: all, active, or suspended'),
+];

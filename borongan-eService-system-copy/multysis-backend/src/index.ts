@@ -437,7 +437,7 @@ app.use('/api/payments', apiLimiter, paymentRoutes);
 app.use('/api/tax-reassessment', apiLimiter, taxReassessmentRoutes);
 app.use('/api/tax', apiLimiter, taxPreviewRoutes);
 app.use('/api/medicine-requests', apiLimiter, medicineRequestRoutes);
-app.use('/api/libre-sakay', apiLimiter, libreSakayRoutes);
+app.use('/api/admin/libre-sakay', apiLimiter, libreSakayRoutes);
 // Admin classification management (resident_classifications + classification_types via raw SQL)
 app.use('/api/classification', apiLimiter, classificationRoutes);
 

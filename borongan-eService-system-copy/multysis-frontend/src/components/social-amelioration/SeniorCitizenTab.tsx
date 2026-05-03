@@ -144,10 +144,9 @@ const FullInformationModal: React.FC<{
             </div>
           </div>
 
-          {/* Government Programs */}
           {(() => {
-            const governmentProgramNames = getProgramNames(beneficiary.governmentPrograms);
-            return governmentProgramNames.length > 0 ? (
+            const governmentProgramNames = getProgramNames(beneficiary.governmentPrograms || beneficiary.assistancePrograms || beneficiary.programs);
+            return (
               <>
                 <Separator />
                 <div className="bg-white p-6 rounded-lg border border-gray-200">
@@ -155,16 +154,20 @@ const FullInformationModal: React.FC<{
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Programs</label>
                     <div className="min-h-[40px] flex items-center flex-wrap gap-2">
-                      {governmentProgramNames.map((programName, idx) => (
-                        <Badge key={idx} className="bg-primary-100 text-primary-700 px-3 py-1">
-                          {programName}
-                        </Badge>
-                      ))}
+                      {governmentProgramNames.length > 0 ? (
+                        governmentProgramNames.map((programName, idx) => (
+                          <Badge key={idx} className="bg-primary-100 text-primary-700 px-3 py-1">
+                            {programName}
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-400 italic bg-gray-50 px-3 py-2 rounded border w-full">No programs assigned</p>
+                      )}
                     </div>
                   </div>
                 </div>
               </>
-            ) : null;
+            );
           })()}
 
           <Separator />
@@ -805,8 +808,8 @@ const SeniorCitizenInfo: React.FC<{
 
         {/* Government Programs */}
         {(() => {
-          const governmentProgramNames = getProgramNames(beneficiary.governmentPrograms);
-          return governmentProgramNames.length > 0 ? (
+          const governmentProgramNames = getProgramNames(beneficiary.governmentPrograms || beneficiary.assistancePrograms || beneficiary.programs);
+          return (
             <>
               <Separator />
               <div className="bg-white p-6 rounded-lg border border-gray-200">
@@ -814,16 +817,20 @@ const SeniorCitizenInfo: React.FC<{
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Programs</label>
                   <div className="min-h-[40px] flex items-center flex-wrap gap-2">
-                    {governmentProgramNames.map((programName, idx) => (
-                      <Badge key={idx} className="bg-primary-100 text-primary-700 px-3 py-1">
-                        {programName}
-                      </Badge>
-                    ))}
+                    {governmentProgramNames.length > 0 ? (
+                      governmentProgramNames.map((programName, idx) => (
+                        <Badge key={idx} className="bg-primary-100 text-primary-700 px-3 py-1">
+                          {programName}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-400 italic bg-gray-50 px-3 py-2 rounded border w-full">No programs assigned</p>
+                    )}
                   </div>
                 </div>
               </div>
             </>
-          ) : null;
+          );
         })()}
 
         <Separator />

@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS "government_program_applications" (
   "applied_at"   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   "reviewed_at"  TIMESTAMPTZ,
   "reviewed_by"  INTEGER,
+  "suspended_at" TIMESTAMPTZ,
   CONSTRAINT "government_program_applications_pkey" PRIMARY KEY ("id")
 );
 

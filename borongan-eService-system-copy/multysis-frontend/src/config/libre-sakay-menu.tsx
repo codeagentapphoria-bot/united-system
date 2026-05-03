@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiHome, FiMap, FiTruck, FiGitBranch, FiUsers, FiMapPin, FiList, FiUserCheck, FiSearch, FiSettings } from 'react-icons/fi';
+import { FiHome, FiMap, FiTruck, FiGitBranch, FiUsers, FiMapPin, FiList, FiUserCheck, FiSearch, FiSettings, FiUser } from 'react-icons/fi';
 
 interface MenuItem {
   path?: string;
@@ -16,6 +16,7 @@ export const libresakayMenuItems: MenuItem[] = [
   { path: '/admin/libre-sakay/dashboard', label: 'Dashboard', icon: <FiHome />, system: 'libre-sakay' },
   { path: '/admin/libre-sakay/verification', label: 'Verify Resident', icon: <FiSearch />, system: 'libre-sakay' },
   { path: '/admin/libre-sakay/applications', label: 'Program Applications', icon: <FiUserCheck />, system: 'libre-sakay' },
+  { path: '/admin/libre-sakay/beneficiaries', label: 'Beneficiaries', icon: <FiUser />, system: 'libre-sakay' },
   { path: '/admin/libre-sakay/fleet', label: 'Fleet', icon: <FiMap />, system: 'libre-sakay' },
   { path: '/admin/libre-sakay/buses', label: 'Buses', icon: <FiTruck />, system: 'libre-sakay' },
   { path: '/admin/libre-sakay/routes', label: 'Routes', icon: <FiGitBranch />, system: 'libre-sakay' },

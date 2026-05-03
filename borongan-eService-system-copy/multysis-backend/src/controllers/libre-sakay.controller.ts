@@ -12,6 +12,14 @@ import {
   assignStopToRoute, removeStopFromRoute, reorderStopsInRoute, replaceStopInRoute, getRoutesForStop,
   getDashboardStats, getRideLogs, getRidesTrend, deleteRideLog, reviewRideLog,
 } from '../services/libre-sakay.service';
+import {
+  listBeneficiaries,
+  getBeneficiaryById,
+  suspendBeneficiary,
+  activateBeneficiary,
+  removeBeneficiary,
+  getBeneficiariesForExport,
+} from '../services/libre-sakay-beneficiary.service';
 import prisma from '../config/database';
 
 // Helper to send paginated response
@@ -566,6 +574,110 @@ export const updateProgramSettingsController = async (req: AuthRequest, res: Res
       status: 'success',
       data: updated,
     });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// =============================================================================
+// BENEFICIARIES
+// =============================================================================
+
+export const listBeneficiariesController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const filter = (req.query.filter as 'all' | 'active' | 'suspended') || 'all';
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+    const search = req.query.search as string | undefined;
+
+    const result = await listBeneficiaries(filter, page, limit, search);
+    res.status(200).json({
+      status: 'success',
+      data: result.data,
+      pagination: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+export const getBeneficiaryByIdController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const beneficiary = await getBeneficiaryById(id);
+
+    if (!beneficiary) {
+      res.status(404).json({ status: 'error', message: 'Beneficiary not found' });
+      return;
+    }
+
+    res.status(200).json({ status: 'success', data: beneficiary });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+export const suspendBeneficiaryController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    await suspendBeneficiary(id);
+    res.status(200).json({ status: 'success', message: 'Beneficiary suspended' });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+export const activateBeneficiaryController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    await activateBeneficiary(id);
+    res.status(200).json({ status: 'success', message: 'Beneficiary activated' });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+export const removeBeneficiaryController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    await removeBeneficiary(id);
+    res.status(200).json({ status: 'success', message: 'Beneficiary removed' });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+export const exportBeneficiariesController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const filter = (req.query.filter as 'all' | 'active' | 'suspended') || 'all';
+    const beneficiaries = await getBeneficiariesForExport(filter);
+
+    const headers = ['Name', 'Resident ID', 'Category', 'Enrollment Status', 'Enrolled Date', 'Barangay'];
+    const rows = beneficiaries.map((b) => {
+      const enrollmentLabel = b.suspendedAt ? 'Suspended' : b.enrollmentStatus.charAt(0) + b.enrollmentStatus.slice(1).toLowerCase();
+      return [
+        b.fullName,
+        b.residentIdNumber,
+        b.category,
+        enrollmentLabel,
+        b.enrolledAt ? new Date(b.enrolledAt).toISOString().split('T')[0] : '',
+        b.barangay,
+      ];
+    });
+
+    const csv = [headers.join(','), ...rows.map((r) => r.map((c) => `"${c}"`).join(','))].join('\n');
+
+    const date = new Date().toISOString().split('T')[0];
+    const filename = `libre-sakay-beneficiaries-${filter}-${date}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.status(200).send(csv);
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: error.message });
   }

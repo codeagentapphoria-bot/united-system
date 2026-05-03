@@ -763,6 +763,8 @@ model BeneficiaryProgramPivot {
   beneficiaryType BeneficiaryType   @map("beneficiary_type")
   beneficiaryId   String            @map("beneficiary_id")
   programId       String            @map("program_id")
+  status          String            @default("active")  // active | suspended
+  suspendedAt     DateTime?         @map("suspended_at")
   createdAt       DateTime          @map("created_at") @default(now())
   program         GovernmentProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
 
