@@ -15,6 +15,7 @@ import {
   StopsTab,
   RideLogsSection,
   ApplicationsSection,
+  BeneficiariesTab,
   AccessControlSection,
   VerificationSection,
   ProgramSettingsSection,
@@ -65,6 +66,8 @@ export const AdminLibreSakay: React.FC = () => {
         return <RideLogsSection />;
       case 'applications':
         return <ApplicationsSection />;
+      case 'beneficiaries':
+        return <BeneficiariesTab />;
       case 'access-control':
         return <AccessControlSection />;
       case 'verification':
@@ -78,7 +81,7 @@ export const AdminLibreSakay: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <AccessControlGate pagePath="/admin/libre-sakay">
+      <AccessControlGate pagePath={`/admin/libre-sakay/${section}`}>
         <div className="mb-6">
           <h1 className="text-2xl font-semibold">{SECTION_TITLES[section] ?? 'Libre Sakay'}</h1>
           <p className="text-sm text-gray-500 mt-1">Libre Sakay Administration</p>

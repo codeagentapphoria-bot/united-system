@@ -22,7 +22,7 @@ export const AdminCityPopulation: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <AccessControlGate pagePath="/admin/city-population">
+      <AccessControlGate pagePath={`/admin/city-population/${section}`}>
         <div className="mb-6">
           <h1 className="text-2xl font-semibold">{SECTION_TITLES[section] ?? 'City Population'}</h1>
           <p className="text-sm text-gray-500 mt-1">City Population Administration</p>
