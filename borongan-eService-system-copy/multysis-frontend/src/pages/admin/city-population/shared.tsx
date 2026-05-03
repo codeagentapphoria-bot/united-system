@@ -8,15 +8,15 @@ import { TableRow, TableCell } from '@/components/ui/table';
 
 export function StatusBadge({ variant, children }: { variant: string; children: React.ReactNode }) {
   const styles: Record<string, string> = {
-    PENDING:                'bg-yellow-100 text-yellow-800 border-yellow-300',
-    UNDER_REVIEW:           'bg-blue-100 text-blue-800 border-blue-300',
-    APPROVED:               'bg-green-100 text-green-800 border-green-300',
-    REJECTED:               'bg-red-100 text-red-800 border-red-300',
+    PENDING: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    UNDER_REVIEW: 'bg-blue-100 text-blue-800 border-blue-300',
+    APPROVED: 'bg-green-100 text-green-800 border-green-300',
+    REJECTED: 'bg-red-100 text-red-800 border-red-300',
     REQUIRES_RESUBMISSION: 'bg-orange-100 text-orange-800 border-orange-300',
-    active:                 'bg-green-100 text-green-700',
-    inactive:               'bg-gray-100 text-gray-500',
-    deceased:               'bg-red-100 text-red-700',
-    moved_out:              'bg-gray-100 text-gray-500',
+    active: 'bg-green-100 text-green-700',
+    inactive: 'bg-gray-100 text-gray-500',
+    deceased: 'bg-red-100 text-red-700',
+    moved_out: 'bg-gray-100 text-gray-500',
   };
 
   return (
@@ -62,7 +62,7 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <TableRow>
+    <TableRow style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', alignContent: 'center' }}>
       <TableCell colSpan={99}>
         <div className="flex flex-col items-center justify-center py-12 gap-2 text-gray-400">
           <div className="text-4xl mb-1">{icon}</div>
@@ -80,7 +80,7 @@ export function EmptyState({
 // =============================================================================
 
 export const SECTION_TITLES: Record<string, string> = {
-  dashboard:      'Dashboard',
+  dashboard: 'Dashboard',
   registrations: 'Registrations',
-  residents:     'Residents',
+  residents: 'Residents',
 };

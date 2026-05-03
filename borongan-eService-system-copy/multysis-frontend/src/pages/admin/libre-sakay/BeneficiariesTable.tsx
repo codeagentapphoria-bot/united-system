@@ -133,6 +133,7 @@ export function BeneficiariesTable({
             <TableHead>Category</TableHead>
             <TableHead>Barangay</TableHead>
             <TableHead>Enrollment</TableHead>
+            <TableHead>Application</TableHead>
             <TableHead>Registered</TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
@@ -148,6 +149,9 @@ export function BeneficiariesTable({
             <TableCell className="text-sm text-gray-500">{b.barangay}</TableCell>
             <TableCell>
               <EnrollmentStatusBadge status={b.enrollmentStatus} suspendedAt={b.suspendedAt} />
+            </TableCell>
+            <TableCell>
+              <ApplicationStatusBadge status={b.applicationStatus} />
             </TableCell>
             <TableCell className="text-sm text-gray-500">
               {new Date(b.enrolledAt).toLocaleDateString('en-US', {
