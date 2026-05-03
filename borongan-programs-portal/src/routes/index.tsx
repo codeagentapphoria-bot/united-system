@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 const Home = React.lazy(() => import('@/pages/Home').then((m) => ({ default: m.Home })));
 const Login = React.lazy(() => import('@/pages/Login').then((m) => ({ default: m.Login })));
 const Register = React.lazy(() => import('@/pages/Register').then((m) => ({ default: m.Register })));
+const RegistrationStatus = React.lazy(() => import('@/pages/RegistrationStatus').then((m) => ({ default: m.RegistrationStatus })));
 const LibreSakay = React.lazy(() => import('@/pages/LibreSakay').then((m) => ({ default: m.LibreSakay })));
 const Routes = React.lazy(() => import('@/pages/libre-sakay/Routes').then((m) => ({ default: m.Routes })));
 const RouteDetail = React.lazy(() => import('@/pages/libre-sakay/RouteDetail').then((m) => ({ default: m.RouteDetail })));
@@ -51,6 +52,10 @@ export const router = createBrowserRouter([
   {
     path: '/register',
     element: <GuestRoute>{withSuspense(<Register />)}</GuestRoute>,
+  },
+  {
+    path: '/register/status',
+    element: <GuestRoute>{withSuspense(<RegistrationStatus />)}</GuestRoute>,
   },
   {
     path: '/libre-sakay',
