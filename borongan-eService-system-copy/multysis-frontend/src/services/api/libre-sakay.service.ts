@@ -161,7 +161,7 @@ export interface LibreSakayProgramSettings {
 // API SERVICE
 // =============================================================================
 
-const BASE = '/libre-sakay';
+const BASE = '/admin/libre-sakay';
 
 export const libreSakayService = {
   // Fleet
