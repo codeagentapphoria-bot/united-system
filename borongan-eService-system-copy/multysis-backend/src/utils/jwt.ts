@@ -2,12 +2,15 @@ import jwt from 'jsonwebtoken';
 import { randomUUID } from 'crypto';
 import { parseTimeStringToSeconds } from './timeParser';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET || JWT_SECRET.length < 32) {
-  throw new Error(
-    'JWT_SECRET must be set in environment variables and be at least 32 characters long'
-  );
-}
+const getJwtSecret = (): string => {
+  const JWT_SECRET = process.env.JWT_SECRET;
+  if (!JWT_SECRET || JWT_SECRET.length < 32) {
+    throw new Error(
+      'JWT_SECRET must be set in environment variables and be at least 32 characters long'
+    );
+  }
+  return JWT_SECRET;
+};
 
 const ACCESS_TOKEN_EXPIRES = process.env.ACCESS_TOKEN_EXPIRES || '10m';
 const REFRESH_TOKEN_EXPIRES = process.env.REFRESH_TOKEN_EXPIRES || '30d';
@@ -28,7 +31,7 @@ export interface RefreshTokenPayload extends TokenPayload {
 }
 
 export const generateToken = (payload: TokenPayload): string => {
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign(payload, getJwtSecret(), {
     expiresIn: JWT_ACCESS_EXPIRES_IN,
   } as jwt.SignOptions);
 };
@@ -37,7 +40,7 @@ export const generateToken = (payload: TokenPayload): string => {
 // the jti as the DB lookup key instead of hashing the token.
 export const generateRefreshToken = (payload: TokenPayload): { token: string; jti: string } => {
   const jti = randomUUID();
-  const token = jwt.sign(payload, JWT_SECRET, {
+  const token = jwt.sign(payload, getJwtSecret(), {
     expiresIn: JWT_REFRESH_EXPIRES_IN,
     jwtid: jti,
   } as jwt.SignOptions);
@@ -45,11 +48,11 @@ export const generateRefreshToken = (payload: TokenPayload): { token: string; jt
 };
 
 export const verifyToken = (token: string): TokenPayload => {
-  return jwt.verify(token, JWT_SECRET) as TokenPayload;
+  return jwt.verify(token, getJwtSecret()) as TokenPayload;
 };
 
 export const verifyRefreshToken = (token: string): RefreshTokenPayload => {
-  const decoded = jwt.verify(token, JWT_SECRET) as RefreshTokenPayload;
+  const decoded = jwt.verify(token, getJwtSecret()) as RefreshTokenPayload;
   if (!decoded.jti) {
     throw new Error('Refresh token missing jti claim');
   }
