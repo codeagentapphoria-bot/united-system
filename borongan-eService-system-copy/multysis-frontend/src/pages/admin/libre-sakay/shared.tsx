@@ -54,7 +54,7 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <TableRow>
+    <TableRow style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', alignContent: 'center' }}>
       <TableCell colSpan={99}>
         <div className="flex flex-col items-center justify-center py-12 gap-2 text-gray-400">
           <div className="text-4xl mb-1">{icon}</div>
