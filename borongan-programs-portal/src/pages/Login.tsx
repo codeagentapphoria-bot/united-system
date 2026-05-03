@@ -176,6 +176,19 @@ export const Login: React.FC = () => {
                     </button>
                   </p>
                 </div>
+
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-600 text-center">
+                    Already registered?{' '}
+                    <button
+                      type="button"
+                      onClick={() => navigate('/register/status')}
+                      className="font-medium text-primary-600 hover:underline"
+                    >
+                      Check Status
+                    </button>
+                  </p>
+                </div>
               </form>
             </Form>
           </CardContent>
