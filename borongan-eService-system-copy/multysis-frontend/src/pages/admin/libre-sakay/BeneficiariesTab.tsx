@@ -136,7 +136,6 @@ function SuspendActivateDialog({
 }
 
 export function BeneficiariesTab() {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const [filter, setFilter] = useState<FilterTab>('all');

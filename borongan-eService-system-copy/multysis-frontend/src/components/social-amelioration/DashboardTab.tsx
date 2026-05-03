@@ -158,7 +158,7 @@ export const DashboardTab: React.FC = () => {
 
   // Pre-compute available yearly periods from rolling 5-year window
   const availableYearlyPeriods = years.map((year) => ({
-    value: String(year),
+    value: year,
     label: String(year),
   }));
 

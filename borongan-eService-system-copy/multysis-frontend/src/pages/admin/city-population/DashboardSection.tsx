@@ -69,7 +69,7 @@ export function DashboardSection() {
   // Total residents from the shared dashboard stats
   const { data: dashStats, isLoading: dashLoading } = useQuery({
     queryKey: ['city-pop', 'dashboard-stats'],
-    queryFn: dashboardService.getDashboardStatistics,
+    queryFn: () => dashboardService.getDashboardStatistics(),
     retry: false,
   });
 

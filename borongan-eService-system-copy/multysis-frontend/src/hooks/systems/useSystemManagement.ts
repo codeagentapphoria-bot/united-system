@@ -115,5 +115,5 @@ export const useSystemOptions = () => {
     label: s.label,
   }));
 
-  return { systems: options, isLoading, error: error?.message || null };
+  return { systems: options, isLoading, error: (error as any)?.message || error || null };
 };

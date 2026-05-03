@@ -114,7 +114,7 @@ export const useSocialAmeliorationData = () => {
   const { toast } = useToast();
   const [dashboardStats, setDashboardStats] = useState<OverviewStats>(EMPTY_STATS);
   const [trendStats, setTrendStats] = useState<TrendStat[]>([]);
-  const [trendRange, setTrendRange] = useState<'daily' | 'monthly' | 'yearly'>('monthly');
+  const [trendRange, setTrendRange] = useState<'daily' | 'monthly' | 'yearly' | 'all'>('monthly');
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchStats = useCallback(async () => {
@@ -122,7 +122,9 @@ export const useSocialAmeliorationData = () => {
     try {
       const [overview, trends] = await Promise.all([
         socialAmeliorationApi.getOverviewStats(),
-        socialAmeliorationApi.getTrendStats(trendRange),
+        trendRange !== 'all'
+          ? socialAmeliorationApi.getTrendStats(trendRange)
+          : Promise.resolve([] as TrendStat[]),
       ]);
       setDashboardStats(overview);
       setTrendStats(trends);
@@ -144,7 +146,7 @@ export const useSocialAmeliorationData = () => {
   const chartData = useMemo(
     () =>
       trendStats.map((stat) => ({
-        month: formatTrendLabel(stat.period, trendRange),
+        month: formatTrendLabel(stat.period, trendRange as 'daily' | 'monthly' | 'yearly'),
         period: stat.period,
         seniorCitizens: stat.seniorCitizens,
         pwd: stat.pwd,

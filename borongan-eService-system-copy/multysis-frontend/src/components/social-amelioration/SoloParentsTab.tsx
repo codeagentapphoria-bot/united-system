@@ -63,7 +63,7 @@ const FullInformationModal: React.FC<{
   const birthDate = citizen.birthDate || beneficiary.dateOfBirth;
   const age = birthDate ? calculateAge(birthDate) : null;
 
-  const assistanceProgramNames = getProgramNames(beneficiary.assistancePrograms);
+  getProgramNames(beneficiary.assistancePrograms);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

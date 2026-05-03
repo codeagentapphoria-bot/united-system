@@ -179,7 +179,7 @@ export function ResidentsSection() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['city-pop', 'residents', currentPage, statusFilter, searchQuery],
     queryFn: () =>
       residentService.listResidents({

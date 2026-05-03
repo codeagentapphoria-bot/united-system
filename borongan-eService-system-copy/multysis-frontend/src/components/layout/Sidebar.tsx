@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import React, { useState, useEffect } from 'react';
-import { FiChevronDown, FiChevronRight, FiLock, FiX } from 'react-icons/fi';
+import { FiChevronDown, FiChevronRight, FiX } from 'react-icons/fi';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 interface SubmenuItem {

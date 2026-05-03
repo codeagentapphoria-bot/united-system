@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FiUser, FiCreditCard, FiMapPin, FiPhone, FiAlertCircle, FiX, FiFile } from 'react-icons/fi';
+import { FiUser, FiCreditCard, FiAlertCircle, FiX, FiFile } from 'react-icons/fi';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { libreSakayBeneficiaryService } from '@/services/api/libre-sakay-beneficiary.service';
-import type { BeneficiaryDetails } from '@/services/api/libre-sakay-beneficiary.service';
 import queryKeys from '@/lib/query-keys';
 
 interface BeneficiaryDetailsModalProps {

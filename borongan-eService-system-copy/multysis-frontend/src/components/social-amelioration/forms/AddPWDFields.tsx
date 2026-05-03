@@ -38,7 +38,6 @@ export const AddPWDFields: React.FC<AddPWDFieldsProps> = ({
   selectedCitizen,
   onCitizenSelect,
   filteredCitizens,
-  reactSelectStyles,
 }) => {
   const form = useFormContext<PWDInput>();
   const { activeDisabilityTypes } = useDisabilityTypes();

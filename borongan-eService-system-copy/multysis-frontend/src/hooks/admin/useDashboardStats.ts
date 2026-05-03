@@ -53,7 +53,7 @@ export const useSuperAdminDashboard = (): UseSuperAdminDashboardReturn => {
     setError(null);
     try {
       const result = await userService.getDashboardStats();
-      setData(result);
+      setData(result as unknown as SuperAdminDashboard);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch dashboard data');
     } finally {
