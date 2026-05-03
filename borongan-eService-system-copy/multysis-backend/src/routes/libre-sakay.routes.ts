@@ -22,6 +22,12 @@ import {
   verifyResidentController,
   getProgramSettingsController,
   updateProgramSettingsController,
+  listBeneficiariesController,
+  getBeneficiaryByIdController,
+  suspendBeneficiaryController,
+  activateBeneficiaryController,
+  removeBeneficiaryController,
+  exportBeneficiariesController,
 } from '../controllers/libre-sakay.controller';
 import {
   getBusesValidation, getBusByIdValidation, createBusValidation,
@@ -31,6 +37,12 @@ import {
   createStopValidation, updateStopValidation, assignStopToRouteValidation,
   reorderStopsValidation, replaceStopInRouteValidation,
   reviewRideLogValidation,
+  listBeneficiariesValidation,
+  getBeneficiaryByIdValidation,
+  suspendBeneficiaryValidation,
+  activateBeneficiaryValidation,
+  removeBeneficiaryValidation,
+  exportBeneficiariesValidation,
 } from '../validations/libre-sakay.schema';
 
 const router = Router();
@@ -108,5 +120,13 @@ router.patch(
   ]),
   updateProgramSettingsController,
 );
+
+// Beneficiaries
+router.get('/beneficiaries', validate(listBeneficiariesValidation), listBeneficiariesController);
+router.get('/beneficiaries/export', validate(exportBeneficiariesValidation), exportBeneficiariesController);
+router.get('/beneficiaries/:id', validate(getBeneficiaryByIdValidation), getBeneficiaryByIdController);
+router.patch('/beneficiaries/:id/suspend', validate(suspendBeneficiaryValidation), suspendBeneficiaryController);
+router.patch('/beneficiaries/:id/activate', validate(activateBeneficiaryValidation), activateBeneficiaryController);
+router.delete('/beneficiaries/:id', validate(removeBeneficiaryValidation), removeBeneficiaryController);
 
 export default router;

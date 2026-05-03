@@ -10,10 +10,15 @@ export const validate = (validations: ValidationChain[]) => {
       return next();
     }
 
+    const formattedErrors = errors.array().map((err) => ({
+      field: 'path' in err ? err.path : 'unknown',
+      message: err.msg,
+    }));
+
     res.status(400).json({
       status: 'error',
       message: 'Validation failed',
-      errors: errors.array(),
+      errors: formattedErrors,
     });
   };
 };

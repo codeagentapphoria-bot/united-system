@@ -80,39 +80,49 @@ const FullInformationModal: React.FC<{
           <Separator />
 
           {/* Student Information */}
-          {(beneficiary.gradeLevel || (beneficiary.programs && beneficiary.programs.length > 0)) && (
+          {(beneficiary.gradeLevelName || beneficiary.gradeLevel) && (
             <>
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Student Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(beneficiary.gradeLevelName || beneficiary.gradeLevel) && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Grade Level</label>
-                      <div className="min-h-[40px] flex items-center">
-                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.gradeLevelName || beneficiary.gradeLevel}</p>
-                      </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Grade Level</label>
+                    <div className="min-h-[40px] flex items-center">
+                      <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.gradeLevelName || beneficiary.gradeLevel}</p>
                     </div>
-                  )}
-                  {(() => {
-                    const programNames = getProgramNames(beneficiary.programs);
-                    return programNames.length > 0 ? (
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Programs</label>
-                        <div className="min-h-[40px] flex items-center flex-wrap gap-2">
-                          {programNames.map((programName: string, idx: number) => (
-                            <Badge key={idx} className="bg-primary-100 text-primary-700 px-3 py-1">
-                              {programName}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null;
-                  })()}
+                  </div>
                 </div>
               </div>
               <Separator />
             </>
           )}
+
+          {/* Government Programs */}
+          {(() => {
+            const governmentProgramNames = getProgramNames(beneficiary.governmentPrograms || beneficiary.assistancePrograms || beneficiary.programs);
+            return (
+              <>
+                <div className="bg-white p-6 rounded-lg border border-gray-200">
+                  <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Government Programs</h3>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Programs</label>
+                    <div className="min-h-[40px] flex items-center flex-wrap gap-2">
+                      {governmentProgramNames.length > 0 ? (
+                        governmentProgramNames.map((programName: string, idx: number) => (
+                          <Badge key={idx} className="bg-primary-100 text-primary-700 px-3 py-1">
+                            {programName}
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-400 italic bg-gray-50 px-3 py-2 rounded border w-full">No programs assigned</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <Separator />
+              </>
+            );
+          })()}
 
           {/* Personal Information */}
           {(citizen.lastName || citizen.firstName || citizen.middleName || citizen.extensionName || citizen.gender || birthDate || age) && (
@@ -600,30 +610,35 @@ const StudentInfo: React.FC<{
                 </div>
               </div>
             )}
-            {(() => {
-              const programNames = getProgramNames(beneficiary.programs);
-              return programNames.length > 0 ? (
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Programs</label>
-                  <div className="min-h-[40px] flex items-center flex-wrap gap-2">
-                    {programNames.map((programName: string, idx: number) => (
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Government Programs */}
+        {(() => {
+          const governmentProgramNames = getProgramNames(beneficiary.governmentPrograms || beneficiary.assistancePrograms || beneficiary.programs);
+          
+          return (
+            <div className="bg-white p-6 rounded-lg border border-gray-200">
+              <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Government Programs</h3>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Programs</label>
+                <div className="min-h-[40px] flex items-center flex-wrap gap-2">
+                  {governmentProgramNames.length > 0 ? (
+                    governmentProgramNames.map((programName: string, idx: number) => (
                       <Badge key={idx} className="bg-primary-100 text-primary-700 px-3 py-1">
                         {programName}
                       </Badge>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Programs</label>
-                  <div className="min-h-[40px] flex items-center">
+                    ))
+                  ) : (
                     <p className="text-sm text-gray-400 italic bg-gray-50 px-3 py-2 rounded border w-full">No programs assigned</p>
-                  </div>
+                  )}
                 </div>
-              );
-            })()}
-          </div>
-        </div>
+              </div>
+            </div>
+          );
+        })()}
 
         <Separator />
 

@@ -2,16 +2,15 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AccessControlGate } from '@/components/common/AccessControlGate';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { adminMenuItems } from '@/config/admin-menu';
+
 import { cn } from '@/lib/utils';
 import React, { useEffect, useState } from 'react';
-import { FiBookOpen, FiClipboard, FiHeart, FiSettings, FiUserCheck, FiUsers } from 'react-icons/fi';
+import { FiBookOpen, FiHeart, FiSettings, FiUserCheck, FiUsers } from 'react-icons/fi';
 import { useSearchParams } from 'react-router-dom';
 
 // Import tab components
 import {
   DashboardTab,
-  ProgramApplicationsTab,
   PWDTab,
   SeniorCitizenTab,
   SettingsTab,
@@ -32,8 +31,8 @@ export const SocialAmelioration: React.FC = () => {
   }, [activeTab]);
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
-      <AccessControlGate pagePath="/admin/e-government/social-amelioration">
+    <DashboardLayout>
+      <AccessControlGate pagePath="/admin/city-population/social-amelioration">
         <div className={cn('space-y-4')}>
         {/* Header */}
         <div className={cn('flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4')}>
@@ -95,15 +94,6 @@ export const SocialAmelioration: React.FC = () => {
                     <span className="hidden sm:inline">Solo Parents</span>
                   </TabsTrigger>
                   <TabsTrigger
-                    value="program-applications"
-                    className={cn(
-                      'flex items-center gap-2 px-3 sm:px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
-                    )}
-                  >
-                    <FiClipboard size={18} />
-                    <span className="hidden sm:inline">Program Applications</span>
-                  </TabsTrigger>
-                  <TabsTrigger
                     value="settings"
                     className={cn(
                       'flex items-center gap-2 px-3 sm:px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
@@ -115,33 +105,29 @@ export const SocialAmelioration: React.FC = () => {
                 </TabsList>
               </div>
 
-              {/* Tab Contents */}
+              {/* Tab Contents - forceMount keeps all tabs mounted to prevent data refetch */}
               <div className={cn('p-6')}>
-                <TabsContent value="dashboard" className={cn('mt-0')}>
+                <TabsContent value="dashboard" className={cn('mt-0')} forceMount hidden={activeTab !== 'dashboard'}>
                   <DashboardTab />
                 </TabsContent>
 
-                <TabsContent value="senior-citizen" className={cn('mt-0')}>
+                <TabsContent value="senior-citizen" className={cn('mt-0')} forceMount hidden={activeTab !== 'senior-citizen'}>
                   <SeniorCitizenTab />
                 </TabsContent>
 
-                <TabsContent value="pwd" className={cn('mt-0')}>
+                <TabsContent value="pwd" className={cn('mt-0')} forceMount hidden={activeTab !== 'pwd'}>
                   <PWDTab />
                 </TabsContent>
 
-                <TabsContent value="students" className={cn('mt-0')}>
+                <TabsContent value="students" className={cn('mt-0')} forceMount hidden={activeTab !== 'students'}>
                   <StudentsTab />
                 </TabsContent>
 
-                <TabsContent value="solo-parents" className={cn('mt-0')}>
+                <TabsContent value="solo-parents" className={cn('mt-0')} forceMount hidden={activeTab !== 'solo-parents'}>
                   <SoloParentsTab />
                 </TabsContent>
 
-                <TabsContent value="program-applications" className={cn('mt-0')}>
-                  <ProgramApplicationsTab />
-                </TabsContent>
-
-                <TabsContent value="settings" className={cn('mt-0')}>
+                <TabsContent value="settings" className={cn('mt-0')} forceMount hidden={activeTab !== 'settings'}>
                   <SettingsTab />
                 </TabsContent>
               </div>

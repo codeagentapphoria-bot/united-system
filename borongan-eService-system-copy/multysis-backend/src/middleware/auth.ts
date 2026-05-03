@@ -13,6 +13,25 @@ export interface AuthRequest extends Request {
   };
 }
 
+// Discriminated union for user objects returned by getCurrentUser
+interface AdminUserResult {
+  type: 'admin';
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  createdAt: Date | string;
+}
+
+interface ResidentUserResult {
+  type: 'resident';
+  id: string;
+  username: string | null;
+  name: string | null;
+  role: string;
+  createdAt: Date | string;
+}
+
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.length < 32) {
   throw new Error(
@@ -84,17 +103,18 @@ async function rotateRefreshToken(
     const userType = dbToken.userId ? 'admin' : 'resident';
     const user = await getCurrentUser(userId, userType);
 
+    const authUser = user as AdminUserResult | ResidentUserResult;
     const tokenPayload =
       userType === 'admin'
         ? {
             id: userId,
-            email: (user as any).email,
-            role: (user as any).role,
+            email: (authUser as AdminUserResult).email,
+            role: (authUser as AdminUserResult).role,
             type: 'admin' as const,
           }
         : {
             id: userId,
-            username: (user as any).username,
+            username: (authUser as ResidentUserResult).username,
             role: 'resident',
             type: 'resident' as const,
           };

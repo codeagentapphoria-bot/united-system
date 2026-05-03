@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { Separator } from '@/components/ui/separator';
-import { adminMenuItems } from '@/config/admin-menu';
+
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatDateWithoutTimezone, formatIdType } from '@/lib/utils';
 import { adminRegistrationService, type RegistrationRequestResponse, type RegistrationRequestFilters } from '@/services/api/citizen-registration.service';
@@ -273,14 +273,14 @@ export const AdminRegistrationWorkflow: React.FC = () => {
   };
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
-      <AccessControlGate pagePath="/admin/registration-workflow">
+    <DashboardLayout>
+      <AccessControlGate pagePath="/admin/city-population">
         <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Registration Approvals</h1>
-          <p className="text-gray-500">Review and process resident registration requests from the portal</p>
-        </div>
+          {/* Header */}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Registration Approvals</h1>
+            <p className="text-gray-500">Review and process resident registration requests from the portal</p>
+          </div>
 
 
 
@@ -972,7 +972,6 @@ export const AdminRegistrationWorkflow: React.FC = () => {
           </div>
         </div>
       )}
-      </AccessControlGate>
 
       {/* Classification Dialog */}
       <Dialog open={isClassifyModalOpen} onOpenChange={setIsClassifyModalOpen}>
@@ -1042,6 +1041,7 @@ export const AdminRegistrationWorkflow: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+      </AccessControlGate>
     </DashboardLayout>
   );
 };

@@ -28,7 +28,6 @@ export const DeleteSoloParentModal: React.FC<DeleteSoloParentModalProps> = ({
 }) => {
   const handleConfirm = () => {
     onConfirm();
-    onClose();
   };
 
   return (

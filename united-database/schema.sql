@@ -1194,6 +1194,8 @@ CREATE TABLE public.beneficiary_program_pivots (
     beneficiary_type public.beneficiary_type NOT NULL,
     beneficiary_id   text NOT NULL,
     program_id       text NOT NULL,
+    status           text NOT NULL DEFAULT 'active',
+    suspended_at     timestamp without time zone,
     created_at       timestamp without time zone DEFAULT now()
 );
 

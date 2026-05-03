@@ -16,7 +16,7 @@ import { useCitizenSearch, createReactSelectStyles } from '@/components/social-a
 
 // Hooks
 import { useToast } from '@/hooks/use-toast';
-import { useGovernmentPrograms } from '@/hooks/social-amelioration/useGovernmentPrograms';
+import { residentService } from '@/services/api/resident.service';
 
 // Types and Schemas
 import { seniorCitizenSchema, type SeniorCitizenInput } from '@/validations/beneficiary.schema';
@@ -40,7 +40,6 @@ export const EditSeniorCitizenModal: React.FC<EditSeniorCitizenModalProps> = ({
   existingBeneficiaries = [],
 }) => {
   const { toast } = useToast();
-  const { getActiveProgramsByType } = useGovernmentPrograms();
   const {
     citizens,
     selectedCitizen,
@@ -53,14 +52,8 @@ export const EditSeniorCitizenModal: React.FC<EditSeniorCitizenModalProps> = ({
     defaultValues: {
       citizenId: '',
       pensionTypes: [],
-      governmentPrograms: [],
     },
   });
-
-  const programOptions = getActiveProgramsByType('SENIOR_CITIZEN').map(program => ({
-    value: program.id,
-    label: program.name,
-  }));
 
   const reactSelectStyles = createReactSelectStyles(false);
 
@@ -76,7 +69,6 @@ export const EditSeniorCitizenModal: React.FC<EditSeniorCitizenModalProps> = ({
       form.reset({
         citizenId: '',
         pensionTypes: [],
-        governmentPrograms: [],
       });
       resetSearch();
     }
@@ -98,31 +90,35 @@ export const EditSeniorCitizenModal: React.FC<EditSeniorCitizenModalProps> = ({
         const existingPensions = initialData.pensionTypes || 
           (initialData.pensionType ? [initialData.pensionType] : []) ||
           (initialData.typeOfPension ? [initialData.typeOfPension] : []);
-        const governmentPrograms = initialData.governmentPrograms || [];
 
         form.reset({
           citizenId,
           pensionTypes: existingPensions,
-          governmentPrograms,
         });
       }
     }
   }, [open, initialData?.id, form]);
 
-  // Set selected citizen separately to avoid infinite loops
+  // Set selected citizen - fetch directly from API when editing
   useEffect(() => {
-    if (open && initialData && citizens.length > 0) {
+    if (open && initialData && !selectedCitizen) {
       const citizenId = initialData.citizenId || initialData.citizen?.id || '';
-      if (citizenId && selectedCitizen?.id !== citizenId) {
-        const citizen = citizens.find(c => c.id === citizenId);
-        if (citizen) {
-          setSelectedCitizen(citizen);
-        }
+      if (citizenId) {
+        residentService.getResident(citizenId)
+          .then(citizen => {
+            setSelectedCitizen(citizen);
+          })
+          .catch(() => {
+            // Fallback: try to find in citizens array if search was done
+            const citizen = citizens.find(c => c.id === citizenId);
+            if (citizen) {
+              setSelectedCitizen(citizen);
+            }
+          });
       }
     }
-    // Only depend on open, initialData.id, and citizens.length to prevent infinite loops
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialData?.id, citizens.length]);
+  }, [open, initialData?.id]);
 
   const handleSubmit = async (data: SeniorCitizenInput) => {
     if (!data.pensionTypes || data.pensionTypes.length === 0) {
@@ -166,7 +162,6 @@ export const EditSeniorCitizenModal: React.FC<EditSeniorCitizenModalProps> = ({
                 selectedCitizen={selectedCitizen}
                 initialData={initialData}
                 existingBeneficiaries={existingBeneficiaries}
-                programOptions={programOptions}
                 reactSelectStyles={reactSelectStyles}
               />
             </form>

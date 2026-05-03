@@ -26,6 +26,7 @@ import { FormLabel as CustomFormLabel } from '@/components/common/FormLabel';
 
 // Hooks
 import { usePages } from '@/hooks/usePages';
+import { usePageSystems } from '@/hooks/pages/usePageSystems';
 
 // Types and Schemas
 import type { Permission } from '@/types/role';
@@ -33,13 +34,6 @@ import { createRoleSchema, type CreateRoleInput } from '@/validations/role.schem
 
 // Utils
 import { cn } from '@/lib/utils';
-
-const SYSTEMS = [
-  { value: 'core', label: 'Core' },
-  { value: 'libre-sakay', label: 'Libre Sakay' },
-  { value: 'government-programs', label: 'Government Programs' },
-  { value: 'services', label: 'Services' },
-];
 
 interface AddRoleModalProps {
   open: boolean;
@@ -69,6 +63,7 @@ export const AddRoleModal: React.FC<AddRoleModalProps> = ({
 
   const selectedSystem = form.watch('system');
   const { redirectOptions, isLoading: pagesLoading } = usePages(selectedSystem);
+  const { systems } = usePageSystems();
 
   const selectedPermissionIds = form.watch('permissionIds') || [];
 
@@ -158,13 +153,13 @@ export const AddRoleModal: React.FC<AddRoleModalProps> = ({
                       <CustomFormLabel required>System</CustomFormLabel>
                       <FormControl>
                         <Select
-                          value={SYSTEMS.find(s => s.value === field.value)}
+                          value={systems.find(s => s.value === field.value)}
                           onChange={(selected) => {
                             field.onChange(selected?.value || '');
                             // Reset redirect page when system changes
                             form.setValue('redirectPageId', '');
                           }}
-                          options={SYSTEMS}
+                          options={systems}
                           placeholder="Select system"
                           className="mt-1"
                           classNamePrefix="react-select"

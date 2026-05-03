@@ -21,10 +21,10 @@ SET search_path TO public;
 -- =============================================================================
 
 INSERT INTO public.roles (id, name, description, system, created_at, updated_at) VALUES
-    ('00000001-0001-4001-8001-000000000001', 'super_admin', 'Full system access',                    'eservice', now(), now()),
-    ('00000002-0002-4002-8002-000000000002', 'admin',       'Standard admin access',                 'eservice', now(), now()),
-    ('00000003-0003-4003-8003-000000000003', 'encoder',     'Data entry and transaction processing', 'eservice', now(), now()),
-    ('00000004-0004-4004-8004-000000000004', 'viewer',      'Read-only access',                    'eservice', now(), now())
+    ('00000001-0001-4001-8001-000000000001', 'super_admin', 'Full system access',                    'core', now(), now()),
+    ('00000002-0002-4002-8002-000000000002', 'admin',       'Standard admin access',                 'core', now(), now()),
+    ('00000003-0003-4003-8003-000000000003', 'encoder',     'Data entry and transaction processing', 'core', now(), now()),
+    ('00000004-0004-4004-8004-000000000004', 'viewer',      'Read-only access',                    'core', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 

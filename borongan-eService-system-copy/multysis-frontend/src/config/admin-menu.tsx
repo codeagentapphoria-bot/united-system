@@ -21,6 +21,7 @@ interface MenuItem {
   hasSubmenu?: boolean;
   submenuItems?: { path: string; label: string; badgeCount?: number; isCategoryHeader?: boolean }[];
   badgeCount?: number;
+  system?: string;
 }
 
 interface NotificationCounts {
@@ -98,15 +99,16 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
   }
 
   return [
-    { path: '/admin/dashboard', label: 'Dashboard', icon: <FiHome /> },
+    { path: '/admin/dashboard', label: 'Dashboard', icon: <FiHome />, system: 'core' },
     {
       path: '/admin/registration-workflow',
       label: 'Registration Requests',
       icon: <FiClipboard />,
       badgeCount: notificationCounts?.pendingCitizens || 0,
+      system: 'core',
     },
 
-    { type: 'separator' as const },
+    { type: 'separator' as const, system: 'core' },
 
     {
       path: '/admin/e-government',
@@ -114,11 +116,11 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
       icon: <FiFileText />,
       hasSubmenu: true,
       badgeCount: notificationCounts?.pendingApplications || 0,
+      system: 'core',
       submenuItems: [
         ...dynamicSubmenuItems,
         // Static items that are not services
         { path: '/admin/e-government/reports', label: 'Reports' },
-        { path: '/admin/e-government/social-amelioration', label: 'Social Amelioration' },
         { path: '/admin/e-government/gcash-reports', label: 'Gcash Reports' },
         { path: '/admin/e-government/payments', label: 'Payments' },
         { path: '/admin/e-government/billings', label: 'Billings' },
@@ -126,13 +128,14 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
         { path: '/admin/e-government/qr-scanner', label: 'QR Scanner' },
       ],
     },
-    { path: '/admin/e-bills-payment', label: 'E-Bills Payment', icon: <FiCreditCard /> },
-    { path: '/admin/e-services', label: 'E-Services', icon: <FiTool /> },
+    { path: '/admin/e-bills-payment', label: 'E-Bills Payment', icon: <FiCreditCard />, system: 'core' },
+    { path: '/admin/e-services', label: 'E-Services', icon: <FiTool />, system: 'core' },
     {
       path: '/admin/e-news',
       label: 'E-News',
       icon: <FiMessageSquare />,
       hasSubmenu: true,
+      system: 'core',
       submenuItems: [{ path: '/admin/e-news/articles', label: 'Articles' }],
     },
     {
@@ -140,6 +143,7 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
       label: 'E-Wallet Services',
       icon: <SlWallet className="text-primary-600" size={14} />,
       hasSubmenu: true,
+      system: 'core',
       submenuItems: [
         { path: '/admin/e-wallet-services/bills', label: 'Bills' },
         { path: '/admin/e-wallet-services/cash-in', label: 'Cash-in' },
@@ -149,16 +153,17 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
         { path: '/admin/e-wallet-services/wallet-support', label: 'Wallet Support' },
       ],
     },
-    { path: '/admin/e-help', label: 'E-Help', icon: <FiHelpCircle /> },
+    { path: '/admin/e-help', label: 'E-Help', icon: <FiHelpCircle />, system: 'core' },
 
     // Separator: Below e-help
-    { type: 'separator' as const },
+    { type: 'separator' as const, system: 'core' },
 
     {
       path: '/admin/general-settings',
       label: 'General Settings',
       icon: <FiSettings />,
       hasSubmenu: true,
+      system: 'core',
       submenuItems: [
         { path: '/admin/general-settings/address', label: 'Address' },
         { path: '/admin/general-settings/appointment', label: 'Appointment' },
@@ -186,6 +191,7 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
       label: 'Access Control',
       icon: <FiShield />,
       hasSubmenu: true,
+      system: 'core',
       submenuItems: [
         { path: '/admin/profile', label: 'My Profile' },
         { path: '/admin/access-control/role-management', label: 'Role Management' },
@@ -196,26 +202,26 @@ export const getAdminMenuItems = async (notificationCounts?: NotificationCounts)
     },
 
     // Separator: Below access control
-    { type: 'separator' as const },
+    { type: 'separator' as const, system: 'core' },
 
-    { path: '/admin/city-announcement', label: 'City Announcement', icon: <FiMessageSquare /> },
+    { path: '/admin/city-announcement', label: 'City Announcement', icon: <FiMessageSquare />, system: 'core' },
   ];
 };
 
 // Default export for backward compatibility (will use empty submenu initially)
 export const adminMenuItems: MenuItem[] = [
-  { path: '/admin/dashboard', label: 'Dashboard', icon: <FiHome /> },
-  { path: '/admin/residents', label: 'Residents', icon: <FiUsers /> },
-  { path: '/admin/registration-workflow', label: 'Registration Requests', icon: <FiClipboard /> },
-  { type: 'separator' as const },
+  { path: '/admin/dashboard', label: 'Dashboard', icon: <FiHome />, system: 'core' },
+  { path: '/admin/residents', label: 'Residents', icon: <FiUsers />, system: 'core' },
+  { path: '/admin/registration-workflow', label: 'Registration Requests', icon: <FiClipboard />, system: 'core' },
+  { type: 'separator' as const, system: 'core' },
   {
     path: '/admin/e-government',
     label: 'E-government',
     icon: <FiFileText />,
     hasSubmenu: true,
+    system: 'core',
     submenuItems: [
       { path: '/admin/e-government/reports', label: 'Reports' },
-      { path: '/admin/e-government/social-amelioration', label: 'Social Amelioration' },
       { path: '/admin/e-government/gcash-reports', label: 'Gcash Reports' },
       { path: '/admin/e-government/payments', label: 'Payments' },
       { path: '/admin/e-government/billings', label: 'Billings' },
@@ -223,13 +229,14 @@ export const adminMenuItems: MenuItem[] = [
       { path: '/admin/e-government/qr-scanner', label: 'QR Scanner' },
     ],
   },
-  { path: '/admin/e-bills-payment', label: 'E-Bills Payment', icon: <FiCreditCard /> },
-  { path: '/admin/e-services', label: 'E-Services', icon: <FiTool /> },
+  { path: '/admin/e-bills-payment', label: 'E-Bills Payment', icon: <FiCreditCard />, system: 'core' },
+  { path: '/admin/e-services', label: 'E-Services', icon: <FiTool />, system: 'core' },
   {
     path: '/admin/e-news',
     label: 'E-News',
     icon: <FiMessageSquare />,
     hasSubmenu: true,
+    system: 'core',
     submenuItems: [{ path: '/admin/e-news/articles', label: 'Articles' }],
   },
   {
@@ -237,6 +244,7 @@ export const adminMenuItems: MenuItem[] = [
     label: 'E-Wallet Services',
     icon: <SlWallet className="text-primary-600" size={14} />,
     hasSubmenu: true,
+    system: 'core',
     submenuItems: [
       { path: '/admin/e-wallet-services/bills', label: 'Bills' },
       { path: '/admin/e-wallet-services/cash-in', label: 'Cash-in' },
@@ -246,13 +254,14 @@ export const adminMenuItems: MenuItem[] = [
       { path: '/admin/e-wallet-services/wallet-support', label: 'Wallet Support' },
     ],
   },
-  { path: '/admin/e-help', label: 'E-Help', icon: <FiHelpCircle /> },
-  { type: 'separator' as const },
+  { path: '/admin/e-help', label: 'E-Help', icon: <FiHelpCircle />, system: 'core' },
+  { type: 'separator' as const, system: 'core' },
   {
     path: '/admin/general-settings',
     label: 'General Settings',
     icon: <FiSettings />,
     hasSubmenu: true,
+    system: 'core',
     submenuItems: [
       { path: '/admin/general-settings/address', label: 'Address' },
       { path: '/admin/general-settings/appointment', label: 'Appointment' },
@@ -280,14 +289,15 @@ export const adminMenuItems: MenuItem[] = [
     label: 'Access Control',
     icon: <FiShield />,
     hasSubmenu: true,
-submenuItems: [
-        { path: '/admin/profile', label: 'My Profile' },
-        { path: '/admin/access-control/role-management', label: 'Role Management' },
-        { path: '/admin/access-control/permissions', label: 'Permissions' },
-        { path: '/admin/access-control/user-management', label: 'User Management' },
-        { path: '/admin/access-control/page-management', label: 'Page Management' },
-      ],
+    system: 'core',
+    submenuItems: [
+      { path: '/admin/profile', label: 'My Profile' },
+      { path: '/admin/access-control/role-management', label: 'Role Management' },
+      { path: '/admin/access-control/permissions', label: 'Permissions' },
+      { path: '/admin/access-control/user-management', label: 'User Management' },
+      { path: '/admin/access-control/page-management', label: 'Page Management' },
+    ],
   },
-  { type: 'separator' as const },
-  { path: '/admin/city-announcement', label: 'City Announcement', icon: <FiMessageSquare /> },
+  { type: 'separator' as const, system: 'core' },
+  { path: '/admin/city-announcement', label: 'City Announcement', icon: <FiMessageSquare />, system: 'core' },
 ];

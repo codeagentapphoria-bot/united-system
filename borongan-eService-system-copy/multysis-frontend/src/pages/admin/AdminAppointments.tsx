@@ -19,7 +19,7 @@ import { transactionService, type Transaction } from '@/services/api/transaction
 import { serviceService, type Service } from '@/services/api/service.service';
 
 // Config
-import { adminMenuItems } from '@/config/admin-menu';
+
 
 // Utils
 import { cn } from '@/lib/utils';
@@ -208,7 +208,7 @@ export const AdminAppointments: React.FC = () => {
   };
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
+    <DashboardLayout>
       <AccessControlGate pagePath="/admin/general-settings/appointment">
         <div className={cn('space-y-6')}>
         {/* Header */}

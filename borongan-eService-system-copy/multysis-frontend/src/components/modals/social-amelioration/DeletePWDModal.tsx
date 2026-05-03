@@ -28,7 +28,6 @@ export const DeletePWDModal: React.FC<DeletePWDModalProps> = ({
 }) => {
   const handleConfirm = () => {
     onConfirm();
-    onClose();
   };
 
   return (

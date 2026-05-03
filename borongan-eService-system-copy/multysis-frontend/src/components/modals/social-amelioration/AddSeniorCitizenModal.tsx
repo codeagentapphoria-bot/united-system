@@ -1,5 +1,5 @@
 // React imports
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 // Third-party libraries
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,7 +17,6 @@ import { useCitizenSearch, createReactSelectStyles } from '@/components/social-a
 
 // Hooks
 import { useToast } from '@/hooks/use-toast';
-import { useGovernmentPrograms } from '@/hooks/social-amelioration/useGovernmentPrograms';
 
 // Types and Schemas
 import { seniorCitizenSchema, type SeniorCitizenInput } from '@/validations/beneficiary.schema';
@@ -42,7 +41,6 @@ export const AddSeniorCitizenModal: React.FC<AddSeniorCitizenModalProps> = ({
 }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { getActiveProgramsByType } = useGovernmentPrograms();
   const {
     filteredCitizens,
     isLoadingCitizens,
@@ -58,24 +56,21 @@ export const AddSeniorCitizenModal: React.FC<AddSeniorCitizenModalProps> = ({
     defaultValues: {
       citizenId: '',
       pensionTypes: [],
-      governmentPrograms: [],
     },
   });
 
-  const programOptions = getActiveProgramsByType('SENIOR_CITIZEN').map(program => ({
-    value: program.id,
-    label: program.name,
-  }));
-
   const reactSelectStyles = createReactSelectStyles(false);
+  const isSubmittingRef = useRef(false);
 
   // Check if selected citizen is already registered
   const existingBeneficiary = React.useMemo(() => {
-    if (!selectedCitizen) return null;
+    // If form is submitting or already successful, ignore checking existing beneficiaries
+    // to prevent "Already Registered" warnings from appearing during closure/refresh
+    if (!selectedCitizen || form.formState.isSubmitting || form.formState.isSubmitSuccessful) return null;
     return existingBeneficiaries.find(
       b => b.citizenId === selectedCitizen.id || (b.citizen && b.citizen.id === selectedCitizen.id)
     );
-  }, [selectedCitizen, existingBeneficiaries]);
+  }, [selectedCitizen, existingBeneficiaries, form.formState.isSubmitting, form.formState.isSubmitSuccessful]);
 
   // Pre-fill form when citizen is selected
   useEffect(() => {
@@ -95,33 +90,32 @@ export const AddSeniorCitizenModal: React.FC<AddSeniorCitizenModalProps> = ({
   }, [open]);
 
   const handleSubmit = async (data: SeniorCitizenInput) => {
-    // Check if citizen is already registered
-    if (existingBeneficiary) {
-      toast({
-        variant: 'destructive',
-        title: 'Resident Already Registered',
-        description: 'This citizen is already registered as a Senior Citizen. Please edit the existing record instead.',
-      });
+    // Prevent double submission
+    if (isSubmittingRef.current) {
       return;
     }
-
-    // Validate that at least one pension type is selected
-    if (!data.pensionTypes || data.pensionTypes.length === 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Validation Error',
-        description: 'Please select at least one pension type',
-      });
-      return;
-    }
+    isSubmittingRef.current = true;
 
     try {
-      await onAdd(data);
-      form.reset();
-      resetSearch();
-      onClose();
-    } catch {
-      // Errors are handled by parent hook
+      // Check if citizen is already registered
+      if (existingBeneficiary) {
+        toast({
+          variant: 'destructive',
+          title: 'Resident Already Registered',
+          description: 'This citizen is already registered as a Senior Citizen. Please edit the existing record instead.',
+        });
+        return;
+      }
+      try {
+        await onAdd(data);
+        form.reset();
+        resetSearch();
+        onClose();
+      } catch {
+        // handled upstream
+      }
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
@@ -178,7 +172,6 @@ export const AddSeniorCitizenModal: React.FC<AddSeniorCitizenModalProps> = ({
                 onCitizenSelect={setSelectedCitizen}
                 filteredCitizens={filteredCitizens}
                 existingBeneficiaries={existingBeneficiaries}
-                programOptions={programOptions}
                 reactSelectStyles={reactSelectStyles}
               />
             </form>

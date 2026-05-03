@@ -122,5 +122,5 @@ export const updateBeneficiaryStatusValidation: ValidationChain[] = [
 ];
 
 export const statsValidation: ValidationChain[] = [
-  query('range').optional().isIn(['daily', 'monthly', 'yearly']).withMessage('Invalid range'),
+  query('range').optional().isIn(['daily', 'monthly', 'yearly', 'all']).withMessage('Invalid range'),
 ];

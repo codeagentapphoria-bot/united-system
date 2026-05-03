@@ -26,7 +26,7 @@ import { useAddresses, type CreateAddressInput, type UpdateAddressInput } from '
 import { useDebounce } from '@/hooks/useDebounce';
 
 // Utils
-import { adminMenuItems } from '@/config/admin-menu';
+
 import { getRegionName } from '@/constants/regions';
 import { cn } from '@/lib/utils';
 
@@ -159,7 +159,7 @@ export const AdminAddresses: React.FC = () => {
   };
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
+    <DashboardLayout>
       <AccessControlGate pagePath="/admin/general-settings/address">
         <div className="space-y-4">
         {/* Header */}

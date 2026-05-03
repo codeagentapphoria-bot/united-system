@@ -34,6 +34,7 @@ import { updateRoleSchema, type UpdateRoleInput } from '@/validations/role.schem
 
 // Utils
 import { cn } from '@/lib/utils';
+import { getSystemLabel } from '@/constants/systemLabels';
 
 interface EditRoleModalProps {
   open: boolean;
@@ -166,7 +167,7 @@ export const EditRoleModal: React.FC<EditRoleModalProps> = ({
                   <CustomFormLabel>System</CustomFormLabel>
                   <div className="mt-1">
                     <span className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm font-medium capitalize">
-                      {role?.system}
+                      {getSystemLabel(role?.system)}
                     </span>
                   </div>
                   <FormDescription>

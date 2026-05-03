@@ -25,7 +25,6 @@ interface AddStudentFieldsProps {
   onCitizenSelect: (citizen: any | null) => void;
   filteredCitizens: any[];
   gradeLevelOptions: Array<{ value: string; label: string; description?: string }>;
-  programOptions: Array<{ value: string; label: string }>;
   reactSelectStyles: any;
 }
 
@@ -38,7 +37,6 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
   onCitizenSelect,
   filteredCitizens,
   gradeLevelOptions,
-  programOptions,
   reactSelectStyles,
 }) => {
   const form = useFormContext<StudentInput>();
@@ -98,35 +96,6 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
       </div>
 
       <Separator />
-
-      {/* 3. Programs */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-primary-600">Programs</h3>
-
-        <FormField
-          control={form.control}
-          name="programs"
-          render={({ field }) => (
-            <FormItem>
-              <CustomFormLabel>Select Programs</CustomFormLabel>
-              <Select
-                isMulti
-                value={programOptions.filter(option => field.value?.includes(option.value))}
-                onChange={selectedOptions => {
-                  field.onChange(selectedOptions ? selectedOptions.map(option => option.value) : []);
-                }}
-                options={programOptions}
-                placeholder="Select programs (optional)"
-                className="mt-1"
-                classNamePrefix="react-select"
-                isSearchable={true}
-                styles={reactSelectStyles}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
     </div>
   );
 };

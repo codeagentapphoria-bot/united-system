@@ -144,10 +144,9 @@ const FullInformationModal: React.FC<{
             </div>
           </div>
 
-          {/* Government Programs */}
           {(() => {
-            const governmentProgramNames = getProgramNames(beneficiary.governmentPrograms);
-            return governmentProgramNames.length > 0 ? (
+            const governmentProgramNames = getProgramNames(beneficiary.governmentPrograms || beneficiary.assistancePrograms || beneficiary.programs);
+            return (
               <>
                 <Separator />
                 <div className="bg-white p-6 rounded-lg border border-gray-200">
@@ -155,16 +154,20 @@ const FullInformationModal: React.FC<{
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Programs</label>
                     <div className="min-h-[40px] flex items-center flex-wrap gap-2">
-                      {governmentProgramNames.map((programName, idx) => (
-                        <Badge key={idx} className="bg-primary-100 text-primary-700 px-3 py-1">
-                          {programName}
-                        </Badge>
-                      ))}
+                      {governmentProgramNames.length > 0 ? (
+                        governmentProgramNames.map((programName, idx) => (
+                          <Badge key={idx} className="bg-primary-100 text-primary-700 px-3 py-1">
+                            {programName}
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-400 italic bg-gray-50 px-3 py-2 rounded border w-full">No programs assigned</p>
+                      )}
                     </div>
                   </div>
                 </div>
               </>
-            ) : null;
+            );
           })()}
 
           <Separator />
@@ -805,8 +808,8 @@ const SeniorCitizenInfo: React.FC<{
 
         {/* Government Programs */}
         {(() => {
-          const governmentProgramNames = getProgramNames(beneficiary.governmentPrograms);
-          return governmentProgramNames.length > 0 ? (
+          const governmentProgramNames = getProgramNames(beneficiary.governmentPrograms || beneficiary.assistancePrograms || beneficiary.programs);
+          return (
             <>
               <Separator />
               <div className="bg-white p-6 rounded-lg border border-gray-200">
@@ -814,16 +817,20 @@ const SeniorCitizenInfo: React.FC<{
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Programs</label>
                   <div className="min-h-[40px] flex items-center flex-wrap gap-2">
-                    {governmentProgramNames.map((programName, idx) => (
-                      <Badge key={idx} className="bg-primary-100 text-primary-700 px-3 py-1">
-                        {programName}
-                      </Badge>
-                    ))}
+                    {governmentProgramNames.length > 0 ? (
+                      governmentProgramNames.map((programName, idx) => (
+                        <Badge key={idx} className="bg-primary-100 text-primary-700 px-3 py-1">
+                          {programName}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-400 italic bg-gray-50 px-3 py-2 rounded border w-full">No programs assigned</p>
+                    )}
                   </div>
                 </div>
               </div>
             </>
-          ) : null;
+          );
         })()}
 
         <Separator />
@@ -891,35 +898,6 @@ const SeniorCitizenInfo: React.FC<{
                       ? formatDateWithoutTimezone(beneficiary.dateOfBirth, { month: 'long', day: 'numeric', year: 'numeric' })
                       : beneficiary.dateOfBirth}
                   </p>
-                ) : (
-                  <p className="text-sm text-gray-400 italic bg-gray-50 px-3 py-2 rounded border w-full">Not provided</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Contact Information */}
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Contact Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone Number</label>
-              <div className="min-h-[40px] flex items-center">
-                {beneficiary.phoneNumber || beneficiary.mobileNumber || beneficiary.contactNumber ? (
-                  <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.phoneNumber || beneficiary.mobileNumber || beneficiary.contactNumber}</p>
-                ) : (
-                  <p className="text-sm text-gray-400 italic bg-gray-50 px-3 py-2 rounded border w-full">Not provided</p>
-                )}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</label>
-              <div className="min-h-[40px] flex items-center">
-                {beneficiary.email ? (
-                  <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.email}</p>
                 ) : (
                   <p className="text-sm text-gray-400 italic bg-gray-50 px-3 py-2 rounded border w-full">Not provided</p>
                 )}

@@ -30,7 +30,7 @@ import { useUsers } from '@/hooks/users/useUsers';
 import type { CreateAdminUserInput, UpdateAdminUserInput } from '@/validations/user.schema';
 
 // Utils
-import { adminMenuItems } from '@/config/admin-menu';
+
 import { cn } from '@/lib/utils';
 
 export const AdminUserManagement: React.FC = () => {
@@ -166,7 +166,7 @@ export const AdminUserManagement: React.FC = () => {
   };
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
+    <DashboardLayout>
       <AccessControlGate pagePath="/admin/access-control/user-management">
         <div className="space-y-4">
         {/* Header */}

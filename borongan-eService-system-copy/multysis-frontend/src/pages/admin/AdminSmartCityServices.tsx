@@ -31,7 +31,6 @@ import type { CreateServiceInput, UpdateServiceInput } from '@/services/api/serv
 import type { NewServicePayload, ServiceDeletePayload, ServiceUpdatePayload } from '@/types/socket.types';
 
 // Utils
-import { adminMenuItems } from '@/config/admin-menu';
 import { cn } from '@/lib/utils';
 
 export const AdminSmartCityServices: React.FC = () => {
@@ -223,7 +222,7 @@ export const AdminSmartCityServices: React.FC = () => {
   }, []);
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
+    <DashboardLayout>
       <AccessControlGate pagePath="/admin/general-settings/smart-city-services">
         <div className="space-y-4">
         {/* Header */}

@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select';
 
 // Services
-import { adminMenuItems } from '@/config/admin-menu';
+
 import { serviceService, type Service } from '@/services/api/service.service';
 import { transactionService, type ServiceStatistics } from '@/services/api/transaction.service';
 
@@ -186,7 +186,7 @@ export const EGovReports: React.FC = () => {
   };
 
   return (
-    <DashboardLayout menuItems={adminMenuItems}>
+    <DashboardLayout>
       <AccessControlGate pagePath="/admin/e-government/reports">
         <div className={cn('space-y-6')}>
         {/* Header */}

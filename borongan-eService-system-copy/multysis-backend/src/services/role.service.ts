@@ -155,6 +155,12 @@ export const deleteRole = async (id: string) => {
       throw new Error('Cannot delete role that is assigned to users');
     }
 
+    // Delete role permissions first — explicit DELETE avoids DB-level FK constraint
+    // issues when the constraint action is RESTRICT instead of CASCADE
+    await tx.rolePermission.deleteMany({
+      where: { roleId: id },
+    });
+
     return tx.role.delete({
       where: { id },
     });

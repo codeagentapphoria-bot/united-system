@@ -28,7 +28,6 @@ export const DeleteSeniorCitizenModal: React.FC<DeleteSeniorCitizenModalProps> =
 }) => {
   const handleConfirm = () => {
     onConfirm();
-    onClose();
   };
 
   return (

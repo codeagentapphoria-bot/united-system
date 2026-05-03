@@ -4,15 +4,18 @@ import React, { useEffect, useState } from 'react';
 // Third-party libraries
 import { getAdminMenuItems, adminMenuItems as staticMenuItems } from '@/config/admin-menu';
 import { libresakayMenuItems } from '@/config/libre-sakay-menu';
+import { cityPopulationMenuItems } from '@/config/city-population-menu';
 
 // Hooks
 import { useAdminNotifications } from '@/hooks/notifications/useAdminNotifications';
 import { useAuth } from '@/context/AuthContext';
+import { useLibreSakayBadgeOverrides } from '@/context/LibreSakayBadgeContext';
 
 // Utils
 import { cn } from '@/lib/utils';
 import { clearServiceCache } from '@/utils/dynamic-menu';
 import { userService } from '@/services/api/user.service';
+import { SYSTEM_LABELS } from '@/constants/systemLabels';
 
 // Custom Components
 import { Header } from './Header';
@@ -24,6 +27,7 @@ import { ProfileModal } from '@/components/modals/profile/ProfileModal';
 interface SubmenuItem {
   path: string;
   label: string;
+  category?: string;
 }
 
 interface MenuItem {
@@ -34,11 +38,11 @@ interface MenuItem {
   hasSubmenu?: boolean;
   submenuItems?: SubmenuItem[];
   badgeCount?: number;
+  system?: string;
 }
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  menuItems?: MenuItem[]; // Optional, will use dynamic if not provided
 }
 
 /** Returns true if a menu item path (or one of its submenu paths) is in the allowed list. */
@@ -47,18 +51,119 @@ function isAllowed(path: string | undefined, allowedPaths: Set<string>): boolean
   return allowedPaths.has(path);
 }
 
-/** Returns true if user has LibreSakay access (has libre-sakay paths in allowedPaths). */
-function isLibreSakayUser(allowedPaths: Set<string>): boolean {
-  return Array.from(allowedPaths).some(path => path.startsWith('/admin/libre-sakay'));
+const SYSTEM_ORDER = ['core', 'libre-sakay', 'libre-medisina', 'government-programs', 'services', 'city-population'];
+
+/**
+ * Builds a unified, system-grouped menu from all configured menu items.
+ * - Merges core + libre-sakay items
+ * - Filters by allowedPaths
+ * - Groups by system, inserting labeled separator headers between groups
+ */
+function buildUnifiedMenu(
+  items: MenuItem[],
+  allowedPaths: Set<string>,
+  badgeOverrides: Map<string, number>
+): MenuItem[] {
+  // Filter items by allowedPaths
+  const filtered = items
+    .filter(item => {
+      if (item.type === 'separator') return true;
+      return isAllowed(item.path, allowedPaths);
+    })
+    .map(item => {
+      if (!item.hasSubmenu || !item.submenuItems) return item;
+
+      const filteredSubmenu = item.submenuItems
+        .filter(sub => isAllowed(sub.path, allowedPaths))
+        .map(sub => ({ ...sub }));
+
+      if (filteredSubmenu.length === 0) return null;
+      return { ...item, submenuItems: filteredSubmenu };
+    })
+    .filter((item): item is MenuItem => item !== null);
+
+  // Group by system while preserving order
+  const bySystem = new Map<string, MenuItem[]>();
+  filtered.forEach(item => {
+    const sys = item.system || 'core';
+    if (!bySystem.has(sys)) bySystem.set(sys, []);
+    bySystem.get(sys)!.push(item);
+  });
+
+  // Flatten with system-group header separators — only add group if it has items
+  const result: MenuItem[] = [];
+  SYSTEM_ORDER.forEach(system => {
+    const groupItems = bySystem.get(system);
+    if (!groupItems || groupItems.length === 0) return;
+    if (result.length > 0) {
+      // Gap separator between groups
+      result.push({ type: 'separator' as const });
+    }
+    // System group header
+    result.push({ type: 'separator' as const, label: SYSTEM_LABELS[system] || system, system });
+    result.push(...groupItems);
+  });
+
+  // Append any systems not in SYSTEM_ORDER (e.g. new ones added later)
+  bySystem.forEach((groupItems, system) => {
+    if (SYSTEM_ORDER.includes(system)) return;
+    if (groupItems.length === 0) return;
+    if (result.length > 0) result.push({ type: 'separator' as const });
+    result.push({ type: 'separator' as const, label: SYSTEM_LABELS[system] || system, system });
+    result.push(...groupItems);
+  });
+
+  // Remove separator-label headers whose groups ended up empty after filtering.
+  // Walk through result; only keep a group header + its items if there's at
+  // least one real (non-separator) item in that group.
+  const final: MenuItem[] = [];
+  let i = 0;
+  while (i < result.length) {
+    const item = result[i];
+    const isGroupHeader = item.type === 'separator' && !!item.label && !!item.system;
+    if (isGroupHeader) {
+      // Collect all items belonging to this group (until next group header or end)
+      const groupItems: MenuItem[] = [];
+      let j = i + 1;
+      while (
+        j < result.length &&
+        !(result[j].type === 'separator' && !!result[j].label && !!result[j].system)
+      ) {
+        if (result[j].type !== 'separator') {
+          groupItems.push(result[j]);
+        }
+        j++;
+      }
+      if (groupItems.length > 0) {
+        final.push(item, ...groupItems);
+      }
+      i = j;
+    } else {
+      final.push(item);
+      i++;
+    }
+  }
+
+  // Overlay badge counts from badgeOverrides (e.g. Libre Sakay pending counts) onto matching paths
+  if (badgeOverrides.size > 0) {
+    final.forEach(item => {
+      if (item.path && badgeOverrides.has(item.path)) {
+        item.badgeCount = badgeOverrides.get(item.path);
+      }
+    });
+  }
+
+  return final;
 }
 
-export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menuItems: propMenuItems }) => {
+export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(propMenuItems || staticMenuItems);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(staticMenuItems);
   const [allowedPaths, setAllowedPaths] = useState<Set<string>>(new Set());
   const [isAllowedPagesLoading, setIsAllowedPagesLoading] = useState(true);
   const { counts } = useAdminNotifications();
   const { user } = useAuth();
+  const { badgeOverrides } = useLibreSakayBadgeOverrides();
 
   // Fetch user's allowed page paths from backend
   useEffect(() => {
@@ -67,8 +172,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menu
     setIsAllowedPagesLoading(true);
     userService
       .getAllowedPagePaths(user.id)
-      .then(paths => {
-        setAllowedPaths(new Set(paths));
+      .then(pages => {
+        setAllowedPaths(new Set(pages.map(p => p.path)));
       })
       .catch(error => {
         console.error('Failed to fetch allowed page paths:', error);
@@ -80,12 +185,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menu
   }, [user?.id]);
 
   useEffect(() => {
-    // If a static menu was explicitly provided, use it as-is — don't override with dynamic admin menu
-    if (propMenuItems && propMenuItems.length > 0) {
-      setMenuItems(propMenuItems);
-      return;
-    }
-
     getAdminMenuItems(counts)
       .then(items => {
         if (items && items.length > 0) {
@@ -98,7 +197,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menu
         console.error('Failed to load dynamic menu items:', error);
         setMenuItems(staticMenuItems);
       });
-  }, [propMenuItems, counts]);
+  }, [counts]);
 
   useEffect(() => {
     const handleServiceChange = () => {
@@ -114,30 +213,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menu
     return () => window.removeEventListener('serviceUpdated', handleServiceChange);
   }, [counts]);
 
-  // Build the final filtered menu when allowedPaths changes
-  const filteredMenuItems = (items: MenuItem[]): MenuItem[] => {
-    if (isAllowedPagesLoading) return []; // show empty while loading
-    if (allowedPaths.size === 0) return []; // user has no access — show empty
+  // Build one unified sidebar for all pages: merge menuItems + libresakayMenuItems, filter by role,
+  // group by system. Badge counts for Libre Sakay items are injected via badgeOverrides context.
+  const sidebarMenuItems = React.useMemo(() => {
+    if (isAllowedPagesLoading) return [];
+    if (allowedPaths.size === 0) return [];
 
-    return items
-      .filter(item => {
-        if (item.type === 'separator') return true;
-        return isAllowed(item.path, allowedPaths);
-      })
-      .map(item => {
-        if (!item.hasSubmenu || !item.submenuItems) return item;
-
-        const filteredSubmenu = item.submenuItems
-          .filter(sub => isAllowed(sub.path, allowedPaths))
-          .map(sub => ({ ...sub }));
-
-        // Only include the parent if it has at least one allowed submenu
-        if (filteredSubmenu.length === 0) return null;
-
-        return { ...item, submenuItems: filteredSubmenu };
-      })
-      .filter((item): item is MenuItem => item !== null);
-  };
+    const allItems = [...menuItems, ...libresakayMenuItems, ...cityPopulationMenuItems];
+    return buildUnifiedMenu(allItems, allowedPaths, badgeOverrides);
+  }, [isAllowedPagesLoading, allowedPaths, badgeOverrides, menuItems]);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const closeSidebar = () => setIsSidebarOpen(false);
@@ -145,20 +229,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, menu
   return (
     <ProfileModalProvider>
       <div className={cn('min-h-screen bg-gray-50')}>
-        <Sidebar
-          isOpen={isSidebarOpen}
-          onClose={closeSidebar}
-          menuItems={
-            // If menuItems prop was explicitly provided, use it
-            propMenuItems && propMenuItems.length > 0
-              ? menuItems
-              : // If user is LibreSakay (has libre-sakay paths in allowedPaths), always show LibreSakay menu
-                // This ensures LibreSakay users see their sidebar even on core routes like /admin/profile
-                isLibreSakayUser(allowedPaths)
-                ? libresakayMenuItems
-                : filteredMenuItems(menuItems)
-          }
-        />
+        <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} menuItems={sidebarMenuItems} />
 
         <div className={cn('lg:pl-64')}>
           <Header onToggleSidebar={toggleSidebar} />

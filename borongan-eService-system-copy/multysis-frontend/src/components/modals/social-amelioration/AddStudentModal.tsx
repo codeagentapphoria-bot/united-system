@@ -1,5 +1,5 @@
 // React imports
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 // Third-party libraries
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,7 +17,6 @@ import { createReactSelectStyles, useCitizenSearch } from '@/components/social-a
 
 // Hooks
 import { useToast } from '@/hooks/use-toast';
-import { useGovernmentPrograms } from '@/hooks/social-amelioration/useGovernmentPrograms';
 import { useGradeLevels } from '@/hooks/social-amelioration/useGradeLevels';
 
 // Types and Schemas
@@ -44,7 +43,6 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
   const { toast } = useToast();
   const navigate = useNavigate();
   const { activeGradeLevels } = useGradeLevels();
-  const { getActiveProgramsByType } = useGovernmentPrograms();
   const {
     filteredCitizens,
     isLoadingCitizens,
@@ -60,7 +58,6 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
     defaultValues: {
       citizenId: '',
       gradeLevel: '',
-      programs: [],
     },
   });
 
@@ -70,38 +67,59 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
     description: gl.description,
   }));
 
-  const programOptions = getActiveProgramsByType('STUDENT').map(program => ({
-    value: program.id,
-    label: program.name,
-  }));
-
   const reactSelectStyles = createReactSelectStyles(!!form.formState.errors.gradeLevel);
+  const isSubmittingRef = useRef(false);
 
   // Check if selected citizen is already registered
   const existingBeneficiary = React.useMemo(() => {
-    if (!selectedCitizen) return null;
+    // If form is submitting or already successful, ignore checking existing beneficiaries
+    // to prevent "Already Registered" warnings from appearing during closure/refresh
+    if (!selectedCitizen || form.formState.isSubmitting || form.formState.isSubmitSuccessful) return null;
     return existingBeneficiaries.find(
       b => b.citizenId === selectedCitizen.id || (b.citizen && b.citizen.id === selectedCitizen.id)
     );
-  }, [selectedCitizen, existingBeneficiaries]);
+  }, [selectedCitizen, existingBeneficiaries, form.formState.isSubmitting, form.formState.isSubmitSuccessful]);
 
   const handleSubmit = async (data: StudentInput) => {
-    // Check if citizen is already registered
-    if (existingBeneficiary) {
-      toast({
-        variant: 'destructive',
-        title: 'Resident Already Registered',
-        description: 'This citizen is already registered as a Student. Please edit the existing record instead.',
-      });
+    // Prevent double submission
+    if (isSubmittingRef.current) {
       return;
     }
+    isSubmittingRef.current = true;
+
     try {
-      await onAdd(data);
-      form.reset();
-      resetSearch();
-      onClose();
-    } catch {
-      // handled upstream
+      // Check if citizen is already registered
+      if (existingBeneficiary) {
+        toast({
+          variant: 'destructive',
+          title: 'Resident Already Registered',
+          description: 'This citizen is already registered as a Student. Please edit the existing record instead.',
+        });
+        return;
+      }
+      try {
+        // Check if citizen is already registered
+        if (existingBeneficiary) {
+          toast({
+            variant: 'destructive',
+            title: 'Resident Already Registered',
+            description: 'This citizen is already registered as a Student. Please edit the existing record instead.',
+          });
+          return;
+        }
+        try {
+          await onAdd(data);
+          form.reset();
+          resetSearch();
+          onClose();
+        } catch {
+          // handled upstream
+        }
+      } finally {
+        isSubmittingRef.current = false;
+      }
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
@@ -166,7 +184,6 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
                 onCitizenSelect={setSelectedCitizen}
                 filteredCitizens={filteredCitizens}
                 gradeLevelOptions={gradeLevelOptions}
-                programOptions={programOptions}
                 reactSelectStyles={reactSelectStyles}
               />
             </form>

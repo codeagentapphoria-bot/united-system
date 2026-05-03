@@ -87,6 +87,10 @@ export const queryKeys = {
     systems: ['pages', 'systems'] as const,
   },
 
+  systems: {
+    all: ['systems'] as const,
+  },
+
   libreSakay: {
     fleet: ['libreSakay', 'fleet'] as const,
     fleetLocations: ['libreSakay', 'fleetLocations'] as const,
@@ -117,6 +121,12 @@ export const queryKeys = {
     rideLogs: {
       all: ['libreSakay', 'rideLogs'] as const,
       list: (page: number, filters?: object) => ['libreSakay', 'rideLogs', 'list', page, filters] as const,
+    },
+    beneficiaries: {
+      all: ['libreSakay', 'beneficiaries'] as const,
+      list: (filter: string, page: number, search?: string) =>
+        ['libreSakay', 'beneficiaries', 'list', filter, page, search] as const,
+      detail: (id: string) => ['libreSakay', 'beneficiaries', 'detail', id] as const,
     },
   },
 };
