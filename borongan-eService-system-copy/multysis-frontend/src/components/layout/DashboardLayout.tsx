@@ -10,6 +10,7 @@ import { cityPopulationMenuItems } from '@/config/city-population-menu';
 import { useAdminNotifications } from '@/hooks/notifications/useAdminNotifications';
 import { useAuth } from '@/context/AuthContext';
 import { useLibreSakayBadgeOverrides } from '@/context/LibreSakayBadgeContext';
+import { useCityPopulationBadgeOverrides } from '@/context/CityPopulationBadgeContext';
 
 // Utils
 import { cn } from '@/lib/utils';
@@ -163,7 +164,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const [isAllowedPagesLoading, setIsAllowedPagesLoading] = useState(true);
   const { counts } = useAdminNotifications();
   const { user } = useAuth();
-  const { badgeOverrides } = useLibreSakayBadgeOverrides();
+  const { badgeOverrides: libreSakayBadgeOverrides } = useLibreSakayBadgeOverrides();
+  const { badgeOverrides: cityPopulationBadgeOverrides } = useCityPopulationBadgeOverrides();
 
   // Fetch user's allowed page paths from backend
   useEffect(() => {
@@ -214,14 +216,22 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   }, [counts]);
 
   // Build one unified sidebar for all pages: merge menuItems + libresakayMenuItems, filter by role,
-  // group by system. Badge counts for Libre Sakay items are injected via badgeOverrides context.
+  // group by system. Badge counts for Libre Sakay and City Population items are injected via their
+  // respective badge contexts, then merged into a single map for buildUnifiedMenu.
   const sidebarMenuItems = React.useMemo(() => {
     if (isAllowedPagesLoading) return [];
     if (allowedPaths.size === 0) return [];
 
     const allItems = [...menuItems, ...libresakayMenuItems, ...cityPopulationMenuItems];
-    return buildUnifiedMenu(allItems, allowedPaths, badgeOverrides);
-  }, [isAllowedPagesLoading, allowedPaths, badgeOverrides, menuItems]);
+
+    // Merge badge maps from both contexts so buildUnifiedMenu can overlay all badges at once
+    const mergedBadgeOverrides = new Map([
+      ...libreSakayBadgeOverrides,
+      ...cityPopulationBadgeOverrides,
+    ]);
+
+    return buildUnifiedMenu(allItems, allowedPaths, mergedBadgeOverrides);
+  }, [isAllowedPagesLoading, allowedPaths, libreSakayBadgeOverrides, cityPopulationBadgeOverrides, menuItems]);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const closeSidebar = () => setIsSidebarOpen(false);

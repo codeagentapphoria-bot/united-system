@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { LoginSheetProvider } from './context/LoginSheetContext';
 import { SocketProvider } from './context/SocketContext';
 import { LibreSakayBadgeProvider } from './context/LibreSakayBadgeContext';
+import { CityPopulationBadgeProvider } from './context/CityPopulationBadgeContext';
 import { router } from './routes';
 import { queryClient } from './lib/query-client';
 
@@ -17,8 +18,10 @@ export const App: React.FC<AppProps> = () => {
         <SocketProvider>
           <LoginSheetProvider>
             <LibreSakayBadgeProvider>
-              <RouterProvider router={router} />
-              <Toaster />
+              <CityPopulationBadgeProvider>
+                <RouterProvider router={router} />
+                <Toaster />
+              </CityPopulationBadgeProvider>
             </LibreSakayBadgeProvider>
           </LoginSheetProvider>
         </SocketProvider>
