@@ -94,7 +94,7 @@ export const Login: React.FC = () => {
         <Card className="w-full shadow-xl">
           <CardHeader className="space-y-4 pb-4">
             <div className="flex flex-col items-center space-y-3">
-              <img src="/lgu-borongan.png" alt="LGU Borongan" className="h-16 w-auto" />
+              <img src="/favicon.png" alt="LGU Borongan" className="h-16 w-auto" />
               <div className="text-center">
                 <CardTitle className="text-2xl font-semibold text-heading-700">Residents Portal</CardTitle>
                 <p className="text-sm text-heading-500 mt-1">City of Borongan</p>

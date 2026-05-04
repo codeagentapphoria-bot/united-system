@@ -278,7 +278,7 @@ export const Home: React.FC = () => {
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src="/lgu-borongan.png" alt="LGU Borongan" className="h-8 w-auto" />
+            <img src="/favicon.png" alt="LGU Borongan" className="h-8 w-auto" />
             <span className="font-semibold text-heading-700 text-sm hidden sm:block">
               Borongan Services Portal
             </span>

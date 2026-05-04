@@ -13,14 +13,15 @@ const hideSplash = () => {
   }
 }
 
-// Fallback: always hide after 2 seconds
+// Fallback: hide splash after 2 seconds in case React never finishes mounting
 setTimeout(hideSplash, 2000)
 
+// Render React app
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>,
 )
 
-// Hide splash immediately after React renders (StrictMode renders twice in dev)
+// Hide splash once React renders (splash only exists on cold starts)
 hideSplash()

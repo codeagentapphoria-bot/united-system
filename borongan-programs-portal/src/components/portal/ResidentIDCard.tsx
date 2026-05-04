@@ -140,7 +140,7 @@ export const ResidentIDCard: React.FC<Props> = ({ resident }) => {
           src="/borongan-city-seal.png"
           alt="City of Borongan"
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          onError={e => { e.currentTarget.src = '/lgu-borongan.png'; }}
+          onError={e => { e.currentTarget.src = '/favicon.png'; }}
         />
       </div>
 

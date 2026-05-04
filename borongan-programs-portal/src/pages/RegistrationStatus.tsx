@@ -152,7 +152,7 @@ export const RegistrationStatus: React.FC = () => {
             onClick={() => navigate('/')}
             className="flex items-center gap-2 text-sm text-heading-500 hover:text-heading-700 transition-colors"
           >
-            <img src="/lgu-borongan.png" alt="LGU Borongan" className="h-7 w-auto" />
+            <img src="/favicon.png" alt="LGU Borongan" className="h-7 w-auto" />
             <span className="font-semibold text-sm hidden sm:block">Borongan Services Portal</span>
           </button>
         </div>
