@@ -160,6 +160,11 @@ const ResidentClassificationsForm = ({
   useEffect(() => {
     if (!resident || !resident.classifications || resident.classifications.length === 0) return;
 
+    // GUARD: Don't populate form until options have loaded from API.
+    // Without this, normalizeClassificationValue returns raw values (no match),
+    // form.reset stores details under wrong keys, and detail inputs appear empty.
+    if (localClassificationOptions.length === 0) return;
+
     const currentClassifications = (resident.classifications as Array<{ classification_type?: string; classification?: string }>).map((c) => {
       const classificationValue = c.classification_type || c.classification || (c as unknown as string);
       return normalizeClassificationValue(classificationValue, localClassificationOptions);
