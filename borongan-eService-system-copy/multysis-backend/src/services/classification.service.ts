@@ -339,11 +339,6 @@ export async function syncBeneficiaryOnInsert(
             residentId,
             seniorCitizenId: displayId,
             status: initialStatus as any,
-            pensionTypes: details.pensionTypeIds && Array.isArray(details.pensionTypeIds)
-              ? {
-                  create: (details.pensionTypeIds as string[]).map((settingId) => ({ settingId })),
-                }
-              : undefined,
           },
         });
         break;
