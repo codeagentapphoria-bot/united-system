@@ -5,6 +5,10 @@
 -- and write into resident_classifications.classification_details as the
 -- field-key/text-value pairs that match the new details[] schema.
 --
+-- NOTE: resident_classifications.classification_type is a TEXT column holding
+-- the type name directly (e.g. 'Person with Disability'), NOT a FK to
+-- classification_types.id. The WHERE clause uses direct text equality.
+--
 -- Must run AFTER migration 30 and BEFORE migration 32.
 -- Only writes where classification_details IS NULL OR classification_details = '{}'
 -- to avoid overwriting existing curated data.
@@ -29,9 +33,7 @@ FROM (
 JOIN social_amelioration_settings sas
   ON sas.id::text = latest.disability_type_id::text
 WHERE rc.resident_id = latest.resident_id
-  AND rc.classification_type_id IN (
-    SELECT id FROM classification_types WHERE name = 'Person with Disability'
-  )
+  AND rc.classification_type = 'Person with Disability'
   AND (rc.classification_details IS NULL OR rc.classification_details = '{}'::jsonb);
 
 -- 2. Student: gradeLevel (latest record per resident)
@@ -46,9 +48,7 @@ FROM (
 JOIN social_amelioration_settings sas
   ON sas.id::text = latest.grade_level_id::text
 WHERE rc.resident_id = latest.resident_id
-  AND rc.classification_type_id IN (
-    SELECT id FROM classification_types WHERE name = 'Student'
-  )
+  AND rc.classification_type = 'Student'
   AND (rc.classification_details IS NULL OR rc.classification_details = '{}'::jsonb);
 
 -- 3. Senior Citizen: pensionTypes (aggregate array from pivot)
@@ -68,9 +68,7 @@ FROM (
   GROUP BY scb.resident_id
 ) agg
 WHERE rc.resident_id = agg.resident_id
-  AND rc.classification_type_id IN (
-    SELECT id FROM classification_types WHERE name = 'Senior Citizen'
-  )
+  AND rc.classification_type = 'Senior Citizen'
   AND (rc.classification_details IS NULL OR rc.classification_details = '{}'::jsonb);
 
 -- 4. Solo Parent: category (latest record per resident)
@@ -85,9 +83,7 @@ FROM (
 JOIN social_amelioration_settings sas
   ON sas.id::text = latest.category_id::text
 WHERE rc.resident_id = latest.resident_id
-  AND rc.classification_type_id IN (
-    SELECT id FROM classification_types WHERE name = 'Solo Parent'
-  )
+  AND rc.classification_type = 'Solo Parent'
   AND (rc.classification_details IS NULL OR rc.classification_details = '{}'::jsonb);
 
 -- Verify
