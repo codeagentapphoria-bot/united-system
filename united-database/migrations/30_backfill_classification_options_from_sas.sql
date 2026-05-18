@@ -6,8 +6,10 @@
 -- corresponding details[].options[] array, and convert the field type from
 -- 'amelioration_select' / 'amelioration_multiselect' to 'select' / 'multiselect'.
 --
--- PRECONDITION: classification_types.details holds the current
--- 'amelioration_select' / 'amelioration_multiselect' shape.
+-- CAUTION: PostgreSQL coerces text||jsonb by trying to parse the text as JSON.
+-- The outer '[...''::jsonb  forces JSON coercion at the || boundary.
+-- Fix: wrap the entire concatenation in text() so all || is string-mode,
+-- then cast to jsonb at the very end.
 --
 -- ROLLBACK: restore details JSONB from pre-migration DB snapshot.
 -- =============================================================================
@@ -16,63 +18,58 @@ SET search_path TO public;
 
 -- 1. Person with Disability — disabilityType (single select)
 UPDATE classification_types
-SET details = '[
-  {"key":"disabilityType","label":"Type of Disability","type":"select","options":' ||
+SET details = (
+  text '[{"key":"disabilityType","label":"Type of Disability","type":"select","options":' ||
   (SELECT COALESCE(jsonb_agg(DISTINCT name ORDER BY name), '[]'::jsonb)::text
    FROM social_amelioration_settings
    WHERE type = 'DISABILITY_TYPE'
      AND is_active = true
      AND name IS NOT NULL
-     AND length(trim(name)) > 0)
-  || '},
-  {"key":"disabilityLevel","label":"Disability Level","type":"select","options":["Mild","Moderate","Severe","Profound"]},
-  {"key":"remarks","label":"Remarks","type":"text"}
-]'::jsonb
+     AND length(trim(name)) > 0) ||
+  text '},{"key":"disabilityLevel","label":"Disability Level","type":"select","options":["Mild","Moderate","Severe","Profound"]},{"key":"remarks","label":"Remarks","type":"text"}]'
+)::jsonb
 WHERE name = 'Person with Disability';
 
 -- 2. Student — gradeLevel (single select)
 UPDATE classification_types
-SET details = '[
-  {"key":"gradeLevel","label":"Grade / Education Level","type":"select","options":' ||
+SET details = (
+  text '[{"key":"gradeLevel","label":"Grade / Education Level","type":"select","options":' ||
   (SELECT COALESCE(jsonb_agg(DISTINCT name ORDER BY name), '[]'::jsonb)::text
    FROM social_amelioration_settings
    WHERE type = 'GRADE_LEVEL'
      AND is_active = true
      AND name IS NOT NULL
-     AND length(trim(name)) > 0)
-  || '},
-  {"key":"remarks","label":"Remarks","type":"text"}
-]'::jsonb
+     AND length(trim(name)) > 0) ||
+  text '},{"key":"remarks","label":"Remarks","type":"text"}]'
+)::jsonb
 WHERE name = 'Student';
 
 -- 3. Senior Citizen — pensionTypes (multiselect)
 UPDATE classification_types
-SET details = '[
-  {"key":"pensionTypes","label":"Pension / Benefit Types","type":"multiselect","options":' ||
+SET details = (
+  text '[{"key":"pensionTypes","label":"Pension / Benefit Types","type":"multiselect","options":' ||
   (SELECT COALESCE(jsonb_agg(DISTINCT name ORDER BY name), '[]'::jsonb)::text
    FROM social_amelioration_settings
    WHERE type = 'PENSION_TYPE'
      AND is_active = true
      AND name IS NOT NULL
-     AND length(trim(name)) > 0)
-  || '},
-  {"key":"remarks","label":"Remarks","type":"text"}
-]'::jsonb
+     AND length(trim(name)) > 0) ||
+  text '},{"key":"remarks","label":"Remarks","type":"text"}]'
+)::jsonb
 WHERE name = 'Senior Citizen';
 
 -- 4. Solo Parent — category (single select)
 UPDATE classification_types
-SET details = '[
-  {"key":"category","label":"Solo Parent Category","type":"select","options":' ||
+SET details = (
+  text '[{"key":"category","label":"Solo Parent Category","type":"select","options":' ||
   (SELECT COALESCE(jsonb_agg(DISTINCT name ORDER BY name), '[]'::jsonb)::text
    FROM social_amelioration_settings
    WHERE type = 'SOLO_PARENT_CATEGORY'
      AND is_active = true
      AND name IS NOT NULL
-     AND length(trim(name)) > 0)
-  || '},
-  {"key":"remarks","label":"Remarks","type":"text"}
-]'::jsonb
+     AND length(trim(name)) > 0) ||
+  text '},{"key":"remarks","label":"Remarks","type":"text"}]'
+)::jsonb
 WHERE name = 'Solo Parent';
 
 -- Verify
