@@ -77,3 +77,15 @@ export const getClassificationTypesController = async (
     next(error);
   }
 };
+
+// =============================================================================
+// PATCH /api/classification-types/:id — stub for future refactor
+// Handler is inlined in the route to avoid circular imports (zod + prisma).
+// =============================================================================
+export const updateClassificationTypeController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  next();
+};

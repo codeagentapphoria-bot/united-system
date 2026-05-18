@@ -29,6 +29,7 @@ model Municipality {
   updatedAt        DateTime   @map("updated_at") @updatedAt
   barangays             Barangay[]
   certificateTemplates  CertificateTemplate[]
+  classificationTypes   ClassificationType[]
 
   @@map("municipalities")
 }
@@ -911,4 +912,29 @@ model CertificateTemplate {
   @@index([municipalityId])
   @@index([certificateType])
   @@map("certificate_templates")
+}
+
+// =============================================================================
+// CLASSIFICATION TYPES
+// Municipality-scoped classification definitions with dynamic detail field descriptors.
+// Used for schema-driven admin UI (SettingsTab).
+// =============================================================================
+
+model ClassificationType {
+  id              Int      @id @default(autoincrement())
+  municipalityId  Int      @map("municipality_id")
+  name            String   @map("name")
+  description     String?  @db.Text
+  color           String?  @map("color") @default("#4CAF50")
+  details         Json     @default("[]")
+  isActive        Boolean  @map("is_active") @default(true)
+  createdAt      DateTime @map("created_at") @default(now())
+  updatedAt      DateTime @map("updated_at") @updatedAt
+
+  municipality Municipality @relation(fields: [municipalityId], references: [id], onDelete: Cascade)
+
+  @@unique([municipalityId, name])
+  @@index([municipalityId])
+  @@index([isActive])
+  @@map("classification_types")
 }

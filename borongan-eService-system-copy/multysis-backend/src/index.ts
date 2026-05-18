@@ -438,6 +438,8 @@ app.use('/api/medicine-requests', apiLimiter, medicineRequestRoutes);
 app.use('/api/admin/libre-sakay', apiLimiter, libreSakayRoutes);
 // Admin classification management (resident_classifications + classification_types via raw SQL)
 app.use('/api/classification', apiLimiter, classificationRoutes);
+// Also mount at /api/classification-types for schema-driven SettingsTab UI
+app.use('/api/classification-types', apiLimiter, classificationRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
