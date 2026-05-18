@@ -18,7 +18,7 @@ import {
   reviewRegistrationRequest,
   submitRegistration,
 } from '../services/portal-registration.service';
-import { socialAmeliorationSettingService } from '../services/social-amelioration-setting.service';
+
 
 // Known user-facing error substrings — safe to forward to clients.
 // Everything else gets a generic message to avoid leaking DB/Prisma internals.
@@ -44,26 +44,6 @@ function toUserMessage(err: unknown): string {
   if (msg) console.error('[portal-registration] Unexpected error:', msg);
   return 'An unexpected error occurred';
 }
-
-// =============================================================================
-// PUBLIC: Get active social amelioration settings by type
-// GET /api/portal-registration/amelioration-settings?type=PENSION_TYPE
-// =============================================================================
-export const getPublicAmeliorationSettingsController = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    const { type } = req.query;
-    const settings = await socialAmeliorationSettingService.getSettings({
-      type: type as any,
-      isActive: true,
-    });
-    res.status(200).json({ status: 'success', data: settings });
-  } catch (error: any) {
-    res.status(500).json({ status: 'error', message: toUserMessage(error) });
-  }
-};
 
 // =============================================================================
 // PUBLIC: Submit registration

@@ -497,6 +497,36 @@ async function autoClassifyResident(
 ): Promise<void> {
   const toInsert: Array<{ type: string; details: Record<string, unknown> }> = [];
 
+  // ── Batch-fetch all setting names for name-resolution ──────────────────────
+  // Two-store pattern: keep UUIDs for beneficiary FK integrity, add resolved
+  // names so the classification modal pre-fills with human-readable labels.
+  const settingIds = new Set<string>();
+  if (ameliorationData?.student?.gradeLevelId) {
+    settingIds.add(ameliorationData.student.gradeLevelId);
+  }
+  if (ameliorationData?.pwd?.disabilityTypeId) {
+    settingIds.add(ameliorationData.pwd.disabilityTypeId);
+  }
+  if (ameliorationData?.soloParent?.categoryId) {
+    settingIds.add(ameliorationData.soloParent.categoryId);
+  }
+  if (ameliorationData?.seniorCitizen?.pensionTypeIds?.length) {
+    for (const id of ameliorationData.seniorCitizen.pensionTypeIds) {
+      settingIds.add(id);
+    }
+  }
+
+  const settingNameMap = new Map<string, string>();
+  if (settingIds.size > 0) {
+    const settings = await prisma.socialAmeliorationSetting.findMany({
+      where: { id: { in: Array.from(settingIds) } },
+      select: { id: true, name: true },
+    });
+    for (const s of settings) {
+      settingNameMap.set(s.id, s.name);
+    }
+  }
+
   if (resident.isVoter) {
     toInsert.push({
       type: 'Voter',
@@ -520,7 +550,9 @@ async function autoClassifyResident(
       if (isCollege) {
         details.courseField = ameliorationData?.student?.courseField || '';
       } else {
-        details.gradeLevel = ameliorationData?.student?.gradeLevelId || '';
+        const gradeLevelId = ameliorationData?.student?.gradeLevelId || '';
+        details.gradeLevel = gradeLevelId;
+        details.gradeLevelName = settingNameMap.get(gradeLevelId) || gradeLevelId;
       }
 
       toInsert.push({ type: classType, details });
@@ -537,10 +569,12 @@ async function autoClassifyResident(
     const ageDays = (Date.now() - new Date(resident.birthdate).getTime()) / 86400000;
     if (ageDays >= 60 * 365.25) {
       // Map pensionTypeIds (BIMS) → pensionTypes (form schema)
+      const pensionTypeIds = ameliorationData?.seniorCitizen?.pensionTypeIds || [];
       toInsert.push({
         type: 'Senior Citizen',
         details: {
-          pensionTypes: ameliorationData?.seniorCitizen?.pensionTypeIds || [],
+          pensionTypes: pensionTypeIds,
+          pensionTypeNames: pensionTypeIds.map(id => settingNameMap.get(id) || id),
           remarks: '',
         },
       });
@@ -551,10 +585,12 @@ async function autoClassifyResident(
   // Read BIMS keys from ameliorationData (frontend sends disabilityTypeId),
   // map to form schema keys for classification_details (matching migrate_classification_details.sql)
   if (ameliorationData?.pwd?.disabilityTypeId) {
+    const disabilityTypeId = ameliorationData.pwd.disabilityTypeId;
     toInsert.push({
       type: 'Person with Disability',
       details: {
-        disabilityType: ameliorationData.pwd.disabilityTypeId,
+        disabilityType: disabilityTypeId,
+        disabilityTypeName: settingNameMap.get(disabilityTypeId) || disabilityTypeId,
         disabilityLevel: ameliorationData.pwd.disabilityLevel || '',
         remarks: '',
       },
@@ -564,10 +600,12 @@ async function autoClassifyResident(
   // Social amelioration: Solo Parent
   // Map categoryId (BIMS) → category (form schema)
   if (ameliorationData?.soloParent?.categoryId) {
+    const categoryId = ameliorationData.soloParent.categoryId;
     toInsert.push({
       type: 'Solo Parent',
       details: {
-        category: ameliorationData.soloParent.categoryId,
+        category: categoryId,
+        categoryName: settingNameMap.get(categoryId) || categoryId,
         remarks: '',
       },
     });

@@ -10,7 +10,6 @@ import rateLimit from 'express-rate-limit';
 import { verifyAdmin } from '../middleware/auth';
 import {
   deleteRejectedController,
-  getPublicAmeliorationSettingsController,
   getRegistrationRequestController,
   getRegistrationStatusController,
   listRegistrationRequestsController,
@@ -34,9 +33,6 @@ const registrationLimiter = rateLimit({
 // =============================================================================
 // PUBLIC (no auth required)
 // =============================================================================
-
-// Fetch social amelioration setting options (used by registration form dropdowns)
-router.get('/amelioration-settings', getPublicAmeliorationSettingsController);
 
 // Submit registration
 router.post('/register', registrationLimiter, submitRegistrationController);
