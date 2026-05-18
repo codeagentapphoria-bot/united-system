@@ -25,13 +25,13 @@ INSERT INTO classification_types (municipality_id, name, description, color, det
 SELECT m.id, v.name, v.description, v.color, v.details::jsonb
 FROM municipalities m
 CROSS JOIN (VALUES
-  ('Senior Citizen',          'Residents aged 60 and above',                           '#FF9800', '[{"key":"remarks","label":"Remarks","type":"text"}]'),
-  ('Person with Disability',  'Individuals with physical or mental disabilities',       '#E91E63', '[{"key":"type","label":"Type of Disability","type":"text"},{"key":"remarks","label":"Remarks","type":"text"}]'),
+  ('Senior Citizen',          'Residents aged 60 and above',                           '#FF9800', '[{"key":"pensionTypes","label":"Pension / Benefit Types","type":"multiselect","options":[]},{"key":"remarks","label":"Remarks","type":"text"}]'),
+  ('Person with Disability',  'Individuals with physical or mental disabilities',       '#E91E63', '[{"key":"disabilityType","label":"Type of Disability","type":"select","options":[]},{"key":"disabilityLevel","label":"Disability Level","type":"select","options":["Mild","Moderate","Severe","Profound"]},{"key":"remarks","label":"Remarks","type":"text"}]'),
   ('Pregnant',                'Women who are currently pregnant',                       '#9C27B0', '[{"key":"remarks","label":"Remarks","type":"text"}]'),
   ('Indigenous Person',       'Members of indigenous communities',                      '#795548', '[{"key":"remarks","label":"Remarks","type":"text"}]'),
-  ('Solo Parent',             'Single parents raising children alone',                  '#607D8B', '[{"key":"remarks","label":"Remarks","type":"text"}]'),
+  ('Solo Parent',             'Single parents raising children alone',                  '#607D8B', '[{"key":"category","label":"Solo Parent Category","type":"select","options":[]},{"key":"remarks","label":"Remarks","type":"text"}]'),
   ('Overseas Filipino Worker','Filipinos working abroad',                               '#3F51B5', '[{"key":"remarks","label":"Remarks","type":"text"}]'),
-  ('Student',                 'Students enrolled in educational institutions',           '#2196F3', '[{"key":"educationLevel","label":"Education Level","type":"text"},{"key":"gradeLevel","label":"Grade Level","type":"text"},{"key":"remarks","label":"Remarks","type":"text"}]'),
+  ('Student',                 'Students enrolled in educational institutions',           '#2196F3', '[{"key":"gradeLevel","label":"Grade / Education Level","type":"select","options":[]},{"key":"remarks","label":"Remarks","type":"text"}]'),
   ('Unemployed',              'Individuals currently without employment',                '#F44336', '[{"key":"remarks","label":"Remarks","type":"text"}]'),
   ('Farmer',                  'Individuals engaged in farming activities',               '#4CAF50', '[{"key":"status","label":"Status","type":"select","options":["Land Owner","Rental"]},{"key":"type","label":"Type of Farmer","type":"text"},{"key":"remarks","label":"Remarks","type":"text"}]'),
   ('Fisherman',               'Individuals engaged in fishing activities',               '#00BCD4', '[{"key":"status","label":"Status","type":"select","options":["Boat Owner","Passenger","Rental"]},{"key":"type","label":"Type of Fisherfolk","type":"text"},{"key":"remarks","label":"Remarks","type":"text"}]'),
