@@ -18,7 +18,7 @@ import { createReactSelectStyles } from '../shared';
 import type { SoloParentInput } from '@/validations/beneficiary.schema';
 
 // Hooks
-import { useSoloParentCategories } from '@/hooks/social-amelioration/useSoloParentCategories';
+import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 
 interface AddSoloParentFieldsProps {
   onAddNewCitizen: () => void;
@@ -29,6 +29,8 @@ interface AddSoloParentFieldsProps {
   onCitizenSelect: (citizen: any) => void;
   filteredCitizens: any[];
   reactSelectStyles: any;
+  categoryOptions: string[];
+  isLoadingCategories?: boolean;
 }
 
 export const AddSoloParentFields: React.FC<AddSoloParentFieldsProps> = ({
@@ -40,15 +42,10 @@ export const AddSoloParentFields: React.FC<AddSoloParentFieldsProps> = ({
   onCitizenSelect,
   filteredCitizens,
   reactSelectStyles: _reactSelectStyles,
+  categoryOptions,
+  isLoadingCategories,
 }) => {
   const form = useFormContext<SoloParentInput>();
-  const { activeSoloParentCategories } = useSoloParentCategories();
-
-  const categoryOptions = activeSoloParentCategories.map(cat => ({
-    value: cat.id, // Use ID instead of name
-    label: cat.name,
-    description: cat.description,
-  }));
 
   const categoryReactSelectStyles = createReactSelectStyles(!!form.formState.errors.category);
 
@@ -78,19 +75,15 @@ export const AddSoloParentFields: React.FC<AddSoloParentFieldsProps> = ({
             <FormItem>
               <CustomFormLabel required>Category</CustomFormLabel>
               <Select
-                value={categoryOptions.find(option => option.value === field.value)}
-                onChange={selectedOption => field.onChange(selectedOption?.value || '')}
-                options={categoryOptions}
+                value={categoryOptions.find(option => option === field.value) ?? null}
+                onChange={selectedOption => field.onChange((selectedOption as any)?.value ?? '')}
+                options={categoryOptions.map(opt => ({ value: opt, label: opt }))}
                 placeholder="Select Category"
                 className="mt-1"
                 classNamePrefix="react-select"
                 isSearchable={true}
-                formatOptionLabel={option => (
-                  <div className="flex flex-col">
-                    <span className="font-medium">{option.label}</span>
-                    {option.description && <span className="text-xs text-gray-500 mt-1">{option.description}</span>}
-                  </div>
-                )}
+                isDisabled={isLoadingCategories}
+                isLoading={isLoadingCategories}
                 styles={categoryReactSelectStyles}
               />
               <FormMessage />

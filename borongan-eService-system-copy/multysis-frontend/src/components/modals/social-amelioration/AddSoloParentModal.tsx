@@ -17,6 +17,7 @@ import { useCitizenSearch, createReactSelectStyles } from '@/components/social-a
 
 // Hooks
 import { useToast } from '@/hooks/use-toast';
+import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 
 // Types and Schemas
 import { soloParentSchema, type SoloParentInput } from '@/validations/beneficiary.schema';
@@ -61,6 +62,11 @@ export const AddSoloParentModal: React.FC<AddSoloParentModalProps> = ({
 
   const reactSelectStyles = createReactSelectStyles(false);
   const isSubmittingRef = useRef(false);
+
+  const { data: spType, loading: isLoadingCategories } = useClassificationOptions('Solo Parent');
+  const categoryOptions: string[] = (
+    spType?.details.find(f => f.key === 'category')?.options ?? []
+  );
 
   // Check if selected citizen is already registered
   const existingBeneficiary = React.useMemo(() => {
@@ -172,6 +178,8 @@ export const AddSoloParentModal: React.FC<AddSoloParentModalProps> = ({
                 onCitizenSelect={setSelectedCitizen}
                 filteredCitizens={filteredCitizens}
                 reactSelectStyles={reactSelectStyles}
+                categoryOptions={categoryOptions}
+                isLoadingCategories={isLoadingCategories}
               />
             </form>
           </Form>
