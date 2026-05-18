@@ -630,7 +630,7 @@ export const socialAmeliorationService = {
       // Update classification_details in resident_classifications
       if (data.pensionTypes !== undefined || data.remarks !== undefined) {
         const existing = await getClassificationDetails(beneficiary.residentId, 'Senior Citizen');
-        await tx.executeRaw`
+        await tx.$executeRaw`
           UPDATE resident_classifications
           SET classification_details = ${JSON.stringify({
             pensionTypes: data.pensionTypes ?? existing?.pensionTypes ?? [],
@@ -811,7 +811,7 @@ export const socialAmeliorationService = {
         data.remarks !== undefined
       ) {
         const existing = await getClassificationDetails(beneficiary.residentId, 'Person with Disability');
-        await tx.executeRaw`
+        await tx.$executeRaw`
           UPDATE resident_classifications
           SET classification_details = ${JSON.stringify({
             disabilityType: data.disabilityType ?? existing?.disabilityType ?? null,
@@ -980,7 +980,7 @@ export const socialAmeliorationService = {
       // Update classification_details in resident_classifications
       if (data.gradeLevel !== undefined || data.remarks !== undefined) {
         const existing = await getClassificationDetails(beneficiary.residentId, 'Student');
-        await tx.executeRaw`
+        await tx.$executeRaw`
           UPDATE resident_classifications
           SET classification_details = ${JSON.stringify({
             gradeLevel: data.gradeLevel ?? existing?.gradeLevel ?? null,
@@ -1148,7 +1148,7 @@ export const socialAmeliorationService = {
       // Update classification_details in resident_classifications
       if (data.category !== undefined || data.remarks !== undefined) {
         const existing = await getClassificationDetails(beneficiary.residentId, 'Solo Parent');
-        await tx.executeRaw`
+        await tx.$executeRaw`
           UPDATE resident_classifications
           SET classification_details = ${JSON.stringify({
             category: data.category ?? existing?.category ?? null,

@@ -693,6 +693,23 @@ model GovernmentProgramApplication {
   @@map("government_program_applications")
 }
 
+// Tracks per-program enrollment status for government program beneficiaries.
+// Not modeled during initial Prisma setup — accessed via raw SQL.
+model BeneficiaryProgramPivot {
+  id              String    @id @default(uuid())
+  beneficiaryType String    @map("beneficiary_type")
+  beneficiaryId   String    @map("beneficiary_id")
+  programId       String    @map("program_id")
+  status         String    @default("active")
+  suspendedAt     DateTime? @map("suspended_at")
+  createdAt      DateTime  @map("created_at") @default(now())
+
+  @@unique([beneficiaryType, beneficiaryId, programId], name: "bpp_type_id_program_key")
+  @@index([beneficiaryType, beneficiaryId])
+  @@index([programId])
+  @@map("beneficiary_program_pivots")
+}
+
 // =============================================================================
 // LIBRE MEDISINA — Prescription Requests
 // Residents submit prescription images via Programs Portal.
