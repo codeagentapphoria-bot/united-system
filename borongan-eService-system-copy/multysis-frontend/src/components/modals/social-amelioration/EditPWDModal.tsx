@@ -12,9 +12,10 @@ import { Form } from '@/components/ui/form';
 
 // Custom Components
 import { EditPWDFields } from '@/components/social-amelioration/forms/EditPWDFields';
-import { createReactSelectStyles, useCitizenSearch } from '@/components/social-amelioration/shared';
+import { useCitizenSearch } from '@/components/social-amelioration/shared';
 
 // Hooks
+import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 import { residentService } from '@/services/api/resident.service';
 
 // Types and Schemas
@@ -36,6 +37,7 @@ export const EditPWDModal: React.FC<EditPWDModalProps> = ({
   onEdit,
   initialData,
 }) => {
+  const { data: pwdType } = useClassificationOptions('Person with Disability');
   const {
     citizens,
     selectedCitizen,
@@ -55,7 +57,8 @@ export const EditPWDModal: React.FC<EditPWDModalProps> = ({
     },
   });
 
-  const reactSelectStyles = createReactSelectStyles(false);
+  const disabilityTypeOptions: string[] =
+    pwdType?.details.find(f => f.key === 'disabilityType')?.options ?? [];
 
   // Pre-fill form when modal opens
   const prevInitialDataIdRef = useRef<string | undefined>(undefined);
@@ -91,8 +94,9 @@ export const EditPWDModal: React.FC<EditPWDModalProps> = ({
         prevOpenRef.current = true;
 
         const citizenId = initialData.citizenId || initialData.citizen?.id || '';
-        const disabilityType = initialData.disabilityType || initialData.typeOfDisability || '';
-        const disabilityLevel = initialData.disabilityLevel || '';
+        const existingClassificationDetails = initialData.classification_details;
+        const disabilityType = existingClassificationDetails?.disabilityType ?? initialData.disabilityType ?? initialData.typeOfDisability ?? '';
+        const disabilityLevel = existingClassificationDetails?.disabilityLevel ?? initialData.disabilityLevel ?? '';
         const monetaryAllowance = initialData.monetaryAllowance || false;
         const assistedDevice = initialData.assistedDevice || false;
         const donorDevice = initialData.donorDevice || initialData.donor || '';
@@ -161,7 +165,8 @@ export const EditPWDModal: React.FC<EditPWDModalProps> = ({
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pb-6">
               <EditPWDFields
                 selectedCitizen={selectedCitizen}
-                reactSelectStyles={reactSelectStyles}
+                disabilityTypeOptions={disabilityTypeOptions}
+                loading={pwdType === undefined}
               />
             </form>
           </Form>

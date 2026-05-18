@@ -12,10 +12,10 @@ import { Form } from '@/components/ui/form';
 
 // Custom Components
 import { EditStudentFields } from '@/components/social-amelioration/forms/EditStudentFields';
-import { createReactSelectStyles, useCitizenSearch } from '@/components/social-amelioration/shared';
+import { useCitizenSearch } from '@/components/social-amelioration/shared';
 
 // Hooks
-import { useGradeLevels } from '@/hooks/social-amelioration/useGradeLevels';
+import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 import { residentService } from '@/services/api/resident.service';
 
 // Types and Schemas
@@ -37,7 +37,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   onEdit,
   initialData,
 }) => {
-  const { activeGradeLevels } = useGradeLevels();
+  const { data: studentType } = useClassificationOptions('Student');
   const {
     citizens,
     setSelectedCitizen,
@@ -53,13 +53,8 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
     },
   });
 
-  const gradeLevelOptions = activeGradeLevels.map(gl => ({
-    value: gl.id, // Use ID instead of name
-    label: gl.name,
-    description: gl.description,
-  }));
-
-  const reactSelectStyles = createReactSelectStyles(!!form.formState.errors.gradeLevel);
+  const gradeLevelOptions: string[] =
+    studentType?.details.find(f => f.key === 'gradeLevel')?.options ?? [];
 
   // Pre-fill form when modal opens
   const prevInitialDataIdRef = useRef<string | undefined>(undefined);
@@ -90,7 +85,8 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
         prevOpenRef.current = true;
 
         const citizenId = initialData.citizenId || initialData.citizen?.id || '';
-        const gradeLevel = initialData.gradeLevel || '';
+        const existingClassificationDetails = initialData.classification_details;
+        const gradeLevel = existingClassificationDetails?.gradeLevel ?? initialData.gradeLevel ?? '';
 
         form.reset({
           citizenId,
@@ -155,7 +151,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
               <EditStudentFields
                 selectedCitizen={selectedCitizen}
                 gradeLevelOptions={gradeLevelOptions}
-                reactSelectStyles={reactSelectStyles}
+                loading={studentType === undefined}
               />
             </form>
           </Form>

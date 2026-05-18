@@ -3,7 +3,6 @@ import React from 'react';
 
 // Third-party libraries
 import { useFormContext } from 'react-hook-form';
-import Select from 'react-select';
 
 // UI Components (shadcn/ui)
 import {
@@ -11,38 +10,41 @@ import {
     FormItem,
     FormMessage,
 } from '@/components/ui/form';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 
 // Custom Components
 import { FormLabel as CustomFormLabel } from '@/components/common/FormLabel';
 import { CitizenDisplayCard } from '../shared';
-import { createReactSelectStyles } from '../shared';
 
 // Types and Schemas
 import type { SoloParentInput } from '@/validations/beneficiary.schema';
 
 // Hooks
-import { useSoloParentCategories } from '@/hooks/social-amelioration/useSoloParentCategories';
+import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 
 interface EditSoloParentFieldsProps {
   selectedCitizen: any;
-  reactSelectStyles: any;
+  categoryOptions: string[];
+  loading?: boolean;
 }
 
 export const EditSoloParentFields: React.FC<EditSoloParentFieldsProps> = ({
   selectedCitizen,
-  reactSelectStyles: _reactSelectStyles,
+  categoryOptions,
+  loading,
 }) => {
   const form = useFormContext<SoloParentInput>();
-  const { activeSoloParentCategories } = useSoloParentCategories();
+  const { data: soloParentType } = useClassificationOptions('Solo Parent');
 
-  const categoryOptions = activeSoloParentCategories.map(cat => ({
-    value: cat.id, // Use ID instead of name
-    label: cat.name,
-    description: cat.description,
-  }));
-
-  const categoryReactSelectStyles = createReactSelectStyles(!!form.formState.errors.category);
+  const fetchedCategories: string[] =
+    soloParentType?.details.find(f => f.key === 'category')?.options ?? categoryOptions;
 
   return (
     <div className="space-y-6">
@@ -57,7 +59,7 @@ export const EditSoloParentFields: React.FC<EditSoloParentFieldsProps> = ({
       {/* 2. Category */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-primary-600">Solo Parent Information</h3>
-        
+
         <FormField
           control={form.control}
           name="category"
@@ -65,23 +67,19 @@ export const EditSoloParentFields: React.FC<EditSoloParentFieldsProps> = ({
             <FormItem>
               <CustomFormLabel required>Category</CustomFormLabel>
               <Select
-                value={categoryOptions.find(option => option.value === field.value)}
-                onChange={(selectedOption) => field.onChange(selectedOption?.value || '')}
-                options={categoryOptions}
-                placeholder="Select Category"
-                className="mt-1"
-                classNamePrefix="react-select"
-                isSearchable={true}
-                formatOptionLabel={(option) => (
-                  <div className="flex flex-col">
-                    <span className="font-medium">{option.label}</span>
-                    {option.description && (
-                      <span className="text-xs text-gray-500 mt-1">{option.description}</span>
-                    )}
-                  </div>
-                )}
-                styles={categoryReactSelectStyles}
-              />
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {fetchedCategories.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
