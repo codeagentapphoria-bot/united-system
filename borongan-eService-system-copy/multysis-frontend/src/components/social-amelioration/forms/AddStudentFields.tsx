@@ -3,15 +3,20 @@ import React from 'react';
 
 // Third-party libraries
 import { useFormContext } from 'react-hook-form';
-import Select from 'react-select';
 
 // UI Components (shadcn/ui)
 import { FormField, FormItem, FormMessage } from '@/components/ui/form';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 
 // Custom Components
 import { FormLabel as CustomFormLabel } from '@/components/common/FormLabel';
 import { CitizenSelector } from '../shared';
+
+// Hooks
+import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 
 // Types and Schemas
 import type { StudentInput } from '@/validations/beneficiary.schema';
@@ -24,8 +29,6 @@ interface AddStudentFieldsProps {
   selectedCitizen: any | null;
   onCitizenSelect: (citizen: any | null) => void;
   filteredCitizens: any[];
-  gradeLevelOptions: Array<{ value: string; label: string; description?: string }>;
-  reactSelectStyles: any;
 }
 
 export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
@@ -36,10 +39,13 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
   selectedCitizen,
   onCitizenSelect,
   filteredCitizens,
-  gradeLevelOptions,
-  reactSelectStyles,
 }) => {
   const form = useFormContext<StudentInput>();
+
+  const { data: studentType, loading } = useClassificationOptions('Student');
+  const gradeLevelOptions: string[] = (
+    studentType?.details.find((f) => f.key === 'gradeLevel')?.options ?? []
+  );
 
   // Pre-fill form when citizen is selected
   React.useEffect(() => {
@@ -74,21 +80,19 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
             <FormItem>
               <CustomFormLabel required>Grade Level</CustomFormLabel>
               <Select
-                value={gradeLevelOptions.find(option => option.value === field.value)}
-                onChange={selectedOption => field.onChange(selectedOption?.value || '')}
-                options={gradeLevelOptions}
-                placeholder="Select Grade Level"
-                className="mt-1"
-                classNamePrefix="react-select"
-                isSearchable={true}
-                formatOptionLabel={option => (
-                  <div className="flex flex-col">
-                    <span className="font-medium">{option.label}</span>
-                    {option.description && <span className="text-xs text-gray-500 mt-1">{option.description}</span>}
-                  </div>
-                )}
-                styles={reactSelectStyles}
-              />
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Grade Level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {gradeLevelOptions.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
