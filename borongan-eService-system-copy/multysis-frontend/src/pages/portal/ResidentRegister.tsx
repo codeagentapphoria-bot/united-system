@@ -27,7 +27,18 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { PortalHeader } from '@/components/layout/PortalHeader';
 import api from '@/services/api/auth.service';
-import { Camera, UserRound, FileText, Shield, Phone, Mail, Briefcase, GraduationCap, ChevronRight, Check } from 'lucide-react';
+import {
+  Camera,
+  UserRound,
+  FileText,
+  Shield,
+  Phone,
+  Mail,
+  Briefcase,
+  GraduationCap,
+  ChevronRight,
+  Check,
+} from 'lucide-react';
 
 // =============================================================================
 // SCHEMAS
@@ -372,9 +383,11 @@ export const ResidentRegister: React.FC = () => {
   })();
 
   // Non-college grade levels only (Elementary, JHS, SHS) — college students get a text field instead
-  const filteredGradeLevels = ameliorationSettings.GRADE_LEVEL.filter((s: any) =>
-    ['sas-gl-elem', 'sas-gl-jhs', 'sas-gl-shs'].includes(s.id)
-  );
+  // Filter by name to exclude college/tertiary entries — avoids hardcoded ID mismatches
+  const filteredGradeLevels = ameliorationSettings.GRADE_LEVEL.filter((s: any) => {
+    const name = (s.name || '').toLowerCase();
+    return !name.includes('college') && !name.includes('university') && !name.includes('vocational');
+  });
 
   // Age-based voter type eligibility (SK: 15–30, Regular: 18+)
   const residentAgeYears = watchedBirthdate
@@ -1248,6 +1261,7 @@ export const ResidentRegister: React.FC = () => {
                                   <SelectItem value="Mild">Mild</SelectItem>
                                   <SelectItem value="Moderate">Moderate</SelectItem>
                                   <SelectItem value="Severe">Severe</SelectItem>
+                                  <SelectItem value="Profound">Profound</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
