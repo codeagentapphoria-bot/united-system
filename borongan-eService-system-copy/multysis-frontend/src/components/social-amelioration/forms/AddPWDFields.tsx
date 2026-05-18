@@ -3,21 +3,25 @@ import React from 'react';
 
 // Third-party libraries
 import { useFormContext } from 'react-hook-form';
-import Select from 'react-select';
 
 // UI Components (shadcn/ui)
-import { FormField, FormItem, FormMessage } from '@/components/ui/form';
+import {
+  FormField, FormItem, FormMessage,
+} from '@/components/ui/form';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 
 // Custom Components
 import { FormLabel as CustomFormLabel } from '@/components/common/FormLabel';
-import { CitizenSelector, createReactSelectStyles } from '../shared';
+import { CitizenSelector } from '../shared';
 
 // Types and Schemas
 import type { PWDInput } from '@/validations/beneficiary.schema';
 
 // Hooks
-import { useDisabilityTypes } from '@/hooks/social-amelioration/useDisabilityTypes';
+import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 
 interface AddPWDFieldsProps {
   onAddNewCitizen: () => void;
@@ -27,7 +31,6 @@ interface AddPWDFieldsProps {
   selectedCitizen: any;
   onCitizenSelect: (citizen: any) => void;
   filteredCitizens: any[];
-  reactSelectStyles: any;
 }
 
 export const AddPWDFields: React.FC<AddPWDFieldsProps> = ({
@@ -40,13 +43,10 @@ export const AddPWDFields: React.FC<AddPWDFieldsProps> = ({
   filteredCitizens,
 }) => {
   const form = useFormContext<PWDInput>();
-  const { activeDisabilityTypes } = useDisabilityTypes();
-
-  const disabilityTypeOptions = activeDisabilityTypes.map(dt => ({
-    value: dt.id, // Use ID instead of name
-    label: dt.name,
-    description: dt.description,
-  }));
+  const { data: pwdType, loading } = useClassificationOptions('Person with Disability');
+  const disabilityTypeOptions: string[] = (
+    pwdType?.details.find((f) => f.key === 'disabilityType')?.options ?? []
+  );
 
   const disabilityLevelOptions = [
     { value: 'Mild', label: 'Mild' },
@@ -82,21 +82,19 @@ export const AddPWDFields: React.FC<AddPWDFieldsProps> = ({
               <FormItem>
                 <CustomFormLabel required>Disability Type</CustomFormLabel>
                 <Select
-                  value={disabilityTypeOptions.find(option => option.value === field.value)}
-                  onChange={selectedOption => field.onChange(selectedOption?.value || '')}
-                  options={disabilityTypeOptions}
-                  placeholder="Select Disability Type"
-                  className="mt-1"
-                  classNamePrefix="react-select"
-                  isSearchable={true}
-                  formatOptionLabel={option => (
-                    <div className="flex flex-col">
-                      <span className="font-medium">{option.label}</span>
-                      {option.description && <span className="text-xs text-gray-500 mt-1">{option.description}</span>}
-                    </div>
-                  )}
-                  styles={createReactSelectStyles(!!form.formState.errors.disabilityType)}
-                />
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={loading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select disability type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {disabilityTypeOptions.map((opt) => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -109,15 +107,18 @@ export const AddPWDFields: React.FC<AddPWDFieldsProps> = ({
               <FormItem>
                 <CustomFormLabel required>Disability Level</CustomFormLabel>
                 <Select
-                  value={disabilityLevelOptions.find(option => option.value === field.value)}
-                  onChange={selectedOption => field.onChange(selectedOption?.value || '')}
-                  options={disabilityLevelOptions}
-                  placeholder="Select Disability Level"
-                  className="mt-1"
-                  classNamePrefix="react-select"
-                  isSearchable={false}
-                  styles={createReactSelectStyles(!!form.formState.errors.disabilityLevel)}
-                />
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select disability level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {disabilityLevelOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}

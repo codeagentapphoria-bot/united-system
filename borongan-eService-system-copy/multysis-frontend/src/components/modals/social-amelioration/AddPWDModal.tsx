@@ -13,7 +13,7 @@ import { Form } from '@/components/ui/form';
 
 // Custom Components
 import { AddPWDFields } from '@/components/social-amelioration/forms/AddPWDFields';
-import { createReactSelectStyles, useCitizenSearch } from '@/components/social-amelioration/shared';
+import { useCitizenSearch } from '@/components/social-amelioration/shared';
 
 // Hooks
 import { useToast } from '@/hooks/use-toast';
@@ -63,7 +63,6 @@ export const AddPWDModal: React.FC<AddPWDModalProps> = ({
     },
   });
 
-  const reactSelectStyles = createReactSelectStyles(false);
   const isSubmittingRef = useRef(false);
 
   // Check if selected citizen is already registered
@@ -175,7 +174,6 @@ export const AddPWDModal: React.FC<AddPWDModalProps> = ({
                 selectedCitizen={selectedCitizen}
                 onCitizenSelect={setSelectedCitizen}
                 filteredCitizens={filteredCitizens}
-                reactSelectStyles={reactSelectStyles}
               />
             </form>
           </Form>
