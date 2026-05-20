@@ -34,7 +34,7 @@ WHERE ct.name = 'Senior Citizen'
 
 -- Person with Disability
 UPDATE classification_types ct
-SET details = '[{"key":"disabilityType","label":"Type of Disability","type":"amelioration_select","settingType":"DISABILITY_TYPE"},{"key":"disabilityLevel","label":"Disability Level","type":"select","options":["Mild","Moderate","Severe"]},{"key":"remarks","label":"Remarks","type":"text"}]'::jsonb
+SET details = '[{"key":"disabilityType","label":"Type of Disability","type":"amelioration_select","settingType":"DISABILITY_TYPE"},{"key":"disabilityLevel","label":"Disability Level","type":"select","options":["Mild","Moderate","Severe","Profound"]},{"key":"remarks","label":"Remarks","type":"text"}]'::jsonb
 WHERE ct.name = 'Person with Disability'
   AND ct.municipality_id IN (SELECT id FROM municipalities);
 

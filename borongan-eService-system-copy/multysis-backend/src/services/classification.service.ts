@@ -135,9 +135,10 @@ export const invalidateClassificationTypesCache = async (
 const BENEFICIARY_SYNC_MAP: Record<string, { table: string; idCol: string; prefix: string }> = {
   'Senior Citizen':         { table: 'senior_citizen_beneficiaries', idCol: 'senior_citizen_id', prefix: 'SC'  },
   'Person with Disability': { table: 'pwd_beneficiaries',            idCol: 'pwd_id',            prefix: 'PWD' },
-  'Student':               { table: 'student_beneficiaries',        idCol: 'student_id',        prefix: 'ST'  },
-  'College Student':       { table: 'student_beneficiaries',        idCol: 'student_id',        prefix: 'ST'  },
-  'Solo Parent':           { table: 'solo_parent_beneficiaries',    idCol: 'solo_parent_id',    prefix: 'SP'  },
+  'Student':               { table: 'student_beneficiaries',         idCol: 'student_id',        prefix: 'ST'  },
+  'College Student':       { table: 'student_beneficiaries',         idCol: 'student_id',        prefix: 'ST'  },
+  'Vocational Student':    { table: 'student_beneficiaries',         idCol: 'student_id',        prefix: 'ST'  },
+  'Solo Parent':           { table: 'solo_parent_beneficiaries',     idCol: 'solo_parent_id',    prefix: 'SP'  },
 };
 
 const tableToSocketType: Record<string, 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT'> = {
@@ -164,9 +165,12 @@ function normalizeDetails(
       };
     case 'Student':
     case 'College Student':
+    case 'Vocational Student':
       return {
-        gradeLevel: (details.gradeLevel as string) ?? null,
-        remarks:    (details.remarks    as string) ?? null,
+        gradeLevel:   (details.gradeLevel   as string) ?? null,
+        courseField: (details.courseField as string) ?? null,
+        ncLevel:     (details.ncLevel     as string) ?? null,
+        remarks:     (details.remarks    as string) ?? null,
       };
     case 'Solo Parent':
       return {

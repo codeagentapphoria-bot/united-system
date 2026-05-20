@@ -16,6 +16,8 @@ interface PWDClassificationDetails {
 
 interface StudentClassificationDetails {
   gradeLevel?: string | null;
+  courseField?: string | null;
+  ncLevel?: string | null;
   remarks?: string | null;
 }
 
@@ -257,6 +259,7 @@ const formatPWDBeneficiary = async (
     ...rest,
     governmentPrograms: programIds,
     disabilityType: details?.disabilityType ?? null,
+    disabilityLevel: details?.disabilityLevel ?? null,
     disabilityTypeName: null, // name lookup no longer available; text ID used
     resident: resident
       ? {
@@ -278,11 +281,26 @@ const formatStudentBeneficiary = async (
   const { resident, ...rest } = record as any;
   const programIds = preloadedProgramIds ??
     (await getBeneficiaryPrograms('STUDENT', record.id)).map((p: any) => p.programId);
-  const details = classificationDetails ?? (await getClassificationDetails(resident.id, 'Student'));
+  // Portal classifies students as 'Student' (elem/JHS/SHS), 'College Student' (college),
+  // or 'Vocational Student' (vocational/technical). Query all three to ensure we
+  // always get details regardless of which classification type was used at creation.
+  const [studentDetails, collegeStudentDetails, vocationalStudentDetails] = await Promise.all([
+    classificationDetails ?? getClassificationDetails(resident.id, 'Student'),
+    classificationDetails ? null : getClassificationDetails(resident.id, 'College Student'),
+    classificationDetails ? null : getClassificationDetails(resident.id, 'Vocational Student'),
+  ]);
+  const details = studentDetails ?? collegeStudentDetails ?? vocationalStudentDetails ?? null;
+  const merged = {
+    ...(studentDetails ?? {}),
+    ...(collegeStudentDetails ?? {}),
+    ...(vocationalStudentDetails ?? {}),
+  };
   return {
     ...rest,
     programs: programIds,
-    gradeLevel: details?.gradeLevel ?? null,
+    gradeLevel:  (merged.gradeLevel  ?? null) || (details?.gradeLevel  ?? null),
+    courseField: (merged.courseField ?? null) || (details?.courseField ?? null),
+    ncLevel:     (merged.ncLevel     ?? null) || (details?.ncLevel     ?? null),
     gradeLevelName: null, // name lookup no longer available; text used
     resident: resident
       ? {
@@ -362,14 +380,18 @@ export interface UpdatePWDBeneficiaryData {
 
 export interface CreateStudentBeneficiaryData {
   residentId: string;
-  gradeLevel: string; // SocialAmeliorationSetting ID
+  gradeLevel: string; // Text value (e.g. 'Senior High School')
+  courseField?: string; // College / Vocational
+  ncLevel?: string;    // Vocational only
   programs?: string[];
   status?: BeneficiaryStatus;
   remarks?: string;
 }
 
 export interface UpdateStudentBeneficiaryData {
-  gradeLevel?: string; // SocialAmeliorationSetting ID
+  gradeLevel?: string; // Text value
+  courseField?: string; // College / Vocational
+  ncLevel?: string;    // Vocational only
   programs?: string[];
   status?: BeneficiaryStatus;
   remarks?: string;
@@ -934,10 +956,21 @@ export const socialAmeliorationService = {
       include: studentInclude,
     });
 
-    // Write classification details to resident_classifications.classification_details
-    await upsertClassificationDetails(data.residentId, 'Student', {
-      gradeLevel: data.gradeLevel,
-      remarks: data.remarks ?? null,
+    // Write classification details to resident_classifications.classification_details.
+    // Determine classification type:
+    //   - ncLevel provided  → 'Vocational Student'
+    //   - courseField       → 'College Student'
+    //   - gradeLevel only   → 'Student'
+    const classType = data.ncLevel
+      ? 'Vocational Student'
+      : data.courseField
+        ? 'College Student'
+        : 'Student';
+    await upsertClassificationDetails(data.residentId, classType, {
+      gradeLevel:  data.gradeLevel  ?? null,
+      courseField: data.courseField ?? null,
+      ncLevel:     data.ncLevel     ?? null,
+      remarks:     data.remarks     ?? null,
     });
 
     // Create program associations
@@ -958,7 +991,7 @@ export const socialAmeliorationService = {
       include: studentInclude,
     });
 
-    const details = await getClassificationDetails(data.residentId, 'Student');
+    const details = await getClassificationDetails(data.residentId, classType);
 
     return formatStudentBeneficiary(updatedRecord as StudentWithRelations, undefined, details);
   },
@@ -977,17 +1010,31 @@ export const socialAmeliorationService = {
         data: updateData,
       });
 
-      // Update classification_details in resident_classifications
-      if (data.gradeLevel !== undefined || data.remarks !== undefined) {
-        const existing = await getClassificationDetails(beneficiary.residentId, 'Student');
+      // Update classification_details in resident_classifications.
+      // Query all three student classification types to handle portal and BIMS registrations.
+      if (data.gradeLevel !== undefined || data.remarks !== undefined
+        || data.courseField !== undefined || data.ncLevel !== undefined) {
+        const [studentDetails, collegeStudentDetails, vocationalStudentDetails] = await Promise.all([
+          getClassificationDetails(beneficiary.residentId, 'Student'),
+          getClassificationDetails(beneficiary.residentId, 'College Student'),
+          getClassificationDetails(beneficiary.residentId, 'Vocational Student'),
+        ]);
+        const existing = studentDetails ?? collegeStudentDetails ?? vocationalStudentDetails;
+        const classType = vocationalStudentDetails
+          ? 'Vocational Student'
+          : collegeStudentDetails
+            ? 'College Student'
+            : 'Student';
         await tx.$executeRaw`
           UPDATE resident_classifications
           SET classification_details = ${JSON.stringify({
-            gradeLevel: data.gradeLevel ?? existing?.gradeLevel ?? null,
-            remarks: data.remarks ?? existing?.remarks ?? null,
+            gradeLevel:  data.gradeLevel  ?? existing?.gradeLevel  ?? null,
+            courseField: data.courseField ?? existing?.courseField ?? null,
+            ncLevel:     data.ncLevel     ?? existing?.ncLevel     ?? null,
+            remarks:     data.remarks     ?? existing?.remarks     ?? null,
           })}::jsonb
           WHERE resident_id = ${beneficiary.residentId}
-            AND classification_type = 'Student'
+            AND classification_type = ${classType}
         `;
       }
 
@@ -1016,7 +1063,12 @@ export const socialAmeliorationService = {
         include: studentInclude,
       });
 
-      const details = await getClassificationDetails(beneficiary.residentId, 'Student');
+      const [studentDetails, collegeStudentDetails, vocationalStudentDetails] = await Promise.all([
+        getClassificationDetails(beneficiary.residentId, 'Student'),
+        getClassificationDetails(beneficiary.residentId, 'College Student'),
+        getClassificationDetails(beneficiary.residentId, 'Vocational Student'),
+      ]);
+      const details = studentDetails ?? collegeStudentDetails ?? vocationalStudentDetails;
       return await formatStudentBeneficiary(refreshed, undefined, details);
     });
   },

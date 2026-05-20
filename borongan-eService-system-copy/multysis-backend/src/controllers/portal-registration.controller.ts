@@ -9,6 +9,7 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import {
   deleteRejectedRegistrations,
+  getClassificationOptions,
   getRegistrationRequest,
   getRegistrationStatus,
   listRegistrationRequests,
@@ -321,5 +322,35 @@ export const deleteRejectedController = async (req: AuthRequest, res: Response):
     res.status(200).json({ status: 'success', data: result });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: toUserMessage(error) });
+  }
+};
+
+// =============================================================================
+// CLASSIFICATION OPTIONS (public — no auth required)
+// GET /api/portal-registration/classification-options?municipalityId=X&typeName=Y
+// =============================================================================
+export const getClassificationOptionsController = async (req: Request, res: Response): Promise<void> => {
+  const municipalityId = req.query.municipalityId;
+  const typeName = req.query.typeName;
+
+  if (!municipalityId || isNaN(Number(municipalityId))) {
+    res.status(400).json({ status: 'error', message: 'municipalityId is required and must be a number' });
+    return;
+  }
+  if (!typeName || typeof typeName !== 'string') {
+    res.status(400).json({ status: 'error', message: 'typeName is required' });
+    return;
+  }
+
+  try {
+    const options = await getClassificationOptions(Number(municipalityId), typeName as string);
+    res.status(200).json({ status: 'success', data: options });
+  } catch (error: any) {
+    if (error.message === 'CLASSIFICATION_TYPE_NOT_FOUND') {
+      res.status(404).json({ status: 'error', message: 'Classification type not found' });
+      return;
+    }
+    console.error('[getClassificationOptions]', error);
+    res.status(500).json({ status: 'error', message: 'Failed to load classification options' });
   }
 };

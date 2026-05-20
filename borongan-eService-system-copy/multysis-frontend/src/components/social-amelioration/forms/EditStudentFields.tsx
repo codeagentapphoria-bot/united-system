@@ -8,6 +8,7 @@ import { useFormContext } from 'react-hook-form';
 import {
     FormField,
     FormItem,
+    FormLabel,
     FormMessage
 } from '@/components/ui/form';
 import {
@@ -17,6 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 
 // Custom Components
@@ -32,12 +34,18 @@ import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 interface EditStudentFieldsProps {
   selectedCitizen: any | null;
   gradeLevelOptions: string[];
+  courseField?: string;
+  ncLevelOptions?: string[];
+  ncLevel?: string;
   loading?: boolean;
 }
 
 export const EditStudentFields: React.FC<EditStudentFieldsProps> = ({
   selectedCitizen,
   gradeLevelOptions,
+  courseField,
+  ncLevelOptions,
+  ncLevel,
   loading,
 }) => {
   const form = useFormContext<StudentInput>();
@@ -56,7 +64,7 @@ export const EditStudentFields: React.FC<EditStudentFieldsProps> = ({
 
       <Separator />
 
-      {/* 2. Grade Level */}
+      {/* 2. Student Information */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-primary-600">Student Information</h3>
 
@@ -84,6 +92,53 @@ export const EditStudentFields: React.FC<EditStudentFieldsProps> = ({
             </FormItem>
           )}
         />
+
+        {/* Course Field — pre-filled for College Student */}
+        <FormField
+          control={form.control}
+          name="courseField"
+          render={({ field }) => (
+            <FormItem>
+              <CustomFormLabel>Course / Program</CustomFormLabel>
+              <Input
+                {...field}
+                value={field.value ?? courseField ?? ''}
+                onChange={field.onChange}
+                placeholder="e.g., BS Computer Engineering"
+                disabled={loading}
+              />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* NC Level — for Vocational Student */}
+        {ncLevelOptions && (
+          <FormField
+            control={form.control}
+            name="ncLevel"
+            render={({ field }) => (
+              <FormItem>
+                <CustomFormLabel>NC Level (TESDA Qualification)</CustomFormLabel>
+                <Select
+                  value={field.value ?? ncLevel ?? ''}
+                  onValueChange={field.onChange}
+                  disabled={loading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select NC level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ncLevelOptions.map((opt) => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
       </div>
 
       <Separator />

@@ -81,7 +81,7 @@ export interface ResidentRegistrationData {
   ameliorationData?: {
     seniorCitizen?: { pensionTypes?: string[] };
     pwd?: { disabilityType?: string; disabilityLevel?: string };
-    student?: { gradeLevel?: string; courseField?: string };
+    student?: { gradeLevel?: string; courseField?: string; ncLevel?: string };
     soloParent?: { category?: string };
     voter?: { voterType?: string };
   };
@@ -455,6 +455,7 @@ const EMPLOYMENT_STATUS_TO_CLASSIFICATION: Record<string, string> = {
   'self-employed': 'Self Employed',
   retired: 'Retired',
   student: 'Student',
+  vocational: 'Vocational Student',
 };
 
 function isCollegeLevel(educationAttainment?: string | null): boolean {
@@ -490,7 +491,7 @@ async function autoClassifyResident(
   ameliorationData?: {
     seniorCitizen?: { pensionTypes?: string[] };
     pwd?: { disabilityType?: string; disabilityLevel?: string };
-    student?: { gradeLevel?: string; courseField?: string };
+    student?: { gradeLevel?: string; courseField?: string; ncLevel?: string };
     soloParent?: { category?: string };
     voter?: { voterType?: string };
   }
@@ -527,6 +528,16 @@ async function autoClassifyResident(
       }
 
       toInsert.push({ type: classType, details });
+    } else if (resident.employmentStatus === 'vocational') {
+      // Vocational Student — TESDA NC levels from ameliorationData.student.ncLevel
+      toInsert.push({
+        type: 'Vocational Student',
+        details: {
+          ncLevel: ameliorationData?.student?.ncLevel || null,
+          courseField: ameliorationData?.student?.courseField || null,
+          remarks: '',
+        },
+      });
     } else {
       toInsert.push({ type: employmentClass, details: {} });
     }
@@ -878,3 +889,76 @@ async function generateResidentId(municipalityId: number, year: number): Promise
   const cntPart = String(counter).padStart(4, '0');
   return `${prefix}-${year}-${munPart}${cntPart}`;
 }
+
+// =============================================================================
+// GET CLASSIFICATION OPTIONS  (public — no auth required)
+// Returns dropdown option choices for registration form sub-fields by reading
+// classification_types.details[].options[] for select/multiselect fields.
+// Replaces the defunct /portal-registration/amelioration-settings endpoint
+// which depended on the now-dropped social_amelioration_settings table.
+// =============================================================================
+
+interface ClassificationOption {
+  id: string;
+  name: string;
+}
+
+interface ClassificationTypeRow {
+  id: number;
+  municipality_id: number;
+  name: string;
+  details: Array<{
+    key: string;
+    label: string;
+    type: string;
+    options?: string[];
+  }>;
+  is_active: boolean;
+}
+
+export const getClassificationOptions = async (
+  municipalityId: number,
+  typeName: string,
+): Promise<ClassificationOption[]> => {
+  const cacheKey = `portal:classifications:${municipalityId}:${typeName}`;
+
+  const cached = await cacheService.get<ClassificationOption[]>(cacheKey);
+  if (cached !== null && cached !== undefined) return cached;
+
+  const rows = await prisma.$queryRaw<ClassificationTypeRow[]>`
+    SELECT
+      id,
+      municipality_id,
+      name,
+      details,
+      is_active
+    FROM classification_types
+    WHERE municipality_id = ${municipalityId}
+      AND name = ${typeName}
+      AND is_active = true
+    LIMIT 1
+  `;
+
+  if (rows.length === 0) {
+    throw new Error('CLASSIFICATION_TYPE_NOT_FOUND');
+  }
+
+  const row = rows[0];
+  const details = Array.isArray(row.details) ? row.details : [];
+
+  const options: ClassificationOption[] = [];
+
+  for (const field of details) {
+    // Only extract options from select and multiselect field types
+    if ((field.type === 'select' || field.type === 'multiselect') && Array.isArray(field.options)) {
+      for (const optionValue of field.options) {
+        if (typeof optionValue === 'string' && optionValue.length > 0) {
+          options.push({ id: optionValue, name: optionValue });
+        }
+      }
+    }
+  }
+
+  await cacheService.set(cacheKey, options, 1800); // 30 min TTL
+  return options;
+};
