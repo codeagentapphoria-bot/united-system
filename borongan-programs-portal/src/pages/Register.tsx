@@ -421,16 +421,23 @@ export const Register: React.FC = () => {
   ];
 
   // Non-college grade levels only (Elementary, JHS, SHS) — college students get a text field instead
+  // Filter by name keyword to exclude college/tertiary entries, then by education level.
+  // No hardcoded IDs — backend returns text values now.
   const filteredGradeLevels = ameliorationSettings.GRADE_LEVEL.filter((s: LookupOption) => {
-    const ids: string[] = [];
-    if (!watchedEducationAttainment || watchedEducationAttainment === 'Elementary') {
-      ids.push('00000403-0403-4001-8001-000000000001'); // Elementary
+    const name = (s.name || '').toLowerCase();
+    // First: exclude college/university/vocational
+    if (name.includes('college') || name.includes('university') || name.includes('vocational')) {
+      return false;
     }
-    if (!watchedEducationAttainment || watchedEducationAttainment === 'High School') {
-      ids.push('00000403-0403-4001-8001-000000000002'); // JHS
-      ids.push('00000403-0403-4001-8001-000000000003'); // SHS
+    // Second: filter by education level
+    if (watchedEducationAttainment === 'Elementary') {
+      return name.includes('elementary');
     }
-    return ids.includes(s.id);
+    if (watchedEducationAttainment === 'High School') {
+      return name.includes('junior') || name.includes('senior');
+    }
+    // No education selected — show all 3
+    return true;
   });
 
   // Age-based voter type eligibility (SK: 15–30, Regular: 18+)
