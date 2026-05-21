@@ -1136,9 +1136,13 @@ export const Register: React.FC = () => {
                             control={step1Form.control}
                             name="isVoter"
                             render={({ field }) => (
-                              <FormItem className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                              <label
+                                htmlFor="isVoter"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
                                 <FormControl>
                                   <Checkbox
+                                    id="isVoter"
                                     checked={!!field.value}
                                     onCheckedChange={field.onChange}
                                     className="mt-0.5"
@@ -1151,7 +1155,7 @@ export const Register: React.FC = () => {
                                     representation.
                                   </FormDescription>
                                 </div>
-                              </FormItem>
+                              </label>
                             )}
                           />
                           {/* Voter type — shown when isVoter is checked */}
@@ -1199,9 +1203,13 @@ export const Register: React.FC = () => {
                             control={step1Form.control}
                             name="indigenousPerson"
                             render={({ field }) => (
-                              <FormItem className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                              <label
+                                htmlFor="indigenousPerson"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
                                 <FormControl>
                                   <Checkbox
+                                    id="indigenousPerson"
                                     checked={!!field.value}
                                     onCheckedChange={field.onChange}
                                     className="mt-0.5"
@@ -1214,16 +1222,20 @@ export const Register: React.FC = () => {
                                     IP-specific programs and services.
                                   </FormDescription>
                                 </div>
-                              </FormItem>
+                              </label>
                             )}
                           />
                           <FormField
                             control={step1Form.control}
                             name="hasDisability"
                             render={({ field }) => (
-                              <FormItem className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                              <label
+                                htmlFor="hasDisability"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
                                 <FormControl>
                                   <Checkbox
+                                    id="hasDisability"
                                     checked={!!field.value}
                                     onCheckedChange={field.onChange}
                                     className="mt-0.5"
@@ -1237,16 +1249,20 @@ export const Register: React.FC = () => {
                                     Check if you have a physical, sensory, intellectual, or mental disability.
                                   </FormDescription>
                                 </div>
-                              </FormItem>
+                              </label>
                             )}
                           />
                           <FormField
                             control={step1Form.control}
                             name="hasChildren"
                             render={({ field }) => (
-                              <FormItem className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                              <label
+                                htmlFor="hasChildren"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
                                 <FormControl>
                                   <Checkbox
+                                    id="hasChildren"
                                     checked={!!field.value}
                                     onCheckedChange={field.onChange}
                                     className="mt-0.5"
@@ -1259,7 +1275,7 @@ export const Register: React.FC = () => {
                                     programs).
                                   </FormDescription>
                                 </div>
-                              </FormItem>
+                              </label>
                             )}
                           />
                         </div>

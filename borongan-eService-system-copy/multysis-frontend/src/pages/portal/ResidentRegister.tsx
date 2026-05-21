@@ -1060,9 +1060,13 @@ export const ResidentRegister: React.FC = () => {
                             control={step1Form.control}
                             name="isVoter"
                             render={({ field }) => (
-                              <FormItem className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                              <label
+                                htmlFor="isVoter"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
                                 <FormControl>
                                   <Checkbox
+                                    id="isVoter"
                                     checked={!!field.value}
                                     onCheckedChange={field.onChange}
                                     className="mt-0.5"
@@ -1075,7 +1079,7 @@ export const ResidentRegister: React.FC = () => {
                                     representation.
                                   </FormDescription>
                                 </div>
-                              </FormItem>
+                              </label>
                             )}
                           />
                           {/* Voter type — shown when isVoter is checked */}
@@ -1145,9 +1149,13 @@ export const ResidentRegister: React.FC = () => {
                             control={step1Form.control}
                             name="hasDisability"
                             render={({ field }) => (
-                              <FormItem className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                              <label
+                                htmlFor="hasDisability"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
                                 <FormControl>
                                   <Checkbox
+                                    id="hasDisability"
                                     checked={!!field.value}
                                     onCheckedChange={field.onChange}
                                     className="mt-0.5"
@@ -1161,16 +1169,20 @@ export const ResidentRegister: React.FC = () => {
                                     Check if you have a physical, sensory, intellectual, or mental disability.
                                   </FormDescription>
                                 </div>
-                              </FormItem>
+                              </label>
                             )}
                           />
                           <FormField
                             control={step1Form.control}
                             name="hasChildren"
                             render={({ field }) => (
-                              <FormItem className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                              <label
+                                htmlFor="hasChildren"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
                                 <FormControl>
                                   <Checkbox
+                                    id="hasChildren"
                                     checked={!!field.value}
                                     onCheckedChange={field.onChange}
                                     className="mt-0.5"
@@ -1183,7 +1195,7 @@ export const ResidentRegister: React.FC = () => {
                                     programs).
                                   </FormDescription>
                                 </div>
-                              </FormItem>
+                              </label>
                             )}
                           />
                         </div>
