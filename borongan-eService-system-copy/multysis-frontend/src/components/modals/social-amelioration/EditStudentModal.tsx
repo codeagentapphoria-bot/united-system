@@ -176,7 +176,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
           courseField={courseField}
           ncLevelOptions={ncLevelOptions}
           ncLevel={ncLevel}
-          loading={loading}
+          loading={form.formState.isSubmitting}
         />
             </form>
           </Form>
