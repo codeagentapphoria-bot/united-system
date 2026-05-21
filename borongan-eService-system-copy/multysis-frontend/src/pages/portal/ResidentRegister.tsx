@@ -213,6 +213,7 @@ export const ResidentRegister: React.FC = () => {
   const [ameliorationSettings, setAmeliorationSettings] = useState<Record<string, any[]>>({
     PENSION_TYPE: [],
     DISABILITY_TYPE: [],
+    DISABILITY_LEVEL: [],
     GRADE_LEVEL: [],
     SOLO_PARENT_CATEGORY: [],
     COLLEGE_LEVEL: [],
@@ -243,19 +244,20 @@ export const ResidentRegister: React.FC = () => {
           handleMunicipalityChange(muniId);
 
           // Load classification options after municipality is selected
-          const typeNameMap: Record<string, string> = {
-            DISABILITY_TYPE:       'Person with Disability',
-            GRADE_LEVEL:           'Student',
-            PENSION_TYPE:          'Senior Citizen',
-            SOLO_PARENT_CATEGORY:  'Solo Parent',
-            COLLEGE_LEVEL:         'College Student',
-            VOCATIONAL_LEVEL:      'Vocational Student',
+          const typeNameMap: Record<string, { typeName: string; fieldKey?: string }> = {
+            DISABILITY_TYPE:       { typeName: 'Person with Disability', fieldKey: 'disabilityType' },
+            DISABILITY_LEVEL:      { typeName: 'Person with Disability', fieldKey: 'disabilityLevel' },
+            GRADE_LEVEL:           { typeName: 'Student', fieldKey: 'gradeLevel' },
+            PENSION_TYPE:          { typeName: 'Senior Citizen', fieldKey: 'pensionTypes' },
+            SOLO_PARENT_CATEGORY:  { typeName: 'Solo Parent', fieldKey: 'category' },
+            COLLEGE_LEVEL:         { typeName: 'College Student', fieldKey: 'gradeLevel' },
+            VOCATIONAL_LEVEL:      { typeName: 'Vocational Student', fieldKey: 'ncLevel' },
           };
           const types = Object.keys(typeNameMap);
           Promise.all(
             types.map(type =>
               api
-                .get(`/portal-registration/classification-options?municipalityId=${muniId}&typeName=${typeNameMap[type]}`)
+                .get(`/portal-registration/classification-options?municipalityId=${muniId}&typeName=${typeNameMap[type].typeName}${typeNameMap[type].fieldKey ? `&fieldKey=${typeNameMap[type].fieldKey}` : ''}`)
                 .then(res => ({ type, data: res.data.data || [], failed: false }))
                 .catch(() => ({ type, data: [], failed: true }))
             )
@@ -1316,10 +1318,11 @@ export const ResidentRegister: React.FC = () => {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="Mild">Mild</SelectItem>
-                                  <SelectItem value="Moderate">Moderate</SelectItem>
-                                  <SelectItem value="Severe">Severe</SelectItem>
-                                  <SelectItem value="Profound">Profound</SelectItem>
+                                  {ameliorationSettings.DISABILITY_LEVEL.map((s: any) => (
+                                    <SelectItem key={s.id} value={s.id}>
+                                      {s.name}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                               <FormMessage />

@@ -919,8 +919,9 @@ interface ClassificationTypeRow {
 export const getClassificationOptions = async (
   municipalityId: number,
   typeName: string,
+  fieldKey?: string,
 ): Promise<ClassificationOption[]> => {
-  const cacheKey = `portal:classifications:${municipalityId}:${typeName}`;
+  const cacheKey = `portal:classifications:${municipalityId}:${typeName}${fieldKey ? `:${fieldKey}` : ''}`;
 
   const cached = await cacheService.get<ClassificationOption[]>(cacheKey);
   if (cached !== null && cached !== undefined) return cached;
@@ -951,6 +952,8 @@ export const getClassificationOptions = async (
   for (const field of details) {
     // Only extract options from select and multiselect field types
     if ((field.type === 'select' || field.type === 'multiselect') && Array.isArray(field.options)) {
+      // If fieldKey is specified, only return options for that field
+      if (fieldKey && field.key !== fieldKey) continue;
       for (const optionValue of field.options) {
         if (typeof optionValue === 'string' && optionValue.length > 0) {
           options.push({ id: optionValue, name: optionValue });

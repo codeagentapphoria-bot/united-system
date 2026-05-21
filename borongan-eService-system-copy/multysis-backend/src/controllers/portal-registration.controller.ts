@@ -332,6 +332,7 @@ export const deleteRejectedController = async (req: AuthRequest, res: Response):
 export const getClassificationOptionsController = async (req: Request, res: Response): Promise<void> => {
   const municipalityId = req.query.municipalityId;
   const typeName = req.query.typeName;
+  const fieldKey = req.query.fieldKey as string | undefined;
 
   if (!municipalityId || isNaN(Number(municipalityId))) {
     res.status(400).json({ status: 'error', message: 'municipalityId is required and must be a number' });
@@ -343,7 +344,7 @@ export const getClassificationOptionsController = async (req: Request, res: Resp
   }
 
   try {
-    const options = await getClassificationOptions(Number(municipalityId), typeName as string);
+    const options = await getClassificationOptions(Number(municipalityId), typeName as string, fieldKey);
     res.status(200).json({ status: 'success', data: options });
   } catch (error: any) {
     if (error.message === 'CLASSIFICATION_TYPE_NOT_FOUND') {
