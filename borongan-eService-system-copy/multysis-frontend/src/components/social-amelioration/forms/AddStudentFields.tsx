@@ -44,7 +44,7 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
   const form = useFormContext<StudentInput>();
 
   const { data: studentType, loading: studentLoading } = useClassificationOptions('Student');
-  const { data: collegeType, loading: collegeLoading } = useClassificationOptions('College Student');
+  const { loading: collegeLoading } = useClassificationOptions('College Student');
   const { data: vocationalType, loading: vocationalLoading } = useClassificationOptions('Vocational Student');
 
   const gradeLevelOptions: string[] =
@@ -54,32 +54,38 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
 
   const isLoading = studentLoading || collegeLoading || vocationalLoading;
 
-  // Detect education level from selectedCitizen.educationAttainment
+  // Detect education level from selectedCitizen.educationAttainment — used as default
   const educationAttainment = selectedCitizen?.educationAttainment ?? '';
 
-  const isCollegeLevel = (() => {
-    if (!educationAttainment) return false;
+  const detectedEducationLevel = ((): 'k12' | 'college' | 'vocational' => {
     const v = educationAttainment.toLowerCase();
-    return (
+    if (
       v.includes('college') ||
       v.includes('bachelor') ||
       v.includes('graduate') ||
       v.includes('master') ||
       v.includes('doctorate') ||
       v.includes('university')
-    );
+    ) {
+      return 'college';
+    }
+    if (v.includes('vocational') || v.includes('technical') || v.includes('tesda')) {
+      return 'vocational';
+    }
+    return 'k12';
   })();
 
-  const isVocational = (() => {
-    if (!educationAttainment) return false;
-    const v = educationAttainment.toLowerCase();
-    return v.includes('vocational') || v.includes('technical') || v.includes('tesda');
-  })();
+  // Local state for student type — defaults to auto-detected value, user can override
+  const [studentTypeLevel, setStudentTypeLevel] = React.useState<'k12' | 'college' | 'vocational'>(
+    detectedEducationLevel
+  );
 
   // Pre-fill form when citizen is selected
   React.useEffect(() => {
     if (selectedCitizen) {
       form.setValue('citizenId', selectedCitizen.id);
+      // Reset student type to detected value when a new citizen is selected
+      setStudentTypeLevel(detectedEducationLevel);
     }
   }, [selectedCitizen, form]);
 
@@ -116,12 +122,30 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
 
       <Separator />
 
-      {/* 2. Student Information — conditional on education level */}
+      {/* 2. Student Information — conditional on studentTypeLevel */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-primary-600">Student Information</h3>
 
+        {/* Student Type — user selects manually; defaults to auto-detected education level */}
+        <FormItem>
+          <CustomFormLabel required>Student Type</CustomFormLabel>
+          <Select
+            value={studentTypeLevel}
+            onValueChange={(val: 'k12' | 'college' | 'vocational') => setStudentTypeLevel(val)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Student Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="k12">K-12 (Elementary to Senior High)</SelectItem>
+              <SelectItem value="college">College / University</SelectItem>
+              <SelectItem value="vocational">Vocational / TESDA</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormItem>
+
         {/* K-12: Elementary / JHS / SHS → Student classification → gradeLevel dropdown */}
-        {!isCollegeLevel && !isVocational && (
+        {studentTypeLevel === 'k12' && (
           <FormField
             control={form.control}
             name="gradeLevel"
@@ -148,7 +172,7 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
         )}
 
         {/* College → College Student classification → courseField text input */}
-        {isCollegeLevel && (
+        {studentTypeLevel === 'college' && (
           <FormField
             control={form.control}
             name="courseField"
@@ -167,7 +191,7 @@ export const AddStudentFields: React.FC<AddStudentFieldsProps> = ({
         )}
 
         {/* Vocational/TESDA → Vocational Student classification → ncLevel + courseField */}
-        {isVocational && (
+        {studentTypeLevel === 'vocational' && (
           <>
             <FormField
               control={form.control}

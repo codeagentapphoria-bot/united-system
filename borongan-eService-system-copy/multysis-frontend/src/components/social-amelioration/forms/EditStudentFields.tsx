@@ -1,5 +1,5 @@
 // React imports
-import React from 'react';
+import React, { useEffect } from 'react';
 
 // Third-party libraries
 import { useFormContext } from 'react-hook-form';
@@ -72,12 +72,29 @@ export const EditStudentFields: React.FC<EditStudentFieldsProps> = ({
   const form = useFormContext<StudentInput>();
 
   const { data: studentType, loading: studentLoading } = useClassificationOptions('Student');
-  const { data: collegeType, loading: collegeLoading } = useClassificationOptions('College Student');
+  const { loading: collegeLoading } = useClassificationOptions('College Student');
   const { data: vocationalType, loading: vocationalLoading } = useClassificationOptions('Vocational Student');
 
   const isLoading = studentLoading || collegeLoading || vocationalLoading;
 
   const educationLevel = getEducationLevel(selectedCitizen?.educationAttainment);
+
+  // Pre-fill form values from selectedCitizen's saved classification_details
+  // (flattened fields from normalizeBeneficiary / backend formatStudentBeneficiary)
+  useEffect(() => {
+    if (!selectedCitizen) return;
+
+    if (selectedCitizen.gradeLevel) {
+      form.setValue('gradeLevel', selectedCitizen.gradeLevel);
+    }
+    if (selectedCitizen.courseField) {
+      form.setValue('courseField', selectedCitizen.courseField);
+    }
+    if (selectedCitizen.ncLevel) {
+      form.setValue('ncLevel', selectedCitizen.ncLevel);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCitizen]);
 
   const gradeLevelOptions: string[] =
     studentType?.details.find((f) => f.key === 'gradeLevel')?.options ?? [];

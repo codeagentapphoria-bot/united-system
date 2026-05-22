@@ -76,19 +76,19 @@ async function batchGetClassificationDetails(
 
 /**
  * Upsert (insert-or-update) resident_classifications.classification_details.
- * The record must already exist (created by the registration/approval flow);
- * we only update the JSONB details field.
+ * Uses INSERT ... ON CONFLICT ... DO UPDATE so it works for ALL beneficiary
+ * types — even when no resident_classifications record exists yet.
  */
 async function upsertClassificationDetails(
   residentId: string,
   classificationType: string,
   details: PWDClassificationDetails | StudentClassificationDetails | SoloParentClassificationDetails | SeniorClassificationDetails
 ): Promise<void> {
-  await prisma.$queryRaw`
-    UPDATE resident_classifications
-    SET classification_details = ${JSON.stringify(details)}::jsonb
-    WHERE resident_id = ${residentId}
-      AND classification_type = ${classificationType}
+  await prisma.$executeRaw`
+    INSERT INTO resident_classifications (resident_id, classification_type, classification_details)
+    VALUES (${residentId}, ${classificationType}, ${JSON.stringify(details)}::jsonb)
+    ON CONFLICT ON CONSTRAINT resident_classifications_unique_type
+    DO UPDATE SET classification_details = EXCLUDED.classification_details
   `;
 }
 

@@ -192,10 +192,255 @@ const k12Attainments = ['Elementary', 'High School', 'Senior High School'];
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('AddStudentFields — education-level detection', () => {
+describe('AddStudentFields — student type selector', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
+
+  // -------------------------------------------------------------------------
+  // Student Type selector presence
+  // -------------------------------------------------------------------------
+  describe('Student Type selector', () => {
+    it('renders the Student Type select as the first field', () => {
+      setupMocks({});
+      const props = defaultProps();
+      props.selectedCitizen = { id: 'cit-1', fullName: 'Test User' };
+
+      renderWithProps(props);
+
+      expect(screen.getByText('Student Type')).toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: /student type/i })).toBeInTheDocument();
+    });
+
+    it('has three options: K-12, College / University, Vocational / TESDA', () => {
+      setupMocks({});
+      const props = defaultProps();
+      props.selectedCitizen = { id: 'cit-2', fullName: 'Test User' };
+
+      renderWithProps(props);
+
+      const select = screen.getByRole('combobox', { name: /student type/i });
+      userEvent.click(select);
+      expect(screen.getByRole('option', { name: 'K-12 (Elementary to Senior High)' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'College / University' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Vocational / TESDA' })).toBeInTheDocument();
+    });
+
+    it('defaults to auto-detected K-12 when educationAttainment is empty', () => {
+      setupMocks({});
+      const props = defaultProps();
+      props.selectedCitizen = { id: 'cit-3', fullName: 'No Education' };
+
+      renderWithProps(props);
+
+      const select = screen.getByRole('combobox', { name: /student type/i });
+      expect(select).toHaveValue('k12');
+    });
+
+    it('defaults to K-12 when educationAttainment is Elementary', () => {
+      setupMocks({});
+      const props = defaultProps();
+      props.selectedCitizen = { id: 'cit-4', fullName: 'Elementary Student', educationAttainment: 'Elementary' };
+
+      renderWithProps(props);
+
+      const select = screen.getByRole('combobox', { name: /student type/i });
+      expect(select).toHaveValue('k12');
+    });
+
+    it.each(collegeAttainments)(
+      'defaults to college when educationAttainment = "%s"',
+      (attainment) => {
+        setupMocks({});
+        const props = defaultProps();
+        props.selectedCitizen = { id: 'col-1', fullName: 'College Student', educationAttainment: attainment };
+
+        renderWithProps(props);
+
+        const select = screen.getByRole('combobox', { name: /student type/i });
+        expect(select).toHaveValue('college');
+      }
+    );
+
+    it.each(vocationalAttainments)(
+      'defaults to vocational when educationAttainment = "%s"',
+      (attainment) => {
+        setupMocks({});
+        const props = defaultProps();
+        props.selectedCitizen = { id: 'voc-1', fullName: 'Voc Student', educationAttainment: attainment };
+
+        renderWithProps(props);
+
+        const select = screen.getByRole('combobox', { name: /student type/i });
+        expect(select).toHaveValue('vocational');
+      }
+    );
+
+    it('user can manually override the default and switch to a different type', () => {
+      setupMocks({});
+      const props = defaultProps();
+      props.selectedCitizen = { id: 'cit-5', fullName: 'User', educationAttainment: 'Elementary' };
+
+      renderWithProps(props);
+
+      // Defaults to K-12
+      const select = screen.getByRole('combobox', { name: /student type/i });
+      expect(select).toHaveValue('k12');
+
+      // Switch to College
+      userEvent.click(select);
+      userEvent.click(screen.getByRole('option', { name: 'College / University' }));
+      expect(select).toHaveValue('college');
+
+      // Switch to Vocational
+      userEvent.click(select);
+      userEvent.click(screen.getByRole('option', { name: 'Vocational / TESDA' }));
+      expect(select).toHaveValue('vocational');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // K-12: studentTypeLevel === 'k12'
+  // -------------------------------------------------------------------------
+  describe('K-12 student type', () => {
+    it.each(k12Attainments)(
+      'renders gradeLevel dropdown when studentTypeLevel = k12 (educationAttainment = "%s")',
+      (attainment) => {
+        setupMocks({});
+        const props = defaultProps();
+        props.selectedCitizen = { id: 'cit-1', fullName: 'Student', educationAttainment: attainment };
+
+        renderWithProps(props);
+
+        expect(screen.getByText('Student Information')).toBeInTheDocument();
+        expect(screen.getByText('Grade Level')).toBeInTheDocument();
+        expect(screen.getByRole('combobox', { name: /grade level/i })).toBeInTheDocument();
+
+        const gradeSelect = screen.getByRole('combobox', { name: /grade level/i });
+        userEvent.click(gradeSelect);
+        GRADE_LEVEL_OPTIONS.forEach((opt) => {
+          expect(screen.getByRole('option', { name: opt })).toBeInTheDocument();
+        });
+      }
+    );
+
+    it('does NOT render courseField for K-12', () => {
+      setupMocks({});
+      const props = defaultProps();
+      props.selectedCitizen = { id: 'cit-3', fullName: 'Jane', educationAttainment: 'Elementary' };
+
+      renderWithProps(props);
+
+      expect(screen.queryByText('Course / Program')).not.toBeInTheDocument();
+    });
+
+    it('does NOT render ncLevel dropdown for K-12', () => {
+      setupMocks({});
+      const props = defaultProps();
+      props.selectedCitizen = { id: 'cit-4', fullName: 'Jane', educationAttainment: 'High School' };
+
+      renderWithProps(props);
+
+      expect(screen.queryByRole('combobox', { name: /nc level/i })).not.toBeInTheDocument();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // College: studentTypeLevel === 'college'
+  // -------------------------------------------------------------------------
+  describe.each(collegeAttainments)('College student type — educationAttainment = "%s"', (attainment) => {
+    it('renders courseField text input', () => {
+      setupMocks({});
+      const props = defaultProps();
+      props.selectedCitizen = { id: 'col-1', fullName: 'College', educationAttainment: attainment };
+
+      renderWithProps(props);
+
+      expect(screen.getByText('Student Information')).toBeInTheDocument();
+      expect(screen.getByText('Course / Program')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('e.g., BS Computer Engineering')).toBeInTheDocument();
+    });
+
+    it('does NOT render gradeLevel dropdown', () => {
+      setupMocks({});
+      const props = defaultProps();
+      props.selectedCitizen = { id: 'col-2', fullName: 'College', educationAttainment: attainment };
+
+      renderWithProps(props);
+
+      expect(screen.queryByRole('combobox', { name: /grade level/i })).not.toBeInTheDocument();
+    });
+
+    it('does NOT render ncLevel dropdown', () => {
+      setupMocks({});
+      const props = defaultProps();
+      props.selectedCitizen = { id: 'col-3', fullName: 'College', educationAttainment: attainment };
+
+      renderWithProps(props);
+
+      expect(screen.queryByRole('combobox', { name: /nc level/i })).not.toBeInTheDocument();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Vocational: studentTypeLevel === 'vocational'
+  // -------------------------------------------------------------------------
+  describe.each(vocationalAttainments)('Vocational student type — educationAttainment = "%s"', (attainment) => {
+    it('renders ncLevel dropdown', () => {
+      setupMocks({});
+      const props = defaultProps();
+      props.selectedCitizen = { id: 'voc-1', fullName: 'Voc', educationAttainment: attainment };
+
+      renderWithProps(props);
+
+      expect(screen.getByText('Student Information')).toBeInTheDocument();
+      expect(screen.getByText('NC Level / Qualification')).toBeInTheDocument();
+      const ncSelect = screen.getByRole('combobox', { name: /nc level/i });
+      expect(ncSelect).toBeInTheDocument();
+
+      userEvent.click(ncSelect);
+      NC_LEVEL_OPTIONS.forEach((opt) => {
+        expect(screen.getByRole('option', { name: opt })).toBeInTheDocument();
+      });
+    });
+
+    it('renders courseField text input', () => {
+      setupMocks({});
+      const props = defaultProps();
+      props.selectedCitizen = { id: 'voc-2', fullName: 'Voc', educationAttainment: attainment };
+
+      renderWithProps(props);
+
+      expect(screen.getByText('Course / Program')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('e.g., Computer Programming')).toBeInTheDocument();
+    });
+
+    it('does NOT render gradeLevel dropdown', () => {
+      setupMocks({});
+      const props = defaultProps();
+      props.selectedCitizen = { id: 'voc-3', fullName: 'Voc', educationAttainment: attainment };
+
+      renderWithProps(props);
+
+      expect(screen.queryByRole('combobox', { name: /grade level/i })).not.toBeInTheDocument();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Loading state
+  // -------------------------------------------------------------------------
+  describe('Loading state', () => {
+    it('shows "Loading..." when classification options are loading', () => {
+      setupMocks({ studentLoading: true, collegeLoading: true, vocationalLoading: true });
+      const props = defaultProps();
+      props.selectedCitizen = { id: 'load-1', fullName: 'Loading Test', educationAttainment: 'Elementary' };
+
+      renderWithProps(props);
+
+      expect(screen.getByText('Loading...')).toBeInTheDocument();
+    });
+  });
+});
 
   // -------------------------------------------------------------------------
   // K-12 students (neither college nor vocational)
