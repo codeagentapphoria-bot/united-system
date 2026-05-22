@@ -77,12 +77,23 @@ export const EditStudentFields: React.FC<EditStudentFieldsProps> = ({
 
   const isLoading = studentLoading || collegeLoading || vocationalLoading;
 
-  const educationLevel = getEducationLevel(selectedCitizen?.educationAttainment);
+  // Detect education level from selectedCitizen.educationAttainment — used as default
+  const detectedEducationLevel = (): EducationLevel => {
+    return getEducationLevel(selectedCitizen?.educationAttainment);
+  };
+
+  // Local state for student type — defaults to auto-detected value, user can override
+  const [studentTypeLevel, setStudentTypeLevel] = React.useState<EducationLevel>(
+    detectedEducationLevel()
+  );
 
   // Pre-fill form values from selectedCitizen's saved classification_details
   // (flattened fields from normalizeBeneficiary / backend formatStudentBeneficiary)
   useEffect(() => {
     if (!selectedCitizen) return;
+
+    // Reset student type to detected value when a new citizen is selected
+    setStudentTypeLevel(getEducationLevel(selectedCitizen.educationAttainment));
 
     if (selectedCitizen.gradeLevel) {
       form.setValue('gradeLevel', selectedCitizen.gradeLevel);
@@ -116,8 +127,27 @@ export const EditStudentFields: React.FC<EditStudentFieldsProps> = ({
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-primary-600">Student Information</h3>
 
+        {/* Student Type — user selects manually; defaults to auto-detected education level */}
+        <FormItem>
+          <CustomFormLabel required>Student Type</CustomFormLabel>
+          <Select
+            value={studentTypeLevel}
+            onValueChange={(val: EducationLevel) => setStudentTypeLevel(val)}
+            disabled={isLoading}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Student Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="k12">K-12 (Elementary to Senior High)</SelectItem>
+              <SelectItem value="college">College / University</SelectItem>
+              <SelectItem value="vocational">Vocational / TESDA</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormItem>
+
         {/* ── K-12: gradeLevel Select ── */}
-        {educationLevel === 'k12' && (
+        {studentTypeLevel === 'k12' && (
           <FormField
             control={form.control}
             name="gradeLevel"
@@ -145,7 +175,7 @@ export const EditStudentFields: React.FC<EditStudentFieldsProps> = ({
         )}
 
         {/* ── College: courseField Input (free text — no fixed options) ── */}
-        {educationLevel === 'college' && (
+        {studentTypeLevel === 'college' && (
           <FormField
             control={form.control}
             name="courseField"
@@ -164,7 +194,7 @@ export const EditStudentFields: React.FC<EditStudentFieldsProps> = ({
         )}
 
         {/* ── Vocational: ncLevel Select + courseField Input ── */}
-        {educationLevel === 'vocational' && (
+        {studentTypeLevel === 'vocational' && (
           <>
             <FormField
               control={form.control}

@@ -152,22 +152,33 @@ const FullInformationModal: React.FC<{
 
           {/* Student Information */}
           {(() => {
+            const citizenEdu = (beneficiary.citizen || beneficiary).educationAttainment || (beneficiary.citizen || beneficiary).education || beneficiary.educationAttainment || '';
+            const studentTypeLabel = isVocational(citizenEdu)
+              ? 'Vocational / TESDA'
+              : isCollege(citizenEdu)
+              ? 'College / University'
+              : 'K-12 (Elementary to Senior High)';
             const fields = getEducationFields(beneficiary);
-            if (fields.length === 0) return null;
             return (
               <>
                 <div className="bg-white p-6 rounded-lg border border-gray-200">
                   <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Student Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {fields.map((field, idx) => (
-                      <div key={idx} className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{field.label}</label>
-                        <div className="min-h-[40px] flex items-center">
-                          <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{field.value}</p>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="mb-6">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Student Type</label>
+                    <Badge className="bg-primary-100 text-primary-700 px-3 py-1 text-sm font-medium">{studentTypeLabel}</Badge>
                   </div>
+                  {fields.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {fields.map((field, idx) => (
+                        <div key={idx} className="space-y-2">
+                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{field.label}</label>
+                          <div className="min-h-[40px] flex items-center">
+                            <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{field.value}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <Separator />
               </>
@@ -677,22 +688,33 @@ const StudentInfo: React.FC<{
 
         {/* Student Information */}
         {(() => {
+          const citizenEdu = (beneficiary.citizen || beneficiary).educationAttainment || (beneficiary.citizen || beneficiary).education || beneficiary.educationAttainment || '';
+          const studentTypeLabel = isVocational(citizenEdu)
+            ? 'Vocational / TESDA'
+            : isCollege(citizenEdu)
+            ? 'College / University'
+            : 'K-12 (Elementary to Senior High)';
           const fields = getEducationFields(beneficiary);
-          if (fields.length === 0) return null;
           return (
             <>
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Student Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {fields.map((field, idx) => (
-                    <div key={idx} className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{field.label}</label>
-                      <div className="min-h-[40px] flex items-center">
-                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{field.value}</p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="mb-6">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Student Type</label>
+                  <Badge className="bg-primary-100 text-primary-700 px-3 py-1 text-sm font-medium">{studentTypeLabel}</Badge>
                 </div>
+                {fields.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {fields.map((field, idx) => (
+                      <div key={idx} className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{field.label}</label>
+                        <div className="min-h-[40px] flex items-center">
+                          <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{field.value}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <Separator />
             </>

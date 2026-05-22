@@ -122,8 +122,8 @@ const FullInformationModal: React.FC<{
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pension Types</label>
                 <div className="min-h-[40px] flex items-center flex-wrap gap-2">
                   {(() => {
-                    const pensionTypeNames = beneficiary.pensionTypeNames || 
-                      beneficiary.pensionTypes || 
+                    const pensionTypeNames = beneficiary.pensionTypes || 
+                      beneficiary.pensionTypeNames || 
                       (beneficiary.pensionType ? [beneficiary.pensionType] : []) ||
                       (beneficiary.typeOfPension ? [beneficiary.typeOfPension] : []);
                     
@@ -783,9 +783,9 @@ const SeniorCitizenInfo: React.FC<{
             <div className="space-y-2 md:col-span-2">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pension Types</label>
               <div className="min-h-[40px] flex items-center flex-wrap gap-2">
-              {(() => {
-                    const pensionTypeNames = beneficiary.pensionTypeNames || 
-                      beneficiary.pensionTypes || 
+                {(() => {
+                    const pensionTypeNames = beneficiary.pensionTypes || 
+                      beneficiary.pensionTypeNames || 
                       (beneficiary.pensionType ? [beneficiary.pensionType] : []) ||
                       (beneficiary.typeOfPension ? [beneficiary.typeOfPension] : []);
                     
