@@ -4,7 +4,7 @@
  * Fetches social amelioration settings (disability types, grade levels, etc.)
  * used in ResidentClassificationsForm dropdown fields.
  *
- * Setting types: DISABILITY_TYPE, GRADE_LEVEL, SOLO_PARENT_CATEGORY, PENSION_TYPE
+ * Setting types: DISABILITY_TYPE, GRADE_LEVEL, SOLO_PARENT_CATEGORY, PENSION_TYPE, VOCATIONAL_STUDENT, COLLEGE_STUDENT
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -15,6 +15,8 @@ const SETTING_TYPES: SocialAmeliorationSettingType[] = [
   'GRADE_LEVEL',
   'SOLO_PARENT_CATEGORY',
   'PENSION_TYPE',
+  'VOCATIONAL_STUDENT',
+  'COLLEGE_STUDENT',
 ];
 
 interface SettingsMap {

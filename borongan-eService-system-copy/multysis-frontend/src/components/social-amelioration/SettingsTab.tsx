@@ -17,6 +17,7 @@ const AMELIORATION_TYPES: { name: string; label: string }[] = [
   { name: 'Student', label: 'Grade Levels' },
   { name: 'Senior Citizen', label: 'Pension Types' },
   { name: 'Solo Parent', label: 'Solo Parent Categories' },
+  { name: 'Vocational Student', label: 'Vocational NC Levels' },
 ];
 
 interface FieldEditorProps {

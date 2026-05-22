@@ -21,6 +21,8 @@ const SETTING_MAP: Record<string, { typeName: string; fieldKey?: string }> = {
   DISABILITY_TYPE: { typeName: 'PWD', fieldKey: 'disabilityType' },
   GRADE_LEVEL: { typeName: 'Student', fieldKey: 'gradeLevel' },
   SOLO_PARENT_CATEGORY: { typeName: 'Solo Parent', fieldKey: 'category' },
+  COLLEGE_STUDENT: { typeName: 'College Student' },
+  VOCATIONAL_STUDENT: { typeName: 'Vocational Student', fieldKey: 'ncLevel' },
 };
 
 export const socialAmeliorationSettingApi = {
@@ -36,7 +38,7 @@ export const socialAmeliorationSettingApi = {
     type,
   }: {
     municipalityId: number;
-    type: 'PENSION_TYPE' | 'DISABILITY_TYPE' | 'GRADE_LEVEL' | 'SOLO_PARENT_CATEGORY';
+    type: 'PENSION_TYPE' | 'DISABILITY_TYPE' | 'GRADE_LEVEL' | 'SOLO_PARENT_CATEGORY' | 'VOCATIONAL_STUDENT' | 'COLLEGE_STUDENT';
   }): Promise<SettingOption[]> {
     const mapping = SETTING_MAP[type];
     if (!mapping) return [];
