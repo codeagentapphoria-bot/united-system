@@ -15,7 +15,6 @@ import { EditSoloParentFields } from '@/components/social-amelioration/forms/Edi
 import { useCitizenSearch, createReactSelectStyles } from '@/components/social-amelioration/shared';
 
 // Hooks
-import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 import { residentService } from '@/services/api/resident.service';
 
 // Types and Schemas
@@ -37,7 +36,6 @@ export const EditSoloParentModal: React.FC<EditSoloParentModalProps> = ({
   onEdit,
   initialData,
 }) => {
-  const { data: soloParentType } = useClassificationOptions('Solo Parent');
   const {
     citizens,
     selectedCitizen,
@@ -52,9 +50,6 @@ export const EditSoloParentModal: React.FC<EditSoloParentModalProps> = ({
       category: '',
     },
   });
-
-  const categoryOptions: string[] =
-    soloParentType?.details.find(f => f.key === 'category')?.options ?? [];
 
   // Pre-fill form when modal opens
   const prevInitialDataIdRef = useRef<string | undefined>(undefined);
@@ -149,8 +144,6 @@ export const EditSoloParentModal: React.FC<EditSoloParentModalProps> = ({
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pb-6">
               <EditSoloParentFields
                 selectedCitizen={selectedCitizen}
-                categoryOptions={categoryOptions}
-                loading={soloParentType === undefined}
               />
             </form>
           </Form>

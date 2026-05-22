@@ -15,7 +15,6 @@ import { EditPWDFields } from '@/components/social-amelioration/forms/EditPWDFie
 import { useCitizenSearch } from '@/components/social-amelioration/shared';
 
 // Hooks
-import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 import { residentService } from '@/services/api/resident.service';
 
 // Types and Schemas
@@ -37,7 +36,6 @@ export const EditPWDModal: React.FC<EditPWDModalProps> = ({
   onEdit,
   initialData,
 }) => {
-  const { data: pwdType } = useClassificationOptions('Person with Disability');
   const {
     citizens,
     selectedCitizen,
@@ -56,9 +54,6 @@ export const EditPWDModal: React.FC<EditPWDModalProps> = ({
       donorDevice: '',
     },
   });
-
-  const disabilityTypeOptions: string[] =
-    pwdType?.details.find(f => f.key === 'disabilityType')?.options ?? [];
 
   // Pre-fill form when modal opens
   const prevInitialDataIdRef = useRef<string | undefined>(undefined);
@@ -165,8 +160,6 @@ export const EditPWDModal: React.FC<EditPWDModalProps> = ({
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pb-6">
               <EditPWDFields
                 selectedCitizen={selectedCitizen}
-                disabilityTypeOptions={disabilityTypeOptions}
-                loading={pwdType === undefined}
               />
             </form>
           </Form>

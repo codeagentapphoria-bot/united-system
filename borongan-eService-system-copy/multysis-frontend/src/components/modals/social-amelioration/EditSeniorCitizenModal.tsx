@@ -15,7 +15,6 @@ import { EditSeniorCitizenFields } from '@/components/social-amelioration/forms/
 import { useCitizenSearch, createReactSelectStyles } from '@/components/social-amelioration/shared';
 
 // Hooks
-import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 import { useToast } from '@/hooks/use-toast';
 import { residentService } from '@/services/api/resident.service';
 
@@ -41,7 +40,6 @@ export const EditSeniorCitizenModal: React.FC<EditSeniorCitizenModalProps> = ({
   existingBeneficiaries = [],
 }) => {
   const { toast } = useToast();
-  const { data: seniorType } = useClassificationOptions('Senior Citizen');
   const {
     citizens,
     selectedCitizen,
@@ -165,10 +163,6 @@ export const EditSeniorCitizenModal: React.FC<EditSeniorCitizenModalProps> = ({
                 selectedCitizen={selectedCitizen}
                 initialData={initialData}
                 existingBeneficiaries={existingBeneficiaries}
-                pensionTypeOptions={
-                  seniorType?.details.find(f => f.key === 'pensionType')?.options ?? []
-                }
-                loading={seniorType === undefined}
               />
             </form>
           </Form>

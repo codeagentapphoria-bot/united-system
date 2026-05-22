@@ -31,20 +31,16 @@ import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 
 interface EditSoloParentFieldsProps {
   selectedCitizen: any;
-  categoryOptions: string[];
-  loading?: boolean;
 }
 
 export const EditSoloParentFields: React.FC<EditSoloParentFieldsProps> = ({
   selectedCitizen,
-  categoryOptions,
-  loading,
 }) => {
   const form = useFormContext<SoloParentInput>();
   const { data: soloParentType } = useClassificationOptions('Solo Parent');
 
   const fetchedCategories: string[] =
-    soloParentType?.details.find(f => f.key === 'category')?.options ?? categoryOptions;
+    soloParentType?.details.find(f => f.key === 'category')?.options ?? [];
 
   return (
     <div className="space-y-6">
@@ -66,11 +62,11 @@ export const EditSoloParentFields: React.FC<EditSoloParentFieldsProps> = ({
           render={({ field }) => (
             <FormItem>
               <CustomFormLabel required>Category</CustomFormLabel>
-              <Select
-                value={field.value}
-                onValueChange={field.onChange}
-                disabled={loading}
-              >
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={soloParentType?.loading ?? false}
+                >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>

@@ -31,20 +31,16 @@ import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 
 interface EditPWDFieldsProps {
   selectedCitizen: any;
-  disabilityTypeOptions: string[];
-  loading?: boolean;
 }
 
 export const EditPWDFields: React.FC<EditPWDFieldsProps> = ({
   selectedCitizen,
-  disabilityTypeOptions,
-  loading,
 }) => {
   const form = useFormContext<PWDInput>();
   const { data: pwdType } = useClassificationOptions('Person with Disability');
 
   const fetchedDisabilityTypes: string[] =
-    pwdType?.details.find(f => f.key === 'disabilityType')?.options ?? disabilityTypeOptions;
+    pwdType?.details.find(f => f.key === 'disabilityType')?.options ?? [];
 
   const disabilityLevelOptions = [
     { value: 'Mild', label: 'Mild' },
@@ -77,7 +73,7 @@ export const EditPWDFields: React.FC<EditPWDFieldsProps> = ({
                 <Select
                   value={field.value}
                   onValueChange={field.onChange}
-                  disabled={loading}
+                  disabled={pwdType?.loading ?? false}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select disability type" />

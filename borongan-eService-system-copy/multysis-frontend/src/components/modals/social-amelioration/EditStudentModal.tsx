@@ -1,5 +1,5 @@
 // React imports
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 // Third-party libraries
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,7 +15,6 @@ import { EditStudentFields } from '@/components/social-amelioration/forms/EditSt
 import { useCitizenSearch } from '@/components/social-amelioration/shared';
 
 // Hooks
-import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 import { residentService } from '@/services/api/resident.service';
 
 // Types and Schemas
@@ -37,7 +36,6 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   onEdit,
   initialData,
 }) => {
-  const { data: studentType } = useClassificationOptions('Student');
   const {
     citizens,
     setSelectedCitizen,
@@ -52,19 +50,6 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
       gradeLevel: '',
     },
   });
-
-  const gradeLevelOptions: string[] =
-    studentType?.details.find(f => f.key === 'gradeLevel')?.options ?? [];
-
-  // NC Level options for Vocational Student (hardcoded TESDA NTVQF qualifications)
-  const ncLevelOptions: string[] = [
-    'NC I', 'NC II', 'NC III', 'NC IV', 'NC V', 'NC VI',
-    'Diploma', 'Bachelor', 'Master', 'Doctorate',
-  ];
-
-  // Track courseField and ncLevel in state so they're available before first render
-  const [courseField, setCourseField] = useState('');
-  const [ncLevel, setNcLevel] = useState('');
 
   // Pre-fill form when modal opens
   const prevInitialDataIdRef = useRef<string | undefined>(undefined);
@@ -101,8 +86,6 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
         const gradeLevel = existingClassificationDetails?.gradeLevel ?? initialData.gradeLevel ?? '';
         const resolvedCourseField = existingClassificationDetails?.courseField ?? initialData.courseField ?? '';
         const resolvedNcLevel = existingClassificationDetails?.ncLevel ?? initialData.ncLevel ?? '';
-        setCourseField(resolvedCourseField);
-        setNcLevel(resolvedNcLevel);
 
         form.reset({
           citizenId,
@@ -138,10 +121,13 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   const handleSubmit = async (data: StudentInput) => {
     try {
       await onEdit(data);
-      form.reset();
+      form.reset({
+        citizenId: '',
+        gradeLevel: '',
+        courseField: '',
+        ncLevel: '',
+      });
       setSelectedCitizen(null);
-      setCourseField('');
-      setNcLevel('');
       resetSearch();
       onClose();
     } catch {
@@ -150,10 +136,13 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   };
 
   const handleClose = () => {
-    form.reset();
+    form.reset({
+      citizenId: '',
+      gradeLevel: '',
+      courseField: '',
+      ncLevel: '',
+    });
     setSelectedCitizen(null);
-    setCourseField('');
-    setNcLevel('');
     resetSearch();
     onClose();
   };
@@ -170,14 +159,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
         <div className="flex-1 overflow-y-auto px-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pb-6">
-              <EditStudentFields
-                selectedCitizen={selectedCitizen}
-          gradeLevelOptions={gradeLevelOptions}
-          courseField={courseField}
-          ncLevelOptions={ncLevelOptions}
-          ncLevel={ncLevel}
-          loading={form.formState.isSubmitting}
-        />
+              <EditStudentFields selectedCitizen={selectedCitizen} />
             </form>
           </Form>
         </div>

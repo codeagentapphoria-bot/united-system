@@ -28,6 +28,77 @@ import { getRegionName } from '@/constants/regions';
 import { FiBookOpen, FiCheck, FiDownload, FiEdit, FiEye, FiPlus, FiSearch, FiTrash2, FiUser } from 'react-icons/fi';
 
 
+// Education-level detection helpers
+const isCollege = (educationAttainment: string): boolean => {
+  const v = (educationAttainment || '').toLowerCase();
+  return (
+    v.includes('college') ||
+    v.includes('bachelor') ||
+    v.includes('graduate') ||
+    v.includes('master') ||
+    v.includes('doctorate') ||
+    v.includes('university')
+  );
+};
+
+const isVocational = (educationAttainment: string): boolean => {
+  const v = (educationAttainment || '').toLowerCase();
+  return v.includes('vocational') || v.includes('technical') || v.includes('tesda');
+};
+
+interface EducationField {
+  label: string;
+  value: string;
+}
+
+const getEducationFields = (beneficiary: any): EducationField[] => {
+  const citizen = beneficiary?.citizen || beneficiary || {};
+  const details = beneficiary?.classification_details || {};
+
+  const educationAttainment =
+    citizen.educationAttainment ||
+    citizen.education ||
+    beneficiary.educationAttainment ||
+    '';
+  const classificationType =
+    beneficiary.classification_type ||
+    beneficiary.classificationType ||
+    '';
+
+  const levelHint = isVocational(educationAttainment)
+    ? 'vocational'
+    : isCollege(educationAttainment)
+    ? 'college'
+    : classificationType === 'College Student' || classificationType === 'CollegeStudent'
+    ? 'college'
+    : classificationType === 'Vocational Student' || classificationType === 'VocationalStudent'
+    ? 'vocational'
+    : 'basic';
+
+  if (levelHint === 'vocational') {
+    const ncLevel = details.ncLevel || beneficiary.ncLevel || '';
+    const courseField = details.courseField || beneficiary.courseField || '';
+    const fields: EducationField[] = [];
+    if (ncLevel) fields.push({ label: 'NC Level / Qualification', value: ncLevel });
+    if (courseField) fields.push({ label: 'Course / Program', value: courseField });
+    return fields;
+  }
+
+  if (levelHint === 'college') {
+    const courseField = details.courseField || beneficiary.courseField || '';
+    if (courseField) return [{ label: 'Course / Program', value: courseField }];
+    return [];
+  }
+
+  const gradeLevel =
+    details.gradeLevel ||
+    beneficiary.gradeLevel ||
+    beneficiary.gradeLevelName ||
+    '';
+  if (gradeLevel) return [{ label: 'Grade Level', value: gradeLevel }];
+  return [];
+};
+
 // Full Information Modal Component
 const FullInformationModal: React.FC<{
   open: boolean;
@@ -80,22 +151,28 @@ const FullInformationModal: React.FC<{
           <Separator />
 
           {/* Student Information */}
-          {(beneficiary.gradeLevelName || beneficiary.gradeLevel) && (
-            <>
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Student Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Grade Level</label>
-                    <div className="min-h-[40px] flex items-center">
-                      <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.gradeLevelName || beneficiary.gradeLevel}</p>
-                    </div>
+          {(() => {
+            const fields = getEducationFields(beneficiary);
+            if (fields.length === 0) return null;
+            return (
+              <>
+                <div className="bg-white p-6 rounded-lg border border-gray-200">
+                  <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Student Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {fields.map((field, idx) => (
+                      <div key={idx} className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{field.label}</label>
+                        <div className="min-h-[40px] flex items-center">
+                          <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{field.value}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
-              <Separator />
-            </>
-          )}
+                <Separator />
+              </>
+            );
+          })()}
 
           {/* Government Programs */}
           {(() => {
@@ -599,21 +676,28 @@ const StudentInfo: React.FC<{
         <Separator />
 
         {/* Student Information */}
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Student Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {(beneficiary.gradeLevelName || beneficiary.gradeLevel) && (
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Grade Level</label>
-                <div className="min-h-[40px] flex items-center">
-                  <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.gradeLevelName || beneficiary.gradeLevel}</p>
+        {(() => {
+          const fields = getEducationFields(beneficiary);
+          if (fields.length === 0) return null;
+          return (
+            <>
+              <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Student Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {fields.map((field, idx) => (
+                    <div key={idx} className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{field.label}</label>
+                      <div className="min-h-[40px] flex items-center">
+                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{field.value}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            )}
-          </div>
-        </div>
-
-        <Separator />
+              <Separator />
+            </>
+          );
+        })()}
 
         {/* Government Programs */}
         {(() => {

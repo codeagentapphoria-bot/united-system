@@ -20,7 +20,34 @@ import prisma from '../config/database';
 
 const router = Router();
 
-// All routes require admin authentication
+// GET /api/classification-types/read?name=X — public lookup by classification type name
+// No auth required; used by frontend hooks to populate dropdown options.
+// Must be defined BEFORE router.use(verifyAdmin) below.
+router.get('/read', async (req, res, next) => {
+  try {
+    const { name } = req.query;
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ status: 'error', message: 'name query param is required' });
+    }
+
+    const rows = await prisma.$queryRaw<any[]>`
+      SELECT id, name, details
+      FROM classification_types
+      WHERE name = ${name}
+      LIMIT 1
+    `;
+
+    if (rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Classification type not found' });
+    }
+
+    return res.json({ status: 'success', data: rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// All routes below require admin authentication
 router.use(verifyAdmin);
 
 // POST /api/classification — assign classification to resident

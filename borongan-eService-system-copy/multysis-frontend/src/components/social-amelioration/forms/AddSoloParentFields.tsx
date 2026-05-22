@@ -29,8 +29,6 @@ interface AddSoloParentFieldsProps {
   onCitizenSelect: (citizen: any) => void;
   filteredCitizens: any[];
   reactSelectStyles: any;
-  categoryOptions: string[];
-  isLoadingCategories?: boolean;
 }
 
 export const AddSoloParentFields: React.FC<AddSoloParentFieldsProps> = ({
@@ -42,10 +40,13 @@ export const AddSoloParentFields: React.FC<AddSoloParentFieldsProps> = ({
   onCitizenSelect,
   filteredCitizens,
   reactSelectStyles: _reactSelectStyles,
-  categoryOptions,
-  isLoadingCategories,
 }) => {
   const form = useFormContext<SoloParentInput>();
+
+  const { data: spType, loading: isLoadingCategories } = useClassificationOptions('Solo Parent');
+  const categoryOptions: string[] = (
+    spType?.details.find(f => f.key === 'category')?.options ?? []
+  );
 
   const categoryReactSelectStyles = createReactSelectStyles(!!form.formState.errors.category);
 

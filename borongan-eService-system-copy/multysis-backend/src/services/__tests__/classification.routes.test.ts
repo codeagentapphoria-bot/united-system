@@ -5,6 +5,7 @@ import classificationRoutes from '../../routes/classification.routes';
 
 const findUniqueMock = jest.fn();
 const updateMock = jest.fn();
+const $queryRawMock = jest.fn();
 
 jest.mock('../../config/database', () => ({
   __esModule: true,
@@ -13,6 +14,7 @@ jest.mock('../../config/database', () => ({
       findUnique: (...args: any[]) => findUniqueMock(...args),
       update: (...args: any[]) => updateMock(...args),
     },
+    $queryRaw: (...args: any[]) => $queryRawMock(...args),
   },
 }));
 
@@ -111,5 +113,51 @@ describe('PATCH /api/classification-types/:id', () => {
       .patch('/api/classification-types/999')
       .send({ details: [{ key: 'x', label: 'X', type: 'text' }] });
     expect(res.status).toBe(404);
+  });
+});
+
+// =============================================================================
+// GET /api/classification-types/read?name=X — public lookup by name
+// =============================================================================
+describe('GET /api/classification-types/read?name=X', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns 400 when name param is missing', async () => {
+    // buildApp mounts all routes under /api/classification-types — /read is the new public endpoint
+    const app = buildApp();
+    const res = await request(app).get('/api/classification-types/read');
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('name query param is required');
+  });
+
+  it('returns the classification type with details when found', async () => {
+    $queryRawMock.mockResolvedValue([{
+      id: 5,
+      name: 'Senior Citizen',
+      details: [
+        { key: 'pensionTypes', label: 'Pension Type', type: 'multiselect', options: ['Regular', 'Indigent'] },
+        { key: 'remarks',      label: 'Remarks',       type: 'text' },
+      ],
+    }]);
+
+    const app = buildApp();
+    const res = await request(app).get('/api/classification-types/read?name=Senior%20Citizen');
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('success');
+    expect(res.body.data.name).toBe('Senior Citizen');
+    expect(res.body.data.details).toHaveLength(2);
+    expect(res.body.data.details[0].key).toBe('pensionTypes');
+    expect(res.body.data.details[0].options).toEqual(['Regular', 'Indigent']);
+  });
+
+  it('returns 404 when classification type not found', async () => {
+    $queryRawMock.mockResolvedValue([]);
+
+    const app = buildApp();
+    const res = await request(app).get('/api/classification-types/read?name=NonExistent');
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe('Classification type not found');
   });
 });

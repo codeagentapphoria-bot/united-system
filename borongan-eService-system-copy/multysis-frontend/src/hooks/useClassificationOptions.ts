@@ -42,12 +42,11 @@ export function useClassificationOptions(typeName: string): UseClassificationOpt
     setLoading(true);
     setError(null);
     try {
-      // GET /classification/types?name=<typeName>
-      // The backend returns { data: ClassificationType[] } from the listing endpoint.
-      const res = await api.get('/classification/types', { params: { name: typeName } });
-      const items: ClassificationTypeWithFields[] = res.data?.data ?? res.data ?? [];
-      const found = Array.isArray(items) ? items[0] : null;
-      setData(found ?? null);
+      // GET /classification-types/read?name=<typeName>
+      // The backend returns { status: 'success', data: ClassificationType }.
+      const res = await api.get('/classification-types/read', { params: { name: typeName } });
+      const found: ClassificationTypeWithFields | null = res.data?.data ?? null;
+      setData(found);
     } catch (err: any) {
       setError(err?.response?.data?.message ?? err?.message ?? 'Failed to load classification options');
     } finally {
