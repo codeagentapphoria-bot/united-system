@@ -24,9 +24,7 @@ const residentInfoSchema = z.object({
   middle_name: z.string().optional(),
   sex: z.string().min(1, "Sex is required"),
   birthdate: z.string().min(1, "Birthdate is required"),
-  birth_region: z.string().optional(),
-  birth_province: z.string().optional(),
-  birth_municipality: z.string().optional(),
+  placeOfBirth: z.string().optional(),
   civil_status: z.string().min(1, "Civil status is required"),
   contact_number: z.string().optional(),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
@@ -83,9 +81,7 @@ const ResidentInfoForm = ({
       education_attainment: "",
       status: "",
       indigenous_person: "No",
-      birth_region: "",
-      birth_province: "",
-      birth_municipality: "",
+      placeOfBirth: "",
       monthly_income: "",
     },
     mode: "onTouched",
@@ -126,9 +122,7 @@ const ResidentInfoForm = ({
             : "No",
           indigenousPersonOptions
         ),
-        birth_region: resident.birth_region || "",
-        birth_province: resident.birth_province || "",
-        birth_municipality: resident.birth_municipality || "",
+        placeOfBirth: resident.place_of_birth || "",
         monthly_income: resident.monthly_income || "",
       });
     } else {
@@ -147,9 +141,7 @@ const ResidentInfoForm = ({
         education_attainment: "",
         status: "",
         indigenous_person: "No",
-        birth_region: "",
-        birth_province: "",
-        birth_municipality: "",
+        placeOfBirth: "",
         monthly_income: "",
       });
     }
@@ -279,31 +271,16 @@ const ResidentInfoForm = ({
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="birth_region">Region (optional)</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="placeOfBirth">Place of Birth</Label>
               <Input
-                id="birth_region"
-                placeholder="Region"
-                {...form.register("birth_region")}
+                id="placeOfBirth"
+                {...form.register("placeOfBirth")}
+                placeholder="e.g., Borongan, Eastern Samar"
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="birth_province">Province (optional)</Label>
-              <Input
-                id="birth_province"
-                placeholder="Province"
-                {...form.register("birth_province")}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="birth_municipality">Municipality (optional)</Label>
-              <Input
-                id="birth_municipality"
-                placeholder="Municipality"
-                {...form.register("birth_municipality")}
-              />
+              {form.formState.errors.placeOfBirth && (
+                <p className="text-sm text-red-500">{form.formState.errors.placeOfBirth.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">

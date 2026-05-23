@@ -95,9 +95,7 @@ const step1Schema = z.object({
     .refine(v => !isNaN(new Date(v).getTime()), 'Invalid date')
     .refine(v => new Date(v) < new Date(), 'Birthdate cannot be in the future')
     .refine(v => new Date(v) >= new Date('1900-01-01'), 'Please enter a valid birthdate'),
-  birthRegion: z.string().max(100).optional().or(z.literal('')),
-  birthProvince: z.string().max(100).optional().or(z.literal('')),
-  birthMunicipality: z.string().max(100).optional().or(z.literal('')),
+  placeOfBirth: z.string().max(200).optional().or(z.literal('')),
   citizenship: z.string().max(100).optional().or(z.literal('')),
   contactNumber: phPhone,
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
@@ -857,47 +855,19 @@ export const ResidentRegister: React.FC = () => {
                       <CardTitle className="text-lg flex items-center gap-2">Place of Birth</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <FormField
-                          control={step1Form.control}
-                          name="birthRegion"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Region</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="e.g., Region VIII" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={step1Form.control}
-                          name="birthProvince"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Province</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="e.g., Eastern Samar" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={step1Form.control}
-                          name="birthMunicipality"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Municipality / City</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="e.g., Borongan" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                      <FormField
+                        control={step1Form.control}
+                        name="placeOfBirth"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Place of Birth</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="e.g., Borongan, Eastern Samar" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </CardContent>
                   </Card>
 

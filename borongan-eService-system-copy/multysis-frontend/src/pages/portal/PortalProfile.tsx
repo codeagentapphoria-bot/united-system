@@ -137,9 +137,7 @@ interface EditForm {
   isVoter: boolean;
   indigenousPerson: boolean;
   // Place of birth
-  birthRegion: string;
-  birthProvince: string;
-  birthMunicipality: string;
+  placeOfBirth: string;
   // Employment & education
   occupation: string;
   profession: string;
@@ -166,9 +164,7 @@ const toForm = (r: Resident): EditForm => ({
   spouseName: r.spouseName ?? '',
   isVoter: r.isVoter ?? false,
   indigenousPerson: r.indigenousPerson ?? false,
-  birthRegion: r.birthRegion ?? '',
-  birthProvince: r.birthProvince ?? '',
-  birthMunicipality: r.birthMunicipality ?? '',
+  placeOfBirth: r.placeOfBirth ?? '',
   occupation: r.occupation ?? '',
   profession: r.profession ?? '',
   employmentStatus: r.employmentStatus ?? '',
@@ -461,10 +457,8 @@ export const PortalProfile: React.FC = () => {
                   <FiMapPin size={15} /> Place of Birth
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                <InfoRow label="Region" value={resident.birthRegion} />
-                <InfoRow label="Province" value={resident.birthProvince} />
-                <InfoRow label="City / Municipality" value={resident.birthMunicipality} />
+              <CardContent className="text-sm">
+                <InfoRow label="Place of Birth" value={resident.placeOfBirth} />
               </CardContent>
             </Card>
 
@@ -776,73 +770,14 @@ export const PortalProfile: React.FC = () => {
                 {/* Place of Birth */}
                 <div>
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Place of Birth</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {/* Region */}
-                    <Field label="Region">
-                      <Select
-                        value={form.birthRegion || ''}
-                        onValueChange={v => {
-                          set('birthRegion')(v);
-                          set('birthProvince')('');
-                          set('birthMunicipality')('');
-                        }}
-                      >
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder="Select region" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getRegions().map(r => (
-                            <SelectItem key={r.value} value={r.value}>
-                              {r.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-
-                    {/* Province — depends on region */}
-                    <Field label="Province">
-                      <Select
-                        value={form.birthProvince || ''}
-                        onValueChange={v => {
-                          set('birthProvince')(v);
-                          set('birthMunicipality')('');
-                        }}
-                        disabled={!form.birthRegion}
-                      >
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder={form.birthRegion ? 'Select province' : 'Select region first'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getPHProvinces(form.birthRegion).map(p => (
-                            <SelectItem key={p.value} value={p.value}>
-                              {p.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-
-                    {/* City / Municipality — depends on region + province */}
-                    <Field label="City / Municipality">
-                      <Select
-                        value={form.birthMunicipality || ''}
-                        onValueChange={v => set('birthMunicipality')(v)}
-                        disabled={!form.birthRegion || !form.birthProvince}
-                      >
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue
-                            placeholder={!form.birthProvince ? 'Select province first' : 'Select city/municipality'}
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getPHMunicipalities(form.birthRegion, form.birthProvince).map(m => (
-                            <SelectItem key={m.value} value={m.value}>
-                              {m.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field label="Place of Birth">
+                      <Input
+                        value={form.placeOfBirth}
+                        onChange={e => set('placeOfBirth')(e.target.value)}
+                        placeholder="e.g., Borongan, Eastern Samar"
+                        className="h-9 text-sm"
+                      />
                     </Field>
                   </div>
                 </div>

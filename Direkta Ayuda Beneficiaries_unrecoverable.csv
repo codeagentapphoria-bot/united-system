@@ -1,0 +1,7 @@
+﻿First Name,Middle Name,Last Name,Extension Name,Birthdate,Sex,Civil Status,Profession,Phone Number,Region,Municipality,Barangay,Street,Place of Birth,Spouse Name,Emergency Contact Person,Emergency Contact Number,ID Type,Resident ID,Notes
+Jazreel,Evardone,Capacite,-,####,Female,Single,None,9356352518,VIII,Borongan,Campesao,-,-,-,Nelson B. Capacite,9362171179,School ID,-,Unrecoverable: birthdate is garbled/unreadable hash (from garbled_encoding fix, line 3344)
+Jan Rick,Alde,Yape,-,,Male,Single,None,-,VIII,Borongan,Tabunan,-,-,-,-,-,School ID,-,Unrecoverable: birthdate is empty (from parse_error fix, line 337)
+Meagan Rudylle,Operario,Amboy,-,,Female,Single,none,9755597656,Region VIII,Borongan,Songco,Brgy, Songco,-,-,Mary Ann. O. Amboy,9755597656,School ID,-,Unrecoverable: birthdate is empty (from parse_error fix, line 783)
+Jessel Kate,Duclay,Calutan,-,,Female,Single,None,9651454667,VIII,Borongan,Songco,Esamelco Village,-,-,Eddie Tombado Calutan,-,School ID,-,Unrecoverable: birthdate is empty (from parse_error fix, line 847)
+Moises,Palada,Costuna,Jr,,Male,Single,None,-,VIII,Borongan,Sta. Fe,-,-,-,Ronela P. Costuna,9621519847,School ID,-,Unrecoverable: birthdate is empty/incomplete (from parse_error fix, line 1047)
+Akisha,Bagacay,Cagas,-,,Female,Single,None,,VIII,Borongan,H, Tarusan,-,-,-,-,-,-,Unrecoverable: birthdate is empty (from parse_error fix, line 2809)

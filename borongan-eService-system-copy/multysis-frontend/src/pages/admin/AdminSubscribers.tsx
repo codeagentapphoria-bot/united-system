@@ -134,15 +134,11 @@ const ResidentDetailPanel: React.FC<{ resident: Resident }> = ({ resident }) => 
           <InfoRow label="Municipality" value={resident.barangay?.municipality?.name} />
           <InfoRow label="Street"       value={resident.streetAddress} />
         </div>
-        {(resident.birthRegion || resident.birthProvince || resident.birthMunicipality) && (
+        {resident.placeOfBirth && (
           <>
             <Separator />
             <p className="font-medium text-heading-700 text-sm">Place of Birth</p>
-            <div className="grid grid-cols-2 gap-3">
-              <InfoRow label="Region"   value={resident.birthRegion} />
-              <InfoRow label="Province" value={resident.birthProvince} />
-              <InfoRow label="City/Mun" value={resident.birthMunicipality} />
-            </div>
+            <InfoRow label="Place of Birth" value={resident.placeOfBirth} />
           </>
         )}
       </TabsContent>

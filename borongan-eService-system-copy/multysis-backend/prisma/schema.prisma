@@ -82,9 +82,7 @@ model Resident {
   sex          String?
   civilStatus  String? @map("civil_status")
   birthdate    DateTime @db.Date
-  birthRegion      String? @map("birth_region")
-  birthProvince    String? @map("birth_province")
-  birthMunicipality String? @map("birth_municipality")
+  placeOfBirth    String? @map("place_of_birth")
   citizenship  String?
 
   // Contact

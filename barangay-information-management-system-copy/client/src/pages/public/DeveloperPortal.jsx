@@ -28,7 +28,7 @@ const residentsSchema = {
       sex: "male|female",
       civil_status: "single|married|widowed|separated",
       birthdate: "ISODate",
-      birth_region: "string|null",
+      place_of_birth: "string|null",
       contact_number: "string|null",
       email: "string|null",
       occupation: "string|null",

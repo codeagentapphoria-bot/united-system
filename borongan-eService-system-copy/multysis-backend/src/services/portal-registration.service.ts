@@ -37,9 +37,7 @@ export interface ResidentRegistrationData {
   birthdate: string | Date;
   sex: string;
   civilStatus: string;
-  birthRegion?: string;
-  birthProvince?: string;
-  birthMunicipality?: string;
+  placeOfBirth?: string;
   citizenship?: string;
   // Contact
   contactNumber?: string;
@@ -152,9 +150,7 @@ export const submitRegistration = async (data: ResidentRegistrationData) => {
         sex: data.sex,
         civilStatus: data.civilStatus,
         birthdate: birthdateValue,
-        birthRegion: data.birthRegion || null,
-        birthProvince: data.birthProvince || null,
-        birthMunicipality: data.birthMunicipality || null,
+        placeOfBirth: data.placeOfBirth || null,
         citizenship: data.citizenship || null,
         contactNumber: data.contactNumber || null,
         email: data.email || null,

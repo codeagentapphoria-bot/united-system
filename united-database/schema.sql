@@ -446,10 +446,8 @@ CREATE TABLE public.residents (
     sex                      character varying(10),
     civil_status             character varying(25),
     birthdate                date NOT NULL,
-    -- Place of birth (replaces separate place_of_birth table)
-    birth_region             text,
-    birth_province           text,
-    birth_municipality       text,
+    -- Place of birth
+    place_of_birth           text,
     citizenship              text,
 
     -- Contact
