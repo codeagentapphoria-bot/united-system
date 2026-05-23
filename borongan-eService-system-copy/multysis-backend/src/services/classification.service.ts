@@ -228,7 +228,7 @@ export const generateBeneficiaryId = async (table: string, prefix: string) => {
     }
   }
 
-  return `${yearPrefix}${String(nextNum).padStart(3, '0')}`;
+  return `${yearPrefix}${String(nextNum).padStart(4, '0')}`;
 };
 
 // Create or reactivate a PENDING beneficiary record when a classification is added
