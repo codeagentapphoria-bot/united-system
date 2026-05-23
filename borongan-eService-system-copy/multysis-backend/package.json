@@ -23,7 +23,8 @@
     "db:reset": "npx prisma migrate reset",
     "db:studio": "npx prisma studio",
     "db:setup": "npx prisma generate && npx prisma migrate deploy && npx prisma db seed",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "import:beneficiaries": "ts-node scripts/import-beneficiaries.ts"
   },
   "keywords": [
     "nodejs",
