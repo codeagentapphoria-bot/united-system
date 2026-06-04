@@ -262,7 +262,7 @@ export const useAdminNotifications = ({
       socket.off('program-application:review', handleProgramApplicationReview);
       socketListenerAttached = false;
     };
-  }, [socket, isConnected, user, globalState.counts]);
+  }, [socket, isConnected, user]);
 
   useEffect(() => {
     if (!autoFetch || !enabled || !user || user.role !== 'admin' || initializedRef.current) {
