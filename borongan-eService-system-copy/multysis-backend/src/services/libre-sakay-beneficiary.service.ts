@@ -14,8 +14,7 @@ export interface BeneficiaryListItem {
   residentIdNumber: string;
   category: BeneficiaryType | 'N/A';
   barangay: string;
-  enrollmentStatus: 'ACTIVE' | 'INACTIVE' | 'PENDING';
-  applicationStatus: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
   suspendedAt: string | null;
   enrolledAt: Date;
   applicationId: string;
@@ -196,8 +195,7 @@ export const listBeneficiaries = async (
       residentIdNumber: r.residentId ?? r.id,
       category: cat?.type ?? 'N/A',
       barangay: r.barangay?.barangayName || 'N/A',
-      enrollmentStatus: mapEnrollmentStatus(pivotInfo.status),
-      applicationStatus: row.status as 'pending' | 'approved' | 'rejected' | 'cancelled',
+      status: mapEnrollmentStatus(pivotInfo.status),
       suspendedAt: pivotInfo.suspendedAt ? pivotInfo.suspendedAt.toISOString() : null,
       enrolledAt: row.reviewedAt || row.appliedAt,
       applicationId: row.id,
@@ -206,11 +204,11 @@ export const listBeneficiaries = async (
     };
   });
 
-  // Apply enrollment-status filter
+  // Apply status filter
   if (filter === 'active') {
-    data = data.filter((b) => b.enrollmentStatus === 'ACTIVE');
+    data = data.filter((b) => b.status === 'ACTIVE');
   } else if (filter === 'suspended') {
-    data = data.filter((b) => b.enrollmentStatus === 'INACTIVE');
+    data = data.filter((b) => b.status === 'INACTIVE');
   }
 
   return {
@@ -313,8 +311,7 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
     residentIdNumber: r.residentId ?? r.id,
     category: cat?.type ?? 'N/A',
     barangay: r.barangay?.barangayName || 'N/A',
-    enrollmentStatus: mapEnrollmentStatus(pivotStatus),
-    applicationStatus: row.status as 'pending' | 'approved' | 'rejected' | 'cancelled',
+  status: mapEnrollmentStatus(pivotStatus),
     suspendedAt: pivotSuspendedAt ? pivotSuspendedAt.toISOString() : null,
     enrolledAt: row.reviewedAt || row.appliedAt,
     applicationId: row.id,

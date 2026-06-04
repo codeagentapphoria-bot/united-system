@@ -31,36 +31,21 @@ const CATEGORY_LABELS: Record<string, string> = {
   SOLO_PARENT: 'Solo Parent',
 };
 
-const ENROLLMENT_STATUS_STYLES: Record<string, string> = {
+const STATUS_STYLES: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-700',
   INACTIVE: 'bg-gray-100 text-gray-500',
   PENDING: 'bg-yellow-100 text-yellow-700',
 };
 
-const APPLICATION_STATUS_STYLES: Record<string, string> = {
-  approved: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700',
-  pending: 'bg-blue-100 text-blue-700',
-  cancelled: 'bg-gray-100 text-gray-500',
-};
-
-function EnrollmentStatusBadge({ status, suspendedAt }: { status: string; suspendedAt?: string | null }) {
+function StatusBadge({ status, suspendedAt }: { status: string; suspendedAt?: string | null }) {
   const isSuspended = !!suspendedAt;
-  const label = isSuspended ? 'Suspended' : status === 'INACTIVE' ? 'Inactive' : status === 'ACTIVE' ? 'Active' : status === 'PENDING' ? 'Pending' : status.charAt(0) + status.slice(1).toLowerCase();
+  const label = isSuspended ? 'Suspended' : status === 'INACTIVE' ? 'Inactive' : status === 'ACTIVE' ? 'Active' : 'Pending';
   const style = isSuspended
     ? 'bg-amber-100 text-amber-700'
-    : ENROLLMENT_STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-500';
+    : STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-500';
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${style}`}>
       {label}
-    </span>
-  );
-}
-
-function ApplicationStatusBadge({ status }: { status: string }) {
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${APPLICATION_STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-500'}`}>
-      {status.charAt(0) + status.slice(1).toLowerCase()}
     </span>
   );
 }
@@ -85,14 +70,13 @@ export function BeneficiariesTable({
             <TableHead>Res. ID</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>Barangay</TableHead>
-            <TableHead>Enrollment</TableHead>
-            <TableHead>Application</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Registered</TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          <LoadingRows cols={8} />
+          <LoadingRows cols={7} />
         </TableBody>
       </>
     );
@@ -107,8 +91,7 @@ export function BeneficiariesTable({
             <TableHead>Res. ID</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>Barangay</TableHead>
-            <TableHead>Enrollment</TableHead>
-            <TableHead>Application</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Registered</TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
@@ -132,8 +115,7 @@ export function BeneficiariesTable({
             <TableHead>Res. ID</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>Barangay</TableHead>
-            <TableHead>Enrollment</TableHead>
-            <TableHead>Application</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Registered</TableHead>
             <TableHead className="w-12"></TableHead>
           </TableRow>
@@ -148,10 +130,7 @@ export function BeneficiariesTable({
             </TableCell>
             <TableCell className="text-sm text-gray-500">{b.barangay}</TableCell>
             <TableCell>
-              <EnrollmentStatusBadge status={b.enrollmentStatus} suspendedAt={b.suspendedAt} />
-            </TableCell>
-            <TableCell>
-              <ApplicationStatusBadge status={b.applicationStatus} />
+              <StatusBadge status={b.status} suspendedAt={b.suspendedAt} />
             </TableCell>
             <TableCell className="text-sm text-gray-500">
               {new Date(b.enrolledAt).toLocaleDateString('en-US', {
@@ -172,7 +151,7 @@ export function BeneficiariesTable({
                     <FiEye className="mr-2 h-4 w-4" />
                     View Details
                   </DropdownMenuItem>
-                  {b.enrollmentStatus === 'ACTIVE' ? (
+                  {b.status === 'ACTIVE' ? (
                     <DropdownMenuItem onClick={() => onSuspend(b.id)}>
                       <FiUserX className="mr-2 h-4 w-4" />
                       Suspend

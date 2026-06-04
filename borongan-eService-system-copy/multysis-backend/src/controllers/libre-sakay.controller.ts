@@ -657,14 +657,14 @@ export const exportBeneficiariesController = async (req: AuthRequest, res: Respo
     const filter = (req.query.filter as 'all' | 'active' | 'suspended') || 'all';
     const beneficiaries = await getBeneficiariesForExport(filter);
 
-    const headers = ['Name', 'Resident ID', 'Category', 'Enrollment Status', 'Enrolled Date', 'Barangay'];
+    const headers = ['Name', 'Resident ID', 'Category', 'Status', 'Enrolled Date', 'Barangay'];
     const rows = beneficiaries.map((b) => {
-      const enrollmentLabel = b.suspendedAt ? 'Suspended' : b.enrollmentStatus.charAt(0) + b.enrollmentStatus.slice(1).toLowerCase();
+      const statusLabel = b.suspendedAt ? 'Suspended' : b.status.charAt(0) + b.status.slice(1).toLowerCase();
       return [
         b.fullName,
         b.residentIdNumber,
         b.category,
-        enrollmentLabel,
+        statusLabel,
         b.enrolledAt ? new Date(b.enrolledAt).toISOString().split('T')[0] : '',
         b.barangay,
       ];

@@ -80,7 +80,7 @@ describe('Libre Sakay Beneficiary Service', () => {
       const result = await listBeneficiaries('all', 1, 20);
 
       expect(result.data.length).toBe(1);
-      expect(result.data[0].enrollmentStatus).toBe('ACTIVE');
+      expect(result.data[0].status).toBe('ACTIVE');
       expect(result.data[0].category).toBe('SENIOR_CITIZEN');
     });
 
@@ -166,7 +166,7 @@ describe('Libre Sakay Beneficiary Service', () => {
 
       const result = await listBeneficiaries('all', 1, 20);
 
-      expect(result.data[0].enrollmentStatus).toBe('PENDING');
+      expect(result.data[0].status).toBe('PENDING');
     });
   });
 
@@ -223,7 +223,7 @@ describe('Libre Sakay Beneficiary Service', () => {
       const result = await getBeneficiaryById('app-1');
 
       expect(result).not.toBeNull();
-      expect(result!.enrollmentStatus).toBe('INACTIVE');
+      expect(result!.status).toBe('INACTIVE');
       expect(result!.fullName).toBe('Pedro B Penduko Sr');
       expect(result!.suspendedAt).not.toBeNull();
     });
