@@ -58,7 +58,7 @@ export const updateMyProfileController = async (req: AuthRequest, res: Response)
     const allowed = [
       'sex', 'civilStatus', 'birthdate',
       'citizenship', 'spouseName', 'isVoter', 'indigenousPerson',
-      'birthRegion', 'birthProvince', 'birthMunicipality',
+      'placeOfBirth',
       'occupation', 'profession', 'employmentStatus', 'isEmployed',
       'educationAttainment', 'monthlyIncome', 'height', 'weight',
       'emergencyContactPerson', 'emergencyContactNumber',

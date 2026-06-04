@@ -166,7 +166,10 @@ export const useSocialAmeliorationData = () => {
   };
 };
 
-export const useBeneficiaryManagement = (type: BeneficiaryType) => {
+export const useBeneficiaryManagement = (
+  type: BeneficiaryType,
+  municipalityId: number = 1
+) => {
   const { toast } = useToast();
   const [beneficiaries, setBeneficiaries] = useState<EnrichedBeneficiary[]>([]);
   const [selectedBeneficiary, setSelectedBeneficiary] = useState<EnrichedBeneficiary | null>(null);
@@ -593,10 +596,10 @@ export const useBeneficiaryManagement = (type: BeneficiaryType) => {
       // Fetch lookup data for mapping IDs to names
       const fetchPromises = [
         governmentProgramService.getAllGovernmentPrograms(),
-        type === 'senior-citizen' ? socialAmeliorationSettingApi.getSettings({ type: 'PENSION_TYPE' }) : Promise.resolve([]),
-        type === 'pwd' ? socialAmeliorationSettingApi.getSettings({ type: 'DISABILITY_TYPE' }) : Promise.resolve([]),
-        type === 'students' ? socialAmeliorationSettingApi.getSettings({ type: 'GRADE_LEVEL' }) : Promise.resolve([]),
-        type === 'solo-parents' ? socialAmeliorationSettingApi.getSettings({ type: 'SOLO_PARENT_CATEGORY' }) : Promise.resolve([]),
+        type === 'senior-citizen' ? socialAmeliorationSettingApi.getSettings({ municipalityId, type: 'PENSION_TYPE' }) : Promise.resolve([]),
+        type === 'pwd' ? socialAmeliorationSettingApi.getSettings({ municipalityId, type: 'DISABILITY_TYPE' }) : Promise.resolve([]),
+        type === 'students' ? socialAmeliorationSettingApi.getSettings({ municipalityId, type: 'GRADE_LEVEL' }) : Promise.resolve([]),
+        type === 'solo-parents' ? socialAmeliorationSettingApi.getSettings({ municipalityId, type: 'SOLO_PARENT_CATEGORY' }) : Promise.resolve([]),
       ];
 
       const [governmentPrograms, pensionTypes, disabilityTypes, gradeLevels, soloParentCategories] = await Promise.all(fetchPromises);

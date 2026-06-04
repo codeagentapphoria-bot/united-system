@@ -7,40 +7,42 @@ loadEnvConfig();
 
 const { Pool } = pg;
 
-// Create a new PostgreSQL pool
+// =============================================================================
+// SUPABASE POSTGRESQL CONNECTION
+// Uses Supabase's PostgreSQL connection pooling for better performance
+// =============================================================================
+
 const pool = new Pool({
-  user: process.env.PG_USER,
-  host: process.env.PG_HOST,
-  database: process.env.PG_DATABASE,
-  
-  // password: process.env.PG_PASSWORD,
-  // port: process.env.PG_PORT || 5432,
-  // ssl: process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false 
+  // Connection credentials - use Supabase environment variables
+  user: process.env.SUPABASE_PG_USER || process.env.PG_USER,
+  host: process.env.SUPABASE_PG_HOST || process.env.PG_HOST,
+  database: process.env.SUPABASE_PG_DATABASE || process.env.PG_DATABASE,
+  password: String(process.env.SUPABASE_PG_PASSWORD || process.env.PG_PASSWORD),
+  port: parseInt(process.env.SUPABASE_PG_PORT || process.env.PG_PORT || '6543'),
+  ssl: process.env.SUPABASE_PG_SSL === 'true' || process.env.PG_SSL === 'true'
+    ? { rejectUnauthorized: false }
+    : false,
 
-  // ito yung lumang config the cursor convert to string for the performance kuno
-  // nagsync kasi ako ng 200 resident tapos nag crash yung server ito ynig response *POST /api/resident - - ms - -*
-
-
-  password: String(process.env.PG_PASSWORD), // Ensure password is always a string
-  port: parseInt(process.env.PG_PORT),
-  ssl: process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
-  // Connection pool configuration for better performance
-  max: 20, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 10000, // Increased to 10s for Supabase (cloud latency higher than local)
-  maxUses: 7500, // Close (and replace) a connection after it has been used this many times
+  // Connection pool configuration optimized for Supabase cloud
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 20000, // Higher for Supabase cloud connections
+  maxUses: 7500,
 });
-
 
 
 // Test the database connection
 const connectDB = async () => {
   try {
-    // Log connection details (without password)
-    logger.info(`Connecting to PostgreSQL: ${process.env.PG_USER}@${process.env.PG_HOST}:${process.env.PG_PORT}/${process.env.PG_DATABASE}`);
-    
+    const host = process.env.SUPABASE_PG_HOST || process.env.PG_HOST;
+    const port = process.env.SUPABASE_PG_PORT || process.env.PG_PORT;
+    const database = process.env.SUPABASE_PG_DATABASE || process.env.PG_DATABASE;
+    const user = process.env.SUPABASE_PG_USER || process.env.PG_USER;
+
+    logger.info(`Connecting to Supabase PostgreSQL: ${user}@${host}:${port}/${database}`);
+
     await pool.query('SELECT NOW()');
-    logger.info('PostgreSQL connected successfully');
+    logger.info('Supabase PostgreSQL connected successfully');
   } catch (error) {
     logger.error('PostgreSQL connection error:', error);
     process.exit(1);

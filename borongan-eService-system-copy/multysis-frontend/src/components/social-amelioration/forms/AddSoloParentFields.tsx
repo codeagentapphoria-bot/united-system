@@ -18,7 +18,7 @@ import { createReactSelectStyles } from '../shared';
 import type { SoloParentInput } from '@/validations/beneficiary.schema';
 
 // Hooks
-import { useSoloParentCategories } from '@/hooks/social-amelioration/useSoloParentCategories';
+import { useClassificationOptions } from '@/hooks/useClassificationOptions';
 
 interface AddSoloParentFieldsProps {
   onAddNewCitizen: () => void;
@@ -42,13 +42,11 @@ export const AddSoloParentFields: React.FC<AddSoloParentFieldsProps> = ({
   reactSelectStyles: _reactSelectStyles,
 }) => {
   const form = useFormContext<SoloParentInput>();
-  const { activeSoloParentCategories } = useSoloParentCategories();
 
-  const categoryOptions = activeSoloParentCategories.map(cat => ({
-    value: cat.id, // Use ID instead of name
-    label: cat.name,
-    description: cat.description,
-  }));
+  const { data: spType, loading: isLoadingCategories } = useClassificationOptions('Solo Parent');
+  const categoryOptions: string[] = (
+    spType?.details.find(f => f.key === 'category')?.options ?? []
+  );
 
   const categoryReactSelectStyles = createReactSelectStyles(!!form.formState.errors.category);
 
@@ -78,19 +76,15 @@ export const AddSoloParentFields: React.FC<AddSoloParentFieldsProps> = ({
             <FormItem>
               <CustomFormLabel required>Category</CustomFormLabel>
               <Select
-                value={categoryOptions.find(option => option.value === field.value)}
-                onChange={selectedOption => field.onChange(selectedOption?.value || '')}
-                options={categoryOptions}
+                value={categoryOptions.find(option => option === field.value) ?? null}
+                onChange={selectedOption => field.onChange((selectedOption as any)?.value ?? '')}
+                options={categoryOptions.map(opt => ({ value: opt, label: opt })) as any}
                 placeholder="Select Category"
                 className="mt-1"
                 classNamePrefix="react-select"
                 isSearchable={true}
-                formatOptionLabel={option => (
-                  <div className="flex flex-col">
-                    <span className="font-medium">{option.label}</span>
-                    {option.description && <span className="text-xs text-gray-500 mt-1">{option.description}</span>}
-                  </div>
-                )}
+                isDisabled={isLoadingCategories}
+                isLoading={isLoadingCategories}
                 styles={categoryReactSelectStyles}
               />
               <FormMessage />

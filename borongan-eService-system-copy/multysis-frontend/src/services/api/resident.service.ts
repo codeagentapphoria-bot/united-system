@@ -22,9 +22,7 @@ export interface Resident {
   sex?: string;
   civilStatus?: string;
   birthdate?: string;
-  birthRegion?: string;
-  birthProvince?: string;
-  birthMunicipality?: string;
+  placeOfBirth?: string;
   citizenship?: string;
   contactNumber?: string;
   email?: string;
@@ -95,9 +93,7 @@ export interface UpdateResidentData {
   sex?: string;
   civilStatus?: string;
   birthdate?: string;
-  birthRegion?: string | null;
-  birthProvince?: string | null;
-  birthMunicipality?: string | null;
+  placeOfBirth?: string | null;
   citizenship?: string | null;
   contactNumber?: string | null;
   email?: string | null;

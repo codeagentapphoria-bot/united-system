@@ -13,11 +13,10 @@ import { Form } from '@/components/ui/form';
 
 // Custom Components
 import { AddStudentFields } from '@/components/social-amelioration/forms/AddStudentFields';
-import { createReactSelectStyles, useCitizenSearch } from '@/components/social-amelioration/shared';
+import { useCitizenSearch } from '@/components/social-amelioration/shared';
 
 // Hooks
 import { useToast } from '@/hooks/use-toast';
-import { useGradeLevels } from '@/hooks/social-amelioration/useGradeLevels';
 
 // Types and Schemas
 import { studentSchema, type StudentInput } from '@/validations/beneficiary.schema';
@@ -42,7 +41,6 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
 }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { activeGradeLevels } = useGradeLevels();
   const {
     filteredCitizens,
     isLoadingCitizens,
@@ -61,13 +59,6 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
     },
   });
 
-  const gradeLevelOptions = activeGradeLevels.map(gl => ({
-    value: gl.id, // Use ID instead of name
-    label: gl.name,
-    description: gl.description,
-  }));
-
-  const reactSelectStyles = createReactSelectStyles(!!form.formState.errors.gradeLevel);
   const isSubmittingRef = useRef(false);
 
   // Check if selected citizen is already registered
@@ -183,8 +174,6 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
                 selectedCitizen={selectedCitizen}
                 onCitizenSelect={setSelectedCitizen}
                 filteredCitizens={filteredCitizens}
-                gradeLevelOptions={gradeLevelOptions}
-                reactSelectStyles={reactSelectStyles}
               />
             </form>
           </Form>

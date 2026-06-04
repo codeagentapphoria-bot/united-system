@@ -513,7 +513,7 @@ export const reviewApplicationAdmin = async (
           .map(({ type, beneficiary }) =>
             tx.beneficiaryProgramPivot.upsert({
               where: {
-                beneficiaryType_beneficiaryId_programId: {
+                bpp_type_id_program_key: {
                   beneficiaryType: type as BeneficiaryType,
                   beneficiaryId: beneficiary.id,
                   programId,

@@ -19,7 +19,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useClassificationTypes } from '@/hooks/useClassificationTypes';
-import { useAmeliorationSettings } from '@/hooks/useAmeliorationSettings';
 import ClassificationGuide from '@/components/ui/ClassificationGuide';
 import { BadgeCheck, User } from 'lucide-react';
 
@@ -68,10 +67,8 @@ export interface ClassificationTypeOption {
   details: Array<{
     key: string;
     label: string;
-    type: 'text' | 'select' | 'amelioration_select' | 'amelioration_multiselect';
-    options?: Array<{ value: string; label: string }>;
-    settingType?: string;
-    filterIds?: string[];
+    type: 'text' | 'select' | 'multiselect';
+    options?: string[];
   }>;
 }
 
@@ -115,7 +112,6 @@ const ResidentClassificationsForm = ({
   const [localClassificationOptions, setLocalClassificationOptions] = useState<ClassificationTypeOption[]>([]);
 
   const { classificationTypes, loading: typesLoading } = useClassificationTypes(municipalityId);
-  const { getSettingsByType } = useAmeliorationSettings();
 
   const form = useForm<ClassificationsFormValues>({
     resolver: zodResolver(classificationsSchema),
@@ -139,7 +135,7 @@ const ResidentClassificationsForm = ({
         label: type.label,
         color: type.color,
         description: type.description,
-        details: type.details ?? [],
+        details: (type.details ?? []) as ClassificationTypeOption['details'],
       }));
       setLocalClassificationOptions(options);
     }
@@ -159,6 +155,11 @@ const ResidentClassificationsForm = ({
   // Populate form when resident data changes
   useEffect(() => {
     if (!resident || !resident.classifications || resident.classifications.length === 0) return;
+
+    // GUARD: Don't populate form until options have loaded from API.
+    // Without this, normalizeClassificationValue returns raw values (no match),
+    // form.reset stores details under wrong keys, and detail inputs appear empty.
+    if (localClassificationOptions.length === 0) return;
 
     const currentClassifications = (resident.classifications as Array<{ classification_type?: string; classification?: string }>).map((c) => {
       const classificationValue = c.classification_type || c.classification || (c as unknown as string);
@@ -258,85 +259,43 @@ const ResidentClassificationsForm = ({
 
   const renderDetailField = (classification: string, detail: ClassificationTypeOption['details'][number]) => {
     const currentDetails = form.watch('classificationDetails') ?? {};
-    const currentValue = currentDetails[classification]?.[detail.key];
+    const value = currentDetails[classification]?.[detail.key];
 
-    // Dropdown loaded from social_amelioration_settings (single select)
-    if (detail.type === 'amelioration_select' && detail.settingType) {
-      const allOptions = getSettingsByType(detail.settingType as 'DISABILITY_TYPE' | 'GRADE_LEVEL' | 'SOLO_PARENT_CATEGORY' | 'PENSION_TYPE');
-      const options = detail.filterIds
-        ? allOptions.filter((opt) => detail.filterIds?.includes(opt.id))
-        : allOptions;
+    // Single select with inline string options
+    if (detail.type === 'select') {
       return (
-        <Select
-          value={(currentValue as string) ?? ''}
-          onValueChange={(value) => handleDetailChange(classification, detail.key, value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={`Select ${detail.label.toLowerCase()}`} />
-          </SelectTrigger>
+        <Select value={(value as string) ?? ''} onValueChange={(v) => handleDetailChange(classification, detail.key, v)}>
+          <SelectTrigger><SelectValue placeholder={`Select ${detail.label}`} /></SelectTrigger>
           <SelectContent>
-            {options.map((opt) => (
-              <SelectItem key={opt.id} value={opt.id}>
-                {opt.name}
-              </SelectItem>
+            {(detail.options ?? []).map((opt) => (
+              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       );
     }
 
-    // Checkbox list loaded from social_amelioration_settings (multi-select)
-    if (detail.type === 'amelioration_multiselect' && detail.settingType) {
-      const options = getSettingsByType(detail.settingType as 'DISABILITY_TYPE' | 'GRADE_LEVEL' | 'SOLO_PARENT_CATEGORY' | 'PENSION_TYPE');
-      const selectedIds = Array.isArray(currentValue) ? currentValue : [];
+    // Multi-select with inline string options (checkbox list)
+    if (detail.type === 'multiselect') {
       return (
-        <div className="grid grid-cols-1 gap-2 pt-1">
-          {options.map((opt) => (
-            <div key={opt.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={`${classification}-${detail.key}-${opt.id}`}
-                checked={selectedIds.includes(opt.id)}
-                onCheckedChange={(checked) => {
-                  const next = checked
-                    ? [...selectedIds, opt.id]
-                    : selectedIds.filter((v) => v !== opt.id);
-                  handleDetailChange(classification, detail.key, next);
-                }}
-              />
-              <Label
-                htmlFor={`${classification}-${detail.key}-${opt.id}`}
-                className="text-sm font-normal cursor-pointer"
-              >
-                {opt.name}
-              </Label>
-            </div>
-          ))}
+        <div className="space-y-2">
+          {(detail.options ?? []).map((opt) => {
+            const selected = Array.isArray(value) && (value as string[]).includes(opt);
+            return (
+              <div key={opt} className="flex items-center gap-2">
+                <Checkbox
+                  checked={selected}
+                  onCheckedChange={(checked) => {
+                    const prev = Array.isArray(value) ? (value as string[]) : [];
+                    const next = checked ? Array.from(new Set([...prev, opt])) : prev.filter((v) => v !== opt);
+                    handleDetailChange(classification, detail.key, next);
+                  }}
+                />
+                <Label>{opt}</Label>
+              </div>
+            );
+          })}
         </div>
-      );
-    }
-
-    // Static options select (e.g. disability level)
-    if (detail.type === 'select' && detail.options) {
-      return (
-        <Select
-          value={(currentValue as string) ?? ''}
-          onValueChange={(value) => handleDetailChange(classification, detail.key, value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={`Select ${detail.label.toLowerCase()}`} />
-          </SelectTrigger>
-          <SelectContent>
-            {detail.options.map((option) => {
-              const val = typeof option === 'string' ? option : option.value;
-              const lbl = typeof option === 'string' ? option : option.label;
-              return (
-                <SelectItem key={val} value={val}>
-                  {lbl}
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
       );
     }
 
@@ -344,7 +303,7 @@ const ResidentClassificationsForm = ({
     return (
       <Input
         placeholder={`Enter ${detail.label.toLowerCase()}`}
-        value={(currentValue as string) ?? ''}
+        value={(value as string) ?? ''}
         onChange={(e) => handleDetailChange(classification, detail.key, e.target.value)}
       />
     );

@@ -135,9 +135,10 @@ export const invalidateClassificationTypesCache = async (
 const BENEFICIARY_SYNC_MAP: Record<string, { table: string; idCol: string; prefix: string }> = {
   'Senior Citizen':         { table: 'senior_citizen_beneficiaries', idCol: 'senior_citizen_id', prefix: 'SC'  },
   'Person with Disability': { table: 'pwd_beneficiaries',            idCol: 'pwd_id',            prefix: 'PWD' },
-  'Student':               { table: 'student_beneficiaries',        idCol: 'student_id',        prefix: 'ST'  },
-  'College Student':       { table: 'student_beneficiaries',        idCol: 'student_id',        prefix: 'ST'  },
-  'Solo Parent':           { table: 'solo_parent_beneficiaries',    idCol: 'solo_parent_id',    prefix: 'SP'  },
+  'Student':               { table: 'student_beneficiaries',         idCol: 'student_id',        prefix: 'ST'  },
+  'College Student':       { table: 'student_beneficiaries',         idCol: 'student_id',        prefix: 'ST'  },
+  'Vocational Student':    { table: 'student_beneficiaries',         idCol: 'student_id',        prefix: 'ST'  },
+  'Solo Parent':           { table: 'solo_parent_beneficiaries',     idCol: 'solo_parent_id',    prefix: 'SP'  },
 };
 
 const tableToSocketType: Record<string, 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT'> = {
@@ -147,10 +148,10 @@ const tableToSocketType: Record<string, 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | '
   solo_parent_beneficiaries: 'SOLO_PARENT',
 };
 
-// Normalize detail keys — autoClassifyResident passes form keys
-// (disabilityType, disabilityLevel, gradeLevel, category, pensionTypes)
-// but _syncBeneficiaryDetails in BIMS uses Id-suffixed keys.
-// Accept both so the same details object works for both paths.
+// Normalize detail keys for resident_classifications.classification_details.
+// All values are TEXT (or arrays of text for multiselect fields).
+// Accepts both legacy Id-suffixed keys and new text keys for backwards-compat
+// during the transition window, but always outputs text values.
 function normalizeDetails(
   classificationType: string,
   details: Record<string, unknown>
@@ -158,95 +159,45 @@ function normalizeDetails(
   switch (classificationType) {
     case 'Person with Disability':
       return {
-        disabilityTypeId: (details.disabilityType as string) ?? (details.disabilityTypeId as string) ?? null,
-        disabilityLevel:  (details.disabilityLevel  as string) ?? null,
+        disabilityType:  (details.disabilityType  as string) ?? null,
+        disabilityLevel: (details.disabilityLevel as string) ?? null,
+        remarks:         (details.remarks         as string) ?? null,
       };
     case 'Student':
     case 'College Student':
+    case 'Vocational Student':
       return {
-        gradeLevelId: (details.gradeLevel as string) ?? (details.gradeLevelId as string) ?? null,
+        gradeLevel:   (details.gradeLevel   as string) ?? null,
+        courseField: (details.courseField as string) ?? null,
+        ncLevel:     (details.ncLevel     as string) ?? null,
+        remarks:     (details.remarks    as string) ?? null,
       };
     case 'Solo Parent':
       return {
-        categoryId: (details.category as string) ?? (details.categoryId as string) ?? null,
+        category: (details.category as string) ?? null,
+        remarks:  (details.remarks  as string) ?? null,
       };
     case 'Senior Citizen':
       return {
-        pensionTypeIds: Array.isArray(details.pensionTypes)
-          ? details.pensionTypes
-          : Array.isArray(details.pensionTypeIds)
-          ? details.pensionTypeIds
+        pensionTypes: Array.isArray(details.pensionTypes)
+          ? (details.pensionTypes as string[]).filter((s) => typeof s === 'string' && s.length > 0)
           : [],
+        remarks: (details.remarks as string) ?? null,
       };
     default:
-      return {};
+      return details;
   }
 }
 
-// Update type-specific detail columns on an already-existing PENDING record
+// Beneficiary tables no longer carry FK or classification fields.
+// All classification data lives in resident_classifications.classification_details.
+// This function is retained as a no-op for backwards compatibility with callers.
 async function syncBeneficiaryDetails(
-  table: string,
-  residentId: string,
-  details: Record<string, unknown>
+  _table: string,
+  _residentId: string,
+  _details: Record<string, unknown>
 ): Promise<void> {
-  // We update details for both PENDING and ACTIVE beneficiaries
-  const allowedStatuses = ['PENDING', 'ACTIVE'];
-
-  if (table === 'pwd_beneficiaries') {
-    const { disabilityTypeId, disabilityLevel } = details as { disabilityTypeId?: string; disabilityLevel?: string };
-    await (prisma as any).pWDBeneficiary.updateMany({
-      where: { residentId, status: { in: allowedStatuses } },
-      data: {
-        disabilityTypeId: disabilityTypeId || undefined,
-        disabilityLevel: disabilityLevel || undefined,
-      },
-    });
-  } else if (table === 'student_beneficiaries') {
-    const { gradeLevelId } = details as { gradeLevelId?: string };
-    await (prisma as any).studentBeneficiary.updateMany({
-      where: { residentId, status: { in: allowedStatuses } },
-      data: {
-        gradeLevelId: gradeLevelId || undefined,
-      },
-    });
-  } else if (table === 'solo_parent_beneficiaries') {
-    const { categoryId } = details as { categoryId?: string };
-    await (prisma as any).soloParentBeneficiary.updateMany({
-      where: { residentId, status: { in: allowedStatuses } },
-      data: {
-        categoryId: categoryId || undefined,
-      },
-    });
-  } else if (table === 'senior_citizen_beneficiaries') {
-    // Sync pension type pivots
-    const { pensionTypeIds } = details as { pensionTypeIds?: string[] };
-    if (pensionTypeIds) {
-      const benRecord = await prisma.seniorCitizenBeneficiary.findFirst({
-        where: { residentId },
-        select: { id: true },
-      });
-      if (benRecord) {
-        const beneficiaryId = benRecord.id;
-        // Use a transaction for consistency
-        await prisma.$transaction([
-          (prisma as any).seniorCitizenPensionTypePivot.deleteMany({
-            where: { beneficiaryId },
-          }),
-          ...(pensionTypeIds.map((settingId) =>
-            (prisma as any).seniorCitizenPensionTypePivot.create({
-              data: { beneficiaryId, settingId },
-            })
-          )),
-        ]);
-
-        // Emit update
-        await socketService.emitBeneficiaryUpdate(beneficiaryId, 'SENIOR_CITIZEN', {
-          residentId,
-          updatedAt: new Date(),
-        });
-      }
-    }
-  }
+  return;
 }
 
 // Generate sequential display ID like SC-2026-001
@@ -277,7 +228,7 @@ export const generateBeneficiaryId = async (table: string, prefix: string) => {
     }
   }
 
-  return `${yearPrefix}${String(nextNum).padStart(3, '0')}`;
+  return `${yearPrefix}${String(nextNum).padStart(4, '0')}`;
 };
 
 // Create or reactivate a PENDING beneficiary record when a classification is added
@@ -364,8 +315,6 @@ export async function syncBeneficiaryOnInsert(
           data: {
             residentId,
             pwdId: displayId,
-            disabilityTypeId: (details.disabilityTypeId as string) || null,
-            disabilityLevel: (details.disabilityLevel as string) || null,
             status: initialStatus as any,
           },
         });
@@ -375,7 +324,6 @@ export async function syncBeneficiaryOnInsert(
           data: {
             residentId,
             studentId: displayId,
-            gradeLevelId: (details.gradeLevelId as string) || null,
             status: initialStatus as any,
           },
         });
@@ -385,7 +333,6 @@ export async function syncBeneficiaryOnInsert(
           data: {
             residentId,
             soloParentId: displayId,
-            categoryId: (details.categoryId as string) || null,
             status: initialStatus as any,
           },
         });
@@ -396,11 +343,6 @@ export async function syncBeneficiaryOnInsert(
             residentId,
             seniorCitizenId: displayId,
             status: initialStatus as any,
-            pensionTypes: details.pensionTypeIds && Array.isArray(details.pensionTypeIds)
-              ? {
-                  create: (details.pensionTypeIds as string[]).map((settingId) => ({ settingId })),
-                }
-              : undefined,
           },
         });
         break;

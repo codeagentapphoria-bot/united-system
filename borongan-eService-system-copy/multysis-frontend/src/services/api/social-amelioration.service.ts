@@ -61,6 +61,8 @@ export interface StudentBeneficiary {
   citizenId: string; // alias for residentId — kept for backward compat
   studentId: string;
   gradeLevel: string;
+  courseField?: string;
+  ncLevel?: string;
   programs: string[];
   status: BeneficiaryStatus;
   remarks?: string;

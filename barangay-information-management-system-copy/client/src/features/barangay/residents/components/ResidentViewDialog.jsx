@@ -312,7 +312,7 @@ const ResidentViewDialog = ({
                             <div>
                               <p className="text-xs text-muted-foreground">Birthplace</p>
                               <p className="text-sm font-medium text-gray-800 capitalize">
-                                {[viewResident.birth_region, viewResident.birth_province, viewResident.birth_municipality].filter(Boolean).join(", ") || "—"}
+                                {viewResident.placeOfBirth || "—"}
                               </p>
                             </div>
                             <div>

@@ -60,9 +60,7 @@ export interface UpdateResidentData {
   sex?: string;
   civilStatus?: string;
   birthdate?: Date;
-  birthRegion?: string | null;
-  birthProvince?: string | null;
-  birthMunicipality?: string | null;
+  placeOfBirth?: string | null;
   citizenship?: string | null;
   contactNumber?: string | null;
   email?: string | null;
@@ -254,9 +252,7 @@ export interface SelfUpdateData {
   isVoter?: boolean;
   isEmployed?: boolean;
   indigenousPerson?: boolean;
-  birthRegion?: string | null;
-  birthProvince?: string | null;
-  birthMunicipality?: string | null;
+  placeOfBirth?: string | null;
   occupation?: string | null;
   profession?: string | null;
   employmentStatus?: string | null;

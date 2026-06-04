@@ -168,18 +168,18 @@ export const AdminRegistrationWorkflow: React.FC = () => {
 
         // After approval, fetch fresh resident data with auto-created classifications
         if (reviewAction === 'APPROVED' && selectedRequest.resident) {
+          let residentData = selectedRequest.resident;
           try {
             const residentId = selectedRequest.resident.id;
             if (residentId) {
               const freshResident = await residentService.getResident(residentId);
-              setClassifyResident(freshResident as unknown as ResidentInfo);
-            } else {
-              setClassifyResident(selectedRequest.resident as unknown as ResidentInfo);
+              residentData = freshResident;
             }
           } catch (err) {
             logger.warn('Failed to fetch fresh resident for classification pre-fill', err);
-            setClassifyResident(selectedRequest.resident as unknown as ResidentInfo);
+            // Fall back to existing resident data - modal should still open
           }
+          setClassifyResident(residentData as unknown as ResidentInfo);
           setIsClassifyModalOpen(true);
           setIsReviewModalOpen(false);
         } else {

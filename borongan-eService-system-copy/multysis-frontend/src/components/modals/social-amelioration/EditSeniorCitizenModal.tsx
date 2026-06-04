@@ -12,7 +12,7 @@ import { Form } from '@/components/ui/form';
 
 // Custom Components
 import { EditSeniorCitizenFields } from '@/components/social-amelioration/forms/EditSeniorCitizenFields';
-import { useCitizenSearch, createReactSelectStyles } from '@/components/social-amelioration/shared';
+import { useCitizenSearch } from '@/components/social-amelioration/shared';
 
 // Hooks
 import { useToast } from '@/hooks/use-toast';
@@ -55,8 +55,6 @@ export const EditSeniorCitizenModal: React.FC<EditSeniorCitizenModalProps> = ({
     },
   });
 
-  const reactSelectStyles = createReactSelectStyles(false);
-
   // Pre-fill form when modal opens
   const prevInitialDataIdRef = useRef<string | undefined>(undefined);
   const prevOpenRef = useRef(false);
@@ -87,9 +85,10 @@ export const EditSeniorCitizenModal: React.FC<EditSeniorCitizenModalProps> = ({
         prevOpenRef.current = true;
 
         const citizenId = initialData.citizenId || initialData.citizen?.id || '';
-        const existingPensions = initialData.pensionTypes || 
-          (initialData.pensionType ? [initialData.pensionType] : []) ||
-          (initialData.typeOfPension ? [initialData.typeOfPension] : []);
+        const existingClassificationDetails = initialData.classification_details;
+        const existingPensions = existingClassificationDetails?.pensionType
+          ? [existingClassificationDetails.pensionType]
+          : (initialData.pensionTypes || [])
 
         form.reset({
           citizenId,
@@ -162,7 +161,6 @@ export const EditSeniorCitizenModal: React.FC<EditSeniorCitizenModalProps> = ({
                 selectedCitizen={selectedCitizen}
                 initialData={initialData}
                 existingBeneficiaries={existingBeneficiaries}
-                reactSelectStyles={reactSelectStyles}
               />
             </form>
           </Form>

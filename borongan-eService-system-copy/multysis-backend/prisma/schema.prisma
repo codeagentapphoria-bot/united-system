@@ -29,6 +29,7 @@ model Municipality {
   updatedAt        DateTime   @map("updated_at") @updatedAt
   barangays             Barangay[]
   certificateTemplates  CertificateTemplate[]
+  classificationTypes   ClassificationType[]
 
   @@map("municipalities")
 }
@@ -81,9 +82,7 @@ model Resident {
   sex          String?
   civilStatus  String? @map("civil_status")
   birthdate    DateTime @db.Date
-  birthRegion      String? @map("birth_region")
-  birthProvince    String? @map("birth_province")
-  birthMunicipality String? @map("birth_municipality")
+  placeOfBirth    String? @map("place_of_birth")
   citizenship  String?
 
   // Contact
@@ -599,24 +598,6 @@ model Payment {
 // citizen_id renamed to resident_id throughout
 // =============================================================================
 
-model SocialAmeliorationSetting {
-  id                        String                          @id @default(uuid())
-  type                      SocialAmeliorationSettingType
-  name                      String
-  description               String?
-  isActive                  Boolean                         @map("is_active") @default(true)
-  createdAt                 DateTime                        @map("created_at") @default(now())
-  updatedAt                 DateTime                        @map("updated_at") @updatedAt
-  pwdDisabilityTypes        PWDBeneficiary[]
-  seniorCitizenPensionTypes SeniorCitizenPensionTypePivot[]
-  soloParentCategories      SoloParentBeneficiary[]
-  studentGradeLevels        StudentBeneficiary[]
-
-  @@index([type])
-  @@index([isActive])
-  @@map("social_amelioration_settings")
-}
-
 model SeniorCitizenBeneficiary {
   id              String                          @id @default(uuid())
   residentId      String                          @map("resident_id") @unique
@@ -626,20 +607,8 @@ model SeniorCitizenBeneficiary {
   createdAt       DateTime                        @map("created_at") @default(now())
   updatedAt       DateTime                        @map("updated_at") @updatedAt
   resident        Resident                        @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  pensionTypes    SeniorCitizenPensionTypePivot[]
 
   @@map("senior_citizen_beneficiaries")
-}
-
-model SeniorCitizenPensionTypePivot {
-  id            String                    @id @default(uuid())
-  beneficiaryId String                    @map("beneficiary_id")
-  settingId     String                    @map("setting_id")
-  beneficiary   SeniorCitizenBeneficiary  @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
-  setting       SocialAmeliorationSetting @relation(fields: [settingId], references: [id], onDelete: Cascade)
-
-  @@unique([beneficiaryId, settingId])
-  @@map("senior_citizen_pension_type_pivots")
 }
 
 model PWDBeneficiary {
@@ -647,7 +616,6 @@ model PWDBeneficiary {
   residentId        String                    @map("resident_id") @unique
   pwdId             String                    @map("pwd_id") @unique
   disabilityLevel   String?                   @map("disability_level")
-  disabilityTypeId  String?                   @map("disability_type_id")
   monetaryAllowance Boolean                   @map("monetary_allowance") @default(false)
   assistedDevice    Boolean                   @map("assisted_device") @default(false)
   donorDevice       String?                   @map("donor_device")
@@ -656,7 +624,6 @@ model PWDBeneficiary {
   createdAt         DateTime                  @map("created_at") @default(now())
   updatedAt         DateTime                  @map("updated_at") @updatedAt
   resident          Resident                  @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  disabilityType    SocialAmeliorationSetting? @relation(fields: [disabilityTypeId], references: [id])
 
   @@map("pwd_beneficiaries")
 }
@@ -665,13 +632,11 @@ model StudentBeneficiary {
   id           String                    @id @default(uuid())
   residentId   String                    @map("resident_id") @unique
   studentId    String                    @map("student_id") @unique
-  gradeLevelId String?                   @map("grade_level_id")
   status       BeneficiaryStatus         @default(ACTIVE)
   remarks      String?
   createdAt    DateTime                  @map("created_at") @default(now())
   updatedAt    DateTime                  @map("updated_at") @updatedAt
   resident     Resident                  @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  gradeLevel   SocialAmeliorationSetting? @relation(fields: [gradeLevelId], references: [id])
 
   @@map("student_beneficiaries")
 }
@@ -680,13 +645,11 @@ model SoloParentBeneficiary {
   id           String                    @id @default(uuid())
   residentId   String                    @map("resident_id") @unique
   soloParentId String                    @map("solo_parent_id") @unique
-  categoryId   String?                   @map("category_id")
   status       BeneficiaryStatus         @default(ACTIVE)
   remarks      String?
   createdAt    DateTime                  @map("created_at") @default(now())
   updatedAt    DateTime                  @map("updated_at") @updatedAt
   resident     Resident                  @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  category     SocialAmeliorationSetting? @relation(fields: [categoryId], references: [id])
 
   @@map("solo_parent_beneficiaries")
 }
@@ -700,7 +663,6 @@ model GovernmentProgram {
   isActive            Boolean                        @map("is_active") @default(true)
   createdAt           DateTime                       @map("created_at") @default(now())
   updatedAt           DateTime                       @map("updated_at") @updatedAt
-  beneficiaryPrograms BeneficiaryProgramPivot[]
   applications        GovernmentProgramApplication[]
 
   @@index([isActive])
@@ -727,6 +689,23 @@ model GovernmentProgramApplication {
   @@index([status])
   @@index([programId])
   @@map("government_program_applications")
+}
+
+// Tracks per-program enrollment status for government program beneficiaries.
+// Not modeled during initial Prisma setup — accessed via raw SQL.
+model BeneficiaryProgramPivot {
+  id              String    @id @default(uuid())
+  beneficiaryType String    @map("beneficiary_type")
+  beneficiaryId   String    @map("beneficiary_id")
+  programId       String    @map("program_id")
+  status         String    @default("active")
+  suspendedAt     DateTime? @map("suspended_at")
+  createdAt      DateTime  @map("created_at") @default(now())
+
+  @@unique([beneficiaryType, beneficiaryId, programId], name: "bpp_type_id_program_key")
+  @@index([beneficiaryType, beneficiaryId])
+  @@index([programId])
+  @@map("beneficiary_program_pivots")
 }
 
 // =============================================================================
@@ -756,22 +735,6 @@ model MedicineRequest {
   @@index([status])
   @@index([createdAt])
   @@map("medicine_requests")
-}
-
-model BeneficiaryProgramPivot {
-  id              String            @id @default(uuid())
-  beneficiaryType BeneficiaryType   @map("beneficiary_type")
-  beneficiaryId   String            @map("beneficiary_id")
-  programId       String            @map("program_id")
-  status          String            @default("active")  // active | suspended
-  suspendedAt     DateTime?         @map("suspended_at")
-  createdAt       DateTime          @map("created_at") @default(now())
-  program         GovernmentProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
-
-  @@unique([beneficiaryType, beneficiaryId, programId])
-  @@index([beneficiaryType, beneficiaryId])
-  @@index([programId])
-  @@map("beneficiary_program_pivots")
 }
 
 // =============================================================================
@@ -891,15 +854,6 @@ enum GovernmentProgramType {
   @@map("government_program_type")
 }
 
-enum SocialAmeliorationSettingType {
-  PENSION_TYPE
-  DISABILITY_TYPE
-  GRADE_LEVEL
-  SOLO_PARENT_CATEGORY
-
-  @@map("social_amelioration_setting_type")
-}
-
 enum TaxVersionStatus {
   DRAFT
   ACTIVE
@@ -973,4 +927,29 @@ model CertificateTemplate {
   @@index([municipalityId])
   @@index([certificateType])
   @@map("certificate_templates")
+}
+
+// =============================================================================
+// CLASSIFICATION TYPES
+// Municipality-scoped classification definitions with dynamic detail field descriptors.
+// Used for schema-driven admin UI (SettingsTab).
+// =============================================================================
+
+model ClassificationType {
+  id              Int      @id @default(autoincrement())
+  municipalityId  Int      @map("municipality_id")
+  name            String   @map("name")
+  description     String?  @db.Text
+  color           String?  @map("color") @default("#4CAF50")
+  details         Json     @default("[]")
+  isActive        Boolean  @map("is_active") @default(true)
+  createdAt      DateTime @map("created_at") @default(now())
+  updatedAt      DateTime @map("updated_at") @updatedAt
+
+  municipality Municipality @relation(fields: [municipalityId], references: [id], onDelete: Cascade)
+
+  @@unique([municipalityId, name])
+  @@index([municipalityId])
+  @@index([isActive])
+  @@map("classification_types")
 }

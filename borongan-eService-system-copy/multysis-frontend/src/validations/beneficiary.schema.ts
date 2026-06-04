@@ -69,6 +69,8 @@ export type PWDInput = z.infer<typeof pwdSchema>;
 export const studentSchema = z.object({
   citizenId: z.string().min(1, 'Citizen is required'), // Required - must select a citizen
   gradeLevel: z.string().min(1, 'Grade level is required'),
+  courseField: z.string().optional(),
+  ncLevel: z.string().optional(),
 });
 
 export type StudentInput = z.infer<typeof studentSchema>;

@@ -12,10 +12,9 @@ import { Form } from '@/components/ui/form';
 
 // Custom Components
 import { EditStudentFields } from '@/components/social-amelioration/forms/EditStudentFields';
-import { createReactSelectStyles, useCitizenSearch } from '@/components/social-amelioration/shared';
+import { useCitizenSearch } from '@/components/social-amelioration/shared';
 
 // Hooks
-import { useGradeLevels } from '@/hooks/social-amelioration/useGradeLevels';
 import { residentService } from '@/services/api/resident.service';
 
 // Types and Schemas
@@ -37,7 +36,6 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   onEdit,
   initialData,
 }) => {
-  const { activeGradeLevels } = useGradeLevels();
   const {
     citizens,
     setSelectedCitizen,
@@ -53,14 +51,6 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
     },
   });
 
-  const gradeLevelOptions = activeGradeLevels.map(gl => ({
-    value: gl.id, // Use ID instead of name
-    label: gl.name,
-    description: gl.description,
-  }));
-
-  const reactSelectStyles = createReactSelectStyles(!!form.formState.errors.gradeLevel);
-
   // Pre-fill form when modal opens
   const prevInitialDataIdRef = useRef<string | undefined>(undefined);
   const prevOpenRef = useRef(false);
@@ -73,6 +63,8 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
       form.reset({
         citizenId: '',
         gradeLevel: '',
+        courseField: '',
+        ncLevel: '',
       });
       setSelectedCitizen(null);
       resetSearch();
@@ -90,11 +82,16 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
         prevOpenRef.current = true;
 
         const citizenId = initialData.citizenId || initialData.citizen?.id || '';
-        const gradeLevel = initialData.gradeLevel || '';
+        const existingClassificationDetails = initialData.classification_details;
+        const gradeLevel = existingClassificationDetails?.gradeLevel ?? initialData.gradeLevel ?? '';
+        const resolvedCourseField = existingClassificationDetails?.courseField ?? initialData.courseField ?? '';
+        const resolvedNcLevel = existingClassificationDetails?.ncLevel ?? initialData.ncLevel ?? '';
 
         form.reset({
           citizenId,
           gradeLevel,
+          courseField: resolvedCourseField,
+          ncLevel: resolvedNcLevel,
         });
       }
     }
@@ -124,7 +121,12 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   const handleSubmit = async (data: StudentInput) => {
     try {
       await onEdit(data);
-      form.reset();
+      form.reset({
+        citizenId: '',
+        gradeLevel: '',
+        courseField: '',
+        ncLevel: '',
+      });
       setSelectedCitizen(null);
       resetSearch();
       onClose();
@@ -134,7 +136,12 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   };
 
   const handleClose = () => {
-    form.reset();
+    form.reset({
+      citizenId: '',
+      gradeLevel: '',
+      courseField: '',
+      ncLevel: '',
+    });
     setSelectedCitizen(null);
     resetSearch();
     onClose();
@@ -152,11 +159,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
         <div className="flex-1 overflow-y-auto px-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pb-6">
-              <EditStudentFields
-                selectedCitizen={selectedCitizen}
-                gradeLevelOptions={gradeLevelOptions}
-                reactSelectStyles={reactSelectStyles}
-              />
+              <EditStudentFields selectedCitizen={selectedCitizen} />
             </form>
           </Form>
         </div>

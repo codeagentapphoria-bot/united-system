@@ -497,16 +497,14 @@ export default function RegistrationApprovalsPage() {
                     </section>
 
                     {/* Birthplace */}
-                    {(r.birth_region || r.birth_province || r.birth_municipality) && (
+                    {r.place_of_birth && (
                       <section>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Place of Birth</p>
                         <div className="grid grid-cols-3 gap-x-6 gap-y-3">
-                          {[["Region", r.birth_region], ["Province", r.birth_province], ["Municipality", r.birth_municipality]].map(([label, value]) => (
-                            <div key={label}>
-                              <p className="text-xs text-gray-400 mb-0.5">{label}</p>
-                              <p className="text-gray-800 font-medium">{value || "—"}</p>
-                            </div>
-                          ))}
+                          <div>
+                            <p className="text-xs text-gray-400 mb-0.5">Place of Birth</p>
+                            <p className="text-gray-800 font-medium">{r.place_of_birth}</p>
+                          </div>
                         </div>
                       </section>
                     )}

@@ -8,9 +8,7 @@ export const residentSchema = z.object({
   sex: z.string().min(1, "Sex is required"),
   civilStatus: z.string().min(1, "Civil status is required"),
   birthdate: z.string().min(1, "Birthdate is required"),
-  birth_region: z.string().optional(),
-  birth_province: z.string().optional(),
-  birth_municipality: z.string().optional(),
+  placeOfBirth: z.string().optional(),
   contactNumber: z.string().optional(),
   email: z
     .string()

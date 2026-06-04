@@ -84,9 +84,7 @@ const step1Schema = z.object({
     .refine(v => !isNaN(new Date(v).getTime()), 'Invalid date')
     .refine(v => new Date(v) < new Date(), 'Birthdate cannot be in the future')
     .refine(v => new Date(v) >= new Date('1900-01-01'), 'Please enter a valid birthdate'),
-  birthRegion: z.string().max(100).optional().or(z.literal('')),
-  birthProvince: z.string().max(100).optional().or(z.literal('')),
-  birthMunicipality: z.string().max(100).optional().or(z.literal('')),
+  placeOfBirth: z.string().max(200).optional().or(z.literal('')),
   citizenship: z.string().max(100).optional().or(z.literal('')),
   contactNumber: phPhone,
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
@@ -108,6 +106,7 @@ const step1Schema = z.object({
   disabilityLevel: z.string().optional().or(z.literal('')),
   gradeLevelId: z.string().optional().or(z.literal('')),
   courseField: z.string().max(200).optional().or(z.literal('')),
+  ncLevelId: z.string().optional().or(z.literal('')),
   soloParentCategoryId: z.string().optional().or(z.literal('')),
   voterType: z.enum(['Regular', 'SK']).optional(),
   emergencyContactPerson: z
@@ -195,16 +194,37 @@ export const Register: React.FC = () => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [municipalities, setMunicipalities] = useState<any[]>([]);
+  interface Municipality {
+    id: number;
+    municipalityName: string;
+  }
+
+  interface Barangay {
+    id: number;
+    barangayName: string;
+  }
+
+  interface LookupOption {
+    id: string;
+    name: string;
+  }
+
+  const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [selectedMunicipalityId, setSelectedMunicipalityId] = useState<string>('');
-  const [barangays, setBarangays] = useState<any[]>([]);
-  const [ameliorationSettings, setAmeliorationSettings] = useState<Record<string, any[]>>({
+  const [barangays, setBarangays] = useState<Barangay[]>([]);
+  const [ameliorationSettings, setAmeliorationSettings] = useState<Record<string, LookupOption[]>>({
     PENSION_TYPE: [],
     DISABILITY_TYPE: [],
+    DISABILITY_LEVEL: [],
     GRADE_LEVEL: [],
     SOLO_PARENT_CATEGORY: [],
   });
-  const [formData, setFormData] = useState<Partial<Step1Data & Step2Data & Step3Data>>({});
+  interface ComprehensiveFormData extends Partial<Step1Data & Step2Data & Step3Data> {
+    picturePath?: string;
+    ameliorationData?: Record<string, unknown>;
+  }
+
+  const [formData, setFormData] = useState<ComprehensiveFormData>({});
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [usernameChecking, setUsernameChecking] = useState(false);
   const [emailExists, setEmailExists] = useState<boolean | null>(null);
@@ -222,39 +242,47 @@ export const Register: React.FC = () => {
         const data = res.data.data || [];
         setMunicipalities(data);
         // Auto-select Borongan municipality
-        const borongan = data.find((m: any) => m.municipalityName?.toLowerCase().includes('borongan'));
+        const borongan = data.find((m: Municipality) => m.municipalityName?.toLowerCase().includes('borongan'));
         if (borongan) {
-          setSelectedMunicipalityId(String(borongan.id));
-          handleMunicipalityChange(String(borongan.id));
+          const muniId = String(borongan.id);
+          setSelectedMunicipalityId(muniId);
+          handleMunicipalityChange(muniId);
+
+          // Load classification options after municipality is selected
+          const typeNameMap: Record<string, { typeName: string; fieldKey?: string }> = {
+            DISABILITY_TYPE:       { typeName: 'Person with Disability', fieldKey: 'disabilityType' },
+            DISABILITY_LEVEL:      { typeName: 'Person with Disability', fieldKey: 'disabilityLevel' },
+            GRADE_LEVEL:           { typeName: 'Student', fieldKey: 'gradeLevel' },
+            PENSION_TYPE:          { typeName: 'Senior Citizen', fieldKey: 'pensionTypes' },
+            SOLO_PARENT_CATEGORY:  { typeName: 'Solo Parent', fieldKey: 'category' },
+          };
+          const types = Object.keys(typeNameMap);
+          Promise.all(
+            types.map(type =>
+              api
+                .get(`/portal-registration/classification-options?municipalityId=${muniId}&typeName=${typeNameMap[type].typeName}${typeNameMap[type].fieldKey ? `&fieldKey=${typeNameMap[type].fieldKey}` : ''}`)
+                .then(res => ({ type, data: res.data.data || [], failed: false }))
+                .catch(() => ({ type, data: [], failed: true }))
+            )
+          ).then(results => {
+            const map: Record<string, any[]> = {};
+            let anyFailed = false;
+            results.forEach(({ type, data, failed }) => {
+              map[type] = data;
+              if (failed) anyFailed = true;
+            });
+            setAmeliorationSettings(map);
+            if (anyFailed) {
+              toast({
+                variant: 'destructive',
+                title: 'Failed to load options',
+                description: 'Some dropdown options could not be loaded. Please refresh and try again.',
+              });
+            }
+          });
         }
       })
       .catch(() => {});
-
-    // Load social amelioration settings for registration form dropdowns
-    const types = ['PENSION_TYPE', 'DISABILITY_TYPE', 'GRADE_LEVEL', 'SOLO_PARENT_CATEGORY'];
-    Promise.all(
-      types.map(type =>
-        api
-          .get(`/portal-registration/amelioration-settings?type=${type}`)
-          .then(res => ({ type, data: res.data.data || [], failed: false }))
-          .catch(() => ({ type, data: [], failed: true }))
-      )
-    ).then(results => {
-      const map: Record<string, any[]> = {};
-      let anyFailed = false;
-      results.forEach(({ type, data, failed }) => {
-        map[type] = data;
-        if (failed) anyFailed = true;
-      });
-      setAmeliorationSettings(map);
-      if (anyFailed) {
-        toast({
-          variant: 'destructive',
-          title: 'Failed to load options',
-          description: 'Some dropdown options could not be loaded. Please refresh and try again.',
-        });
-      }
-    });
   }, []);
 
   const step1Form = useForm<Step1Data>({
@@ -371,10 +399,46 @@ export const Register: React.FC = () => {
     );
   })();
 
+  // Is the student vocational/technical level (TESDA — separate classification from college)
+  const isVocational = (() => {
+    if (!watchedEducationAttainment) return false;
+    const v = watchedEducationAttainment.toLowerCase();
+    return v.includes('vocational') || v.includes('technical') || v.includes('tesda');
+  })();
+
+  // Hardcoded TESDA NTVQF qualification levels
+  const NC_LEVEL_OPTIONS = [
+    { id: 'NC I',      name: 'NC I (National Certificate I)' },
+    { id: 'NC II',     name: 'NC II (National Certificate II)' },
+    { id: 'NC III',    name: 'NC III (National Certificate III)' },
+    { id: 'NC IV',     name: 'NC IV (National Certificate IV)' },
+    { id: 'NC V',      name: 'NC V (National Certificate V)' },
+    { id: 'NC VI',     name: 'NC VI (National Certificate VI)' },
+    { id: 'Diploma',   name: 'Diploma' },
+    { id: 'Bachelor',   name: "Bachelor's Degree" },
+    { id: 'Master',    name: "Master's Degree" },
+    { id: 'Doctorate', name: 'Doctorate / PhD' },
+  ];
+
   // Non-college grade levels only (Elementary, JHS, SHS) — college students get a text field instead
-  const filteredGradeLevels = ameliorationSettings.GRADE_LEVEL.filter((s: any) =>
-    ['sas-gl-elem', 'sas-gl-jhs', 'sas-gl-shs'].includes(s.id)
-  );
+  // Filter by name keyword to exclude college/tertiary entries, then by education level.
+  // No hardcoded IDs — backend returns text values now.
+  const filteredGradeLevels = ameliorationSettings.GRADE_LEVEL.filter((s: LookupOption) => {
+    const name = (s.name || '').toLowerCase();
+    // First: exclude college/university/vocational
+    if (name.includes('college') || name.includes('university') || name.includes('vocational')) {
+      return false;
+    }
+    // Second: filter by education level
+    if (watchedEducationAttainment === 'Elementary') {
+      return name.includes('elementary');
+    }
+    if (watchedEducationAttainment === 'High School') {
+      return name.includes('junior') || name.includes('senior');
+    }
+    // No education selected — show all 3
+    return true;
+  });
 
   // Age-based voter type eligibility (SK: 15–30, Regular: 18+)
   const residentAgeYears = watchedBirthdate
@@ -391,6 +455,10 @@ export const Register: React.FC = () => {
       step1Form.setError('disabilityTypeId', { message: 'Please select your type of disability.' });
       hasConditionalError = true;
     }
+    if (isPWD && !data.disabilityLevel) {
+      step1Form.setError('disabilityLevel', { message: 'Please select your disability level.' });
+      hasConditionalError = true;
+    }
     if (isSoloParent && !data.soloParentCategoryId) {
       step1Form.setError('soloParentCategoryId', { message: 'Please select your solo parent category.' });
       hasConditionalError = true;
@@ -400,23 +468,28 @@ export const Register: React.FC = () => {
     // Build ameliorationData from sub-fields matching each trigger
     const ameliorationData: Record<string, any> = {};
     if (isSeniorCitizen && data.pensionTypeIds?.length) {
-      ameliorationData.seniorCitizen = { pensionTypeIds: data.pensionTypeIds };
+      ameliorationData.seniorCitizen = { pensionTypes: data.pensionTypeIds };
     }
     if (isPWD && data.disabilityTypeId) {
       ameliorationData.pwd = {
-        disabilityTypeId: data.disabilityTypeId,
+        disabilityType: data.disabilityTypeId,
         disabilityLevel: data.disabilityLevel || undefined,
       };
     }
     if (isStudent) {
-      if (isCollegeLevel && data.courseField) {
+      if (isVocational && data.ncLevelId) {
+        ameliorationData.student = {
+          ncLevel: data.ncLevelId,
+          courseField: data.courseField || undefined,
+        };
+      } else if (isCollegeLevel && data.courseField) {
         ameliorationData.student = { courseField: data.courseField };
-      } else if (!isCollegeLevel && data.gradeLevelId) {
-        ameliorationData.student = { gradeLevelId: data.gradeLevelId };
+      } else if (!isCollegeLevel && !isVocational && data.gradeLevelId) {
+        ameliorationData.student = { gradeLevel: data.gradeLevelId };
       }
     }
     if (isSoloParent && data.soloParentCategoryId) {
-      ameliorationData.soloParent = { categoryId: data.soloParentCategoryId };
+      ameliorationData.soloParent = { category: data.soloParentCategoryId };
     }
     if (data.isVoter && data.voterType) {
       ameliorationData.voter = { voterType: data.voterType };
@@ -443,7 +516,7 @@ export const Register: React.FC = () => {
   const handleStep4 = async (data: Step4Data) => {
     setIsLoading(true);
     try {
-      const fd = formData as any;
+      const fd = formData;
       const payload = {
         // Step 1 — personal info
         firstName: fd.firstName,
@@ -453,9 +526,7 @@ export const Register: React.FC = () => {
         sex: fd.sex,
         civilStatus: fd.civilStatus,
         birthdate: fd.birthdate,
-        birthRegion: fd.birthRegion,
-        birthProvince: fd.birthProvince,
-        birthMunicipality: fd.birthMunicipality,
+        placeOfBirth: fd.placeOfBirth,
         citizenship: fd.citizenship,
         contactNumber: fd.contactNumber,
         email: fd.email,
@@ -497,11 +568,18 @@ export const Register: React.FC = () => {
         description: 'Your application is pending review. You will be notified when approved.',
       });
       navigate('/register/status?username=' + encodeURIComponent(data.username));
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let message = 'Please try again.';
+      if (typeof error === 'object' && error !== null) {
+        const errObj = error as Record<string, unknown>;
+        const response = errObj.response as Record<string, unknown> | undefined;
+        const data = response?.data as Record<string, unknown> | undefined;
+        message = (data?.message as string) || (error as Error).message || message;
+      }
       toast({
         variant: 'destructive',
         title: 'Registration Failed',
-        description: error.response?.data?.message || error.message || 'Please try again.',
+        description: message,
       });
     } finally {
       setIsLoading(false);
@@ -849,41 +927,15 @@ export const Register: React.FC = () => {
                       <CardTitle className="text-lg flex items-center gap-2">Place of Birth</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
                         <FormField
                           control={step1Form.control}
-                          name="birthRegion"
+                          name="placeOfBirth"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Region</FormLabel>
+                              <FormLabel>Place of Birth</FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="e.g., Region VIII" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={step1Form.control}
-                          name="birthProvince"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Province</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="e.g., Eastern Samar" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={step1Form.control}
-                          name="birthMunicipality"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Municipality / City</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="e.g., Borongan" />
+                                <Input {...field} placeholder="e.g., Borongan, Eastern Samar" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1007,7 +1059,9 @@ export const Register: React.FC = () => {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="No formal education">No Formal Education</SelectItem>
+                                  {!isStudent && (
+                                    <SelectItem value="No formal education">No Formal Education</SelectItem>
+                                  )}
                                   <SelectItem value="Elementary">Elementary</SelectItem>
                                   <SelectItem value="High School">High School</SelectItem>
                                   <SelectItem value="Vocational / Technical">Vocational / Technical</SelectItem>
@@ -1052,9 +1106,13 @@ export const Register: React.FC = () => {
                             control={step1Form.control}
                             name="isVoter"
                             render={({ field }) => (
-                              <FormItem className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                              <label
+                                htmlFor="isVoter"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
                                 <FormControl>
                                   <Checkbox
+                                    id="isVoter"
                                     checked={!!field.value}
                                     onCheckedChange={field.onChange}
                                     className="mt-0.5"
@@ -1067,7 +1125,7 @@ export const Register: React.FC = () => {
                                     representation.
                                   </FormDescription>
                                 </div>
-                              </FormItem>
+                              </label>
                             )}
                           />
                           {/* Voter type — shown when isVoter is checked */}
@@ -1115,9 +1173,13 @@ export const Register: React.FC = () => {
                             control={step1Form.control}
                             name="indigenousPerson"
                             render={({ field }) => (
-                              <FormItem className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                              <label
+                                htmlFor="indigenousPerson"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
                                 <FormControl>
                                   <Checkbox
+                                    id="indigenousPerson"
                                     checked={!!field.value}
                                     onCheckedChange={field.onChange}
                                     className="mt-0.5"
@@ -1130,16 +1192,20 @@ export const Register: React.FC = () => {
                                     IP-specific programs and services.
                                   </FormDescription>
                                 </div>
-                              </FormItem>
+                              </label>
                             )}
                           />
                           <FormField
                             control={step1Form.control}
                             name="hasDisability"
                             render={({ field }) => (
-                              <FormItem className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                              <label
+                                htmlFor="hasDisability"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
                                 <FormControl>
                                   <Checkbox
+                                    id="hasDisability"
                                     checked={!!field.value}
                                     onCheckedChange={field.onChange}
                                     className="mt-0.5"
@@ -1153,16 +1219,20 @@ export const Register: React.FC = () => {
                                     Check if you have a physical, sensory, intellectual, or mental disability.
                                   </FormDescription>
                                 </div>
-                              </FormItem>
+                              </label>
                             )}
                           />
                           <FormField
                             control={step1Form.control}
                             name="hasChildren"
                             render={({ field }) => (
-                              <FormItem className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                              <label
+                                htmlFor="hasChildren"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
                                 <FormControl>
                                   <Checkbox
+                                    id="hasChildren"
                                     checked={!!field.value}
                                     onCheckedChange={field.onChange}
                                     className="mt-0.5"
@@ -1175,7 +1245,7 @@ export const Register: React.FC = () => {
                                     programs).
                                   </FormDescription>
                                 </div>
-                              </FormItem>
+                              </label>
                             )}
                           />
                         </div>
@@ -1235,7 +1305,7 @@ export const Register: React.FC = () => {
                             <FormItem>
                               <FormLabel>Pension / Benefit Types (select all that apply)</FormLabel>
                               <div className="flex flex-col gap-2 mt-2">
-                                {ameliorationSettings.PENSION_TYPE.map((s: any) => (
+                                {ameliorationSettings.PENSION_TYPE.map((s: LookupOption) => (
                                   <label key={s.id} className="flex items-center gap-2 cursor-pointer">
                                     <Checkbox
                                       checked={(field.value || []).includes(s.id)}
@@ -1286,7 +1356,7 @@ export const Register: React.FC = () => {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {ameliorationSettings.DISABILITY_TYPE.map((s: any) => (
+                                  {ameliorationSettings.DISABILITY_TYPE.map((s: LookupOption) => (
                                     <SelectItem key={s.id} value={s.id}>
                                       {s.name}
                                     </SelectItem>
@@ -1310,9 +1380,11 @@ export const Register: React.FC = () => {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="Mild">Mild</SelectItem>
-                                  <SelectItem value="Moderate">Moderate</SelectItem>
-                                  <SelectItem value="Severe">Severe</SelectItem>
+                                  {ameliorationSettings.DISABILITY_LEVEL.map((s: LookupOption) => (
+                                    <SelectItem key={s.id} value={s.id}>
+                                      {s.name}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -1329,13 +1401,55 @@ export const Register: React.FC = () => {
                       <CardHeader className="pb-4">
                         <CardTitle className="text-lg text-green-800">Student Information</CardTitle>
                         <p className="text-sm text-green-700">
-                          {isCollegeLevel
+                          {isVocational
+                            ? 'Please select your TESDA NC qualification level and enter your course or trade area.'
+                            : isCollegeLevel
                             ? 'Please enter your course or field of study.'
                             : 'Please indicate your current grade level.'}
                         </p>
                       </CardHeader>
                       <CardContent>
-                        {isCollegeLevel ? (
+                        {isVocational ? (
+                          <>
+                            <FormField
+                              control={step1Form.control}
+                              name="ncLevelId"
+                              render={({ field }) => (
+                                <FormItem className="mb-4">
+                                  <FormLabel>NC Qualification Level *</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select NC level" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {NC_LEVEL_OPTIONS.map((n) => (
+                                        <SelectItem key={n.id} value={n.id}>
+                                          {n.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={step1Form.control}
+                              name="courseField"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Course / Trade Area</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="e.g., Computer Hardware Servicing, Automotive Servicing" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </>
+                        ) : isCollegeLevel ? (
                           <FormField
                             control={step1Form.control}
                             name="courseField"
@@ -1363,7 +1477,7 @@ export const Register: React.FC = () => {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    {filteredGradeLevels.map((s: any) => (
+                                    {filteredGradeLevels.map((s: LookupOption) => (
                                       <SelectItem key={s.id} value={s.id}>
                                         {s.name}
                                       </SelectItem>
@@ -1403,7 +1517,7 @@ export const Register: React.FC = () => {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {ameliorationSettings.SOLO_PARENT_CATEGORY.map((s: any) => (
+                                  {ameliorationSettings.SOLO_PARENT_CATEGORY.map((s: LookupOption) => (
                                     <SelectItem key={s.id} value={s.id}>
                                       {s.name}
                                     </SelectItem>
@@ -1462,11 +1576,11 @@ export const Register: React.FC = () => {
                           <FormLabel>Municipality</FormLabel>
                           <ReactSelect
                             value={(() => {
-                              const m = municipalities.find((m: any) => String(m.id) === selectedMunicipalityId);
+                              const m = municipalities.find((m: Municipality) => String(m.id) === selectedMunicipalityId);
                               return m ? { value: m.id, label: m.municipalityName } : null;
                             })()}
                             onChange={selected => handleMunicipalityChange(selected ? String(selected.value) : '')}
-                            options={municipalities.map((m: any) => ({ value: m.id, label: m.municipalityName }))}
+                            options={municipalities.map((m: Municipality) => ({ value: m.id, label: m.municipalityName }))}
                             placeholder="Select municipality"
                             classNamePrefix="react-select"
                             isClearable
@@ -1481,11 +1595,11 @@ export const Register: React.FC = () => {
                               <FormLabel>Barangay *</FormLabel>
                               <ReactSelect
                                 value={(() => {
-                                  const b = barangays.find((b: any) => String(b.id) === field.value);
+                                  const b = barangays.find((b: Barangay) => String(b.id) === field.value);
                                   return b ? { value: b.id, label: b.barangayName } : null;
                                 })()}
                                 onChange={selected => field.onChange(selected ? String(selected.value) : '')}
-                                options={barangays.map((b: any) => ({ value: b.id, label: b.barangayName }))}
+                                options={barangays.map((b: Barangay) => ({ value: b.id, label: b.barangayName }))}
                                 placeholder={barangays.length === 0 ? 'Select municipality first' : 'Select barangay'}
                                 classNamePrefix="react-select"
                                 isDisabled={barangays.length === 0}

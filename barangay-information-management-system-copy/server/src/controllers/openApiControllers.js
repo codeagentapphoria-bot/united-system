@@ -40,7 +40,7 @@ export const listResidents = async (req, res) => {
         r.sex,
         r.civil_status,
         r.birthdate,
-        r.birth_region,
+        r.place_of_birth,
         r.contact_number,
         r.email,
         r.occupation,

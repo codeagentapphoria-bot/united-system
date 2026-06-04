@@ -1,74 +1,60 @@
+/**
+ * social-amelioration-setting.service.ts
+ *
+ * API client for social amelioration classification option lookups.
+ * Options live in classification_types.details (the old social_amelioration_settings
+ * table was dropped — data migrated to classification_types).
+ *
+ * Endpoint: GET /api/portal-registration/classification-options
+ */
+
 import api from './auth.service';
 
-export type SocialAmeliorationSettingType = 'PENSION_TYPE' | 'DISABILITY_TYPE' | 'GRADE_LEVEL' | 'SOLO_PARENT_CATEGORY';
-
-export interface SocialAmeliorationSetting {
+export interface SettingOption {
   id: string;
-  type: SocialAmeliorationSettingType;
   name: string;
-  description?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
-export interface CreateSocialAmeliorationSettingInput {
-  type: SocialAmeliorationSettingType;
-  name: string;
-  description?: string;
-  isActive?: boolean;
-}
-
-export interface UpdateSocialAmeliorationSettingInput {
-  name?: string;
-  description?: string;
-  isActive?: boolean;
-}
-
-export interface SocialAmeliorationSettingFilters {
-  type?: SocialAmeliorationSettingType;
-  isActive?: boolean;
-  search?: string;
-}
+/** Map of CSV setting type → { typeName, fieldKey } for getClassificationOptions */
+const SETTING_MAP: Record<string, { typeName: string; fieldKey?: string }> = {
+  PENSION_TYPE: { typeName: 'Senior Citizen', fieldKey: 'pensionType' },
+  DISABILITY_TYPE: { typeName: 'PWD', fieldKey: 'disabilityType' },
+  GRADE_LEVEL: { typeName: 'Student', fieldKey: 'gradeLevel' },
+  SOLO_PARENT_CATEGORY: { typeName: 'Solo Parent', fieldKey: 'category' },
+  COLLEGE_STUDENT: { typeName: 'College Student' },
+  VOCATIONAL_STUDENT: { typeName: 'Vocational Student', fieldKey: 'ncLevel' },
+};
 
 export const socialAmeliorationSettingApi = {
-  async getSettings(filters?: SocialAmeliorationSettingFilters): Promise<SocialAmeliorationSetting[]> {
-    const params = new URLSearchParams();
-    if (filters?.type) params.append('type', filters.type);
-    if (filters?.isActive !== undefined) params.append('isActive', String(filters.isActive));
-    if (filters?.search) params.append('search', filters.search);
+  /**
+   * Fetch classification option lookup values by setting type.
+   * Falls back to empty array on error so CSV export still proceeds.
+   *
+   * @param municipalityId  Municipality ID for the lookup (optional - uses default if not provided)
+   * @param settingType     One of: PENSION_TYPE | DISABILITY_TYPE | GRADE_LEVEL | SOLO_PARENT_CATEGORY
+   */
+  async getSettings({
+    municipalityId,
+    type,
+  }: {
+    municipalityId?: number;
+    type: 'PENSION_TYPE' | 'DISABILITY_TYPE' | 'GRADE_LEVEL' | 'SOLO_PARENT_CATEGORY' | 'VOCATIONAL_STUDENT' | 'COLLEGE_STUDENT';
+  }): Promise<SettingOption[]> {
+    const mapping = SETTING_MAP[type];
+    if (!mapping) return [];
 
-    const response = await api.get(`/social-amelioration-settings?${params.toString()}`);
-    return response.data.data;
-  },
-
-  async getSetting(id: string): Promise<SocialAmeliorationSetting> {
-    const response = await api.get(`/social-amelioration-settings/${id}`);
-    return response.data.data;
-  },
-
-  async createSetting(data: CreateSocialAmeliorationSettingInput): Promise<SocialAmeliorationSetting> {
-    const response = await api.post('/social-amelioration-settings', data);
-    return response.data.data;
-  },
-
-  async updateSetting(id: string, data: UpdateSocialAmeliorationSettingInput): Promise<SocialAmeliorationSetting> {
-    const response = await api.put(`/social-amelioration-settings/${id}`, data);
-    return response.data.data;
-  },
-
-  async deleteSetting(id: string): Promise<void> {
-    await api.delete(`/social-amelioration-settings/${id}`);
-  },
-
-  async activateSetting(id: string): Promise<SocialAmeliorationSetting> {
-    const response = await api.patch(`/social-amelioration-settings/${id}/activate`);
-    return response.data.data;
-  },
-
-  async deactivateSetting(id: string): Promise<SocialAmeliorationSetting> {
-    const response = await api.patch(`/social-amelioration-settings/${id}/deactivate`);
-    return response.data.data;
+    try {
+      const params = new URLSearchParams({
+        ...(municipalityId ? { municipalityId: String(municipalityId) } : {}),
+        typeName: mapping.typeName,
+        ...(mapping.fieldKey ? { fieldKey: mapping.fieldKey } : {}),
+      });
+      const response = await api.get(`/portal-registration/classification-options?${params}`);
+      return response.data?.data ?? [];
+    } catch {
+      return [];
+    }
   },
 };
 
+export default socialAmeliorationSettingApi;

@@ -1261,7 +1261,7 @@ class Barangay {
           r.sex,
           r.civil_status,
           r.birthdate,
-          r.birth_region,
+          r.place_of_birth,
           r.contact_number,
           r.email,
           r.occupation,
@@ -1351,7 +1351,7 @@ class Barangay {
           Sex: resident.sex,
           "Civil Status": resident.civil_status,
           "Birth Date": resident.birthdate,
-          "Birth Place": resident.birth_region || "",
+          "Birth Place": resident.place_of_birth || "",
           "Contact Number": resident.contact_number || "",
           Email: resident.email || "",
           Occupation: resident.occupation || "",
@@ -1554,7 +1554,7 @@ class Barangay {
           const result = await client.query(
             `INSERT INTO residents (
               id, barangay_id, first_name, last_name, middle_name, extension_name,
-              birthdate, birth_region, sex, civil_status, contact_number,
+              birthdate, place_of_birth, sex, civil_status, contact_number,
               email, occupation, employment_status, education_attainment, created_at, updated_at
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
             RETURNING id`,
@@ -1566,7 +1566,7 @@ class Barangay {
               row.middle_name || null,
               row.extension_name || null,
               row.birth_date,
-              row.birth_region || row.birth_place || null,
+              row.place_of_birth || null,
               row.gender?.toLowerCase(),
               row.civil_status?.toLowerCase(),
               row.contact_number || null,

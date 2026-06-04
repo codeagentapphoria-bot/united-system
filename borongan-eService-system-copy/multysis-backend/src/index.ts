@@ -384,7 +384,6 @@ import residentRoutes from './routes/resident.routes';
 import serviceRoutes from './routes/service.routes';
 import serviceFieldsRoutes from './routes/service-fields.routes';
 // eserviceRoutes removed (AC1) — eservices table dropped; portal uses /api/services/active
-import socialAmeliorationSettingRoutes from './routes/social-amelioration-setting.routes';
 import socialAmeliorationRoutes from './routes/social-amelioration.routes';
 import transactionRoutes from './routes/transaction.routes';
 import uploadRoutes from './routes/upload.routes';
@@ -428,7 +427,6 @@ app.use('/api/service-fields', apiLimiter, serviceFieldsRoutes);
 // /api/e-services removed (AC1) — portal fetches services via /api/services/active
 app.use('/api/government-programs', apiLimiter, governmentProgramRoutes);
 app.use('/api/social-amelioration', apiLimiter, socialAmeliorationRoutes);
-app.use('/api/social-amelioration-settings', apiLimiter, socialAmeliorationSettingRoutes);
 app.use('/api/faqs', apiLimiter, faqRoutes);
 app.use('/api/public/faqs', apiLimiter, publicFaqRoutes);
 app.use('/api/tax-profiles', apiLimiter, taxProfileRoutes);
@@ -440,6 +438,8 @@ app.use('/api/medicine-requests', apiLimiter, medicineRequestRoutes);
 app.use('/api/admin/libre-sakay', apiLimiter, libreSakayRoutes);
 // Admin classification management (resident_classifications + classification_types via raw SQL)
 app.use('/api/classification', apiLimiter, classificationRoutes);
+// Also mount at /api/classification-types for schema-driven SettingsTab UI
+app.use('/api/classification-types', apiLimiter, classificationRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

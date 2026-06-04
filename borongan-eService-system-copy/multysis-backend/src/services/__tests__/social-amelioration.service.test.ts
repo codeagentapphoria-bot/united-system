@@ -6,23 +6,30 @@ jest.mock('../../config/database', () => ({
   default: {
     seniorCitizenBeneficiary: {
       findMany: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
       count: jest.fn(),
     },
     pWDBeneficiary: {
       findMany: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
       count: jest.fn(),
     },
     studentBeneficiary: {
       findMany: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
       count: jest.fn(),
     },
     soloParentBeneficiary: {
       findMany: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
       count: jest.fn(),
     },
     beneficiaryProgramPivot: {
       findMany: jest.fn(),
     },
+    $queryRaw: jest.fn(),
+    $queryRawUnsafe: jest.fn(),
+    $transaction: jest.fn(),
   },
 }));
 
@@ -53,7 +60,6 @@ describe('Social Amelioration Service', () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           residentId: 'res-1',
-          pensionTypes: [{ settingId: 'pension-1', setting: { name: 'GSIS' } }],
           resident: {
             id: 'res-1',
             firstName: 'Juan',
@@ -72,7 +78,6 @@ describe('Social Amelioration Service', () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           residentId: 'res-2',
-          pensionTypes: [],
           resident: {
             id: 'res-2',
             firstName: 'Maria',
@@ -90,6 +95,12 @@ describe('Social Amelioration Service', () => {
         { beneficiaryId: 'senior-1', programId: 'prog-b' },
         { beneficiaryId: 'senior-2', programId: 'prog-c' },
       ];
+
+      // Classification details batch fetch via $queryRawUnsafe (batch method)
+      mockedPrisma.$queryRawUnsafe.mockResolvedValueOnce([
+        { resident_id: 'res-1', classification_details: { pensionTypes: ['pension-1'], remarks: null } },
+        { resident_id: 'res-2', classification_details: { pensionTypes: [], remarks: null } },
+      ]);
 
       mockedPrisma.seniorCitizenBeneficiary.findMany.mockResolvedValue(mockSeniors);
       mockedPrisma.seniorCitizenBeneficiary.count.mockResolvedValue(2);
@@ -111,6 +122,10 @@ describe('Social Amelioration Service', () => {
       expect(result.data[0].governmentPrograms).toEqual(['prog-a', 'prog-b']);
       expect(result.data[1].governmentPrograms).toEqual(['prog-c']);
 
+      // pensionTypes now come from classification_details
+      expect(result.data[0].pensionTypes).toEqual(['pension-1']);
+      expect(result.data[1].pensionTypes).toEqual([]);
+
       // Pagination should still work
       expect(result.pagination.total).toBe(2);
     });
@@ -125,7 +140,6 @@ describe('Social Amelioration Service', () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           residentId: 'res-3',
-          pensionTypes: [],
           resident: {
             id: 'res-3',
             firstName: 'Ana',
@@ -138,6 +152,9 @@ describe('Social Amelioration Service', () => {
         },
       ];
 
+      mockedPrisma.$queryRawUnsafe.mockResolvedValueOnce([
+        { resident_id: 'res-3', classification_details: { pensionTypes: [], remarks: null } },
+      ]);
       mockedPrisma.seniorCitizenBeneficiary.findMany.mockResolvedValue(mockSeniors);
       mockedPrisma.seniorCitizenBeneficiary.count.mockResolvedValue(1);
       mockedPrisma.beneficiaryProgramPivot.findMany.mockResolvedValue([]);
@@ -145,6 +162,7 @@ describe('Social Amelioration Service', () => {
       const result = await socialAmeliorationService.listSeniorBeneficiaries();
 
       expect(result.data[0].governmentPrograms).toEqual([]);
+      expect(result.data[0].pensionTypes).toEqual([]);
     });
   });
 
@@ -157,14 +175,12 @@ describe('Social Amelioration Service', () => {
           status: 'ACTIVE',
           remarks: null,
           disabilityLevel: 'Moderate',
-          disabilityTypeId: 'dt-1',
           monetaryAllowance: false,
           assistedDevice: false,
           donorDevice: null,
           createdAt: new Date(),
           updatedAt: new Date(),
           residentId: 'res-1',
-          disabilityType: { id: 'dt-1', name: 'Visual' },
           resident: {
             id: 'res-1',
             firstName: 'Pedro',
@@ -181,14 +197,12 @@ describe('Social Amelioration Service', () => {
           status: 'ACTIVE',
           remarks: null,
           disabilityLevel: 'Severe',
-          disabilityTypeId: 'dt-2',
           monetaryAllowance: true,
           assistedDevice: true,
           donorDevice: 'NGO',
           createdAt: new Date(),
           updatedAt: new Date(),
           residentId: 'res-2',
-          disabilityType: { id: 'dt-2', name: 'Physical' },
           resident: {
             id: 'res-2',
             firstName: 'Rosa',
@@ -207,6 +221,12 @@ describe('Social Amelioration Service', () => {
         { beneficiaryId: 'pwd-2', programId: 'prog-z' },
       ];
 
+      // Mock $queryRawUnsafe for classification_details batch fetch
+      mockedPrisma.$queryRawUnsafe.mockResolvedValueOnce([
+        { resident_id: 'res-1', classification_details: { disabilityType: 'Visual', disabilityLevel: 'Moderate', remarks: null } },
+        { resident_id: 'res-2', classification_details: { disabilityType: 'Physical', disabilityLevel: 'Severe', remarks: null } },
+      ]);
+
       mockedPrisma.pWDBeneficiary.findMany.mockResolvedValue(mockPWDs);
       mockedPrisma.pWDBeneficiary.count.mockResolvedValue(2);
       mockedPrisma.beneficiaryProgramPivot.findMany.mockResolvedValue(mockProgramPivots);
@@ -224,6 +244,10 @@ describe('Social Amelioration Service', () => {
 
       expect(result.data[0].governmentPrograms).toEqual(['prog-x']);
       expect(result.data[1].governmentPrograms).toEqual(['prog-y', 'prog-z']);
+
+      // disabilityType now comes from classification_details
+      expect(result.data[0].disabilityType).toEqual('Visual');
+      expect(result.data[1].disabilityType).toEqual('Physical');
     });
   });
 
@@ -235,11 +259,9 @@ describe('Social Amelioration Service', () => {
           studentId: 'ST-2026-001',
           status: 'ACTIVE',
           remarks: null,
-          gradeLevelId: 'gl-1',
           createdAt: new Date(),
           updatedAt: new Date(),
           residentId: 'res-1',
-          gradeLevel: { id: 'gl-1', name: 'Grade 10' },
           resident: {
             id: 'res-1',
             firstName: 'Carlo',
@@ -255,6 +277,11 @@ describe('Social Amelioration Service', () => {
       const mockProgramPivots = [
         { beneficiaryId: 'stu-1', programId: 'prog-edu' },
       ];
+
+      // Mock $queryRawUnsafe for classification_details batch fetch
+      mockedPrisma.$queryRawUnsafe.mockResolvedValueOnce([
+        { resident_id: 'res-1', classification_details: { gradeLevel: 'Grade 10', remarks: null } },
+      ]);
 
       mockedPrisma.studentBeneficiary.findMany.mockResolvedValue(mockStudents);
       mockedPrisma.studentBeneficiary.count.mockResolvedValue(1);
@@ -273,6 +300,8 @@ describe('Social Amelioration Service', () => {
 
       // IMPORTANT: Student formatter uses `programs` key, NOT `governmentPrograms`
       expect(result.data[0].programs).toEqual(['prog-edu']);
+      // gradeLevel now comes from classification_details
+      expect(result.data[0].gradeLevel).toEqual('Grade 10');
     });
   });
 
@@ -284,11 +313,9 @@ describe('Social Amelioration Service', () => {
           soloParentId: 'SP-2026-001',
           status: 'ACTIVE',
           remarks: null,
-          categoryId: 'cat-1',
           createdAt: new Date(),
           updatedAt: new Date(),
           residentId: 'res-1',
-          category: { id: 'cat-1', name: 'Widowed' },
           resident: {
             id: 'res-1',
             firstName: 'Elena',
@@ -304,11 +331,9 @@ describe('Social Amelioration Service', () => {
           soloParentId: 'SP-2026-002',
           status: 'ACTIVE',
           remarks: null,
-          categoryId: 'cat-2',
           createdAt: new Date(),
           updatedAt: new Date(),
           residentId: 'res-2',
-          category: { id: 'cat-2', name: 'Separated' },
           resident: {
             id: 'res-2',
             firstName: 'Luz',
@@ -324,6 +349,12 @@ describe('Social Amelioration Service', () => {
       const mockProgramPivots = [
         { beneficiaryId: 'sp-2', programId: 'prog-assist' },
       ];
+
+      // Mock $queryRawUnsafe for classification_details batch fetch
+      mockedPrisma.$queryRawUnsafe.mockResolvedValueOnce([
+        { resident_id: 'res-1', classification_details: { category: 'Widowed', remarks: null } },
+        { resident_id: 'res-2', classification_details: { category: 'Separated', remarks: null } },
+      ]);
 
       mockedPrisma.soloParentBeneficiary.findMany.mockResolvedValue(mockSoloParents);
       mockedPrisma.soloParentBeneficiary.count.mockResolvedValue(2);
@@ -343,6 +374,10 @@ describe('Social Amelioration Service', () => {
       // IMPORTANT: Solo parent formatter uses `assistancePrograms` key
       expect(result.data[0].assistancePrograms).toEqual([]);
       expect(result.data[1].assistancePrograms).toEqual(['prog-assist']);
+
+      // category now comes from classification_details
+      expect(result.data[0].category).toEqual('Widowed');
+      expect(result.data[1].category).toEqual('Separated');
     });
   });
 });

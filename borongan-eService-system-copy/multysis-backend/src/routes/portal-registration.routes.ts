@@ -10,7 +10,7 @@ import rateLimit from 'express-rate-limit';
 import { verifyAdmin } from '../middleware/auth';
 import {
   deleteRejectedController,
-  getPublicAmeliorationSettingsController,
+  getClassificationOptionsController,
   getRegistrationRequestController,
   getRegistrationStatusController,
   listRegistrationRequestsController,
@@ -35,11 +35,12 @@ const registrationLimiter = rateLimit({
 // PUBLIC (no auth required)
 // =============================================================================
 
-// Fetch social amelioration setting options (used by registration form dropdowns)
-router.get('/amelioration-settings', getPublicAmeliorationSettingsController);
-
 // Submit registration
 router.post('/register', registrationLimiter, submitRegistrationController);
+
+// Get classification dropdown options for registration form
+// Query params: municipalityId (number), typeName (string, e.g. "Person with Disability")
+router.get('/classification-options', getClassificationOptionsController);
 
 // Check registration status by username
 router.get('/status/:username', getRegistrationStatusController);

@@ -365,32 +365,16 @@ const FullInformationModal: React.FC<{
           )}
 
           {/* Place of Birth */}
-          {(beneficiary.birthRegion || beneficiary.citizen?.citizenPlaceOfBirth) && (
+          {(beneficiary.placeOfBirth || beneficiary.citizen?.placeOfBirth) && (
             <>
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Place of Birth</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(beneficiary.birthRegion || beneficiary.citizen?.citizenPlaceOfBirth?.region) && (
+                  {(beneficiary.placeOfBirth || beneficiary.citizen?.placeOfBirth) && (
                     <div className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Region</label>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Place of Birth</label>
                       <div className="min-h-[40px] flex items-center">
-                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{getRegionName(beneficiary.birthRegion || beneficiary.citizen?.citizenPlaceOfBirth?.region)}</p>
-                      </div>
-                    </div>
-                  )}
-                  {(beneficiary.birthProvince || beneficiary.citizen?.citizenPlaceOfBirth?.province) && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Province</label>
-                      <div className="min-h-[40px] flex items-center">
-                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.birthProvince || beneficiary.citizen?.citizenPlaceOfBirth?.province}</p>
-                      </div>
-                    </div>
-                  )}
-                  {(beneficiary.birthMunicipality || beneficiary.citizen?.citizenPlaceOfBirth?.municipality) && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Municipality</label>
-                      <div className="min-h-[40px] flex items-center">
-                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.birthMunicipality || beneficiary.citizen?.citizenPlaceOfBirth?.municipality}</p>
+                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.placeOfBirth || beneficiary.citizen?.placeOfBirth}</p>
                       </div>
                     </div>
                   )}

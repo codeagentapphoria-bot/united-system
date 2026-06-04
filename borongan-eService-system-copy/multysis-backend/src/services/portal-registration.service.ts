@@ -37,9 +37,7 @@ export interface ResidentRegistrationData {
   birthdate: string | Date;
   sex: string;
   civilStatus: string;
-  birthRegion?: string;
-  birthProvince?: string;
-  birthMunicipality?: string;
+  placeOfBirth?: string;
   citizenship?: string;
   // Contact
   contactNumber?: string;
@@ -79,10 +77,10 @@ export interface ResidentRegistrationData {
   hasDisability?: boolean;
   hasChildren?: boolean;
   ameliorationData?: {
-    seniorCitizen?: { pensionTypeIds?: string[] };
-    pwd?: { disabilityTypeId?: string; disabilityLevel?: string };
-    student?: { gradeLevelId?: string; courseField?: string };
-    soloParent?: { categoryId?: string };
+    seniorCitizen?: { pensionTypes?: string[] };
+    pwd?: { disabilityType?: string; disabilityLevel?: string };
+    student?: { gradeLevel?: string; courseField?: string; ncLevel?: string };
+    soloParent?: { category?: string };
     voter?: { voterType?: string };
   };
 }
@@ -152,9 +150,7 @@ export const submitRegistration = async (data: ResidentRegistrationData) => {
         sex: data.sex,
         civilStatus: data.civilStatus,
         birthdate: birthdateValue,
-        birthRegion: data.birthRegion || null,
-        birthProvince: data.birthProvince || null,
-        birthMunicipality: data.birthMunicipality || null,
+        placeOfBirth: data.placeOfBirth || null,
         citizenship: data.citizenship || null,
         contactNumber: data.contactNumber || null,
         email: data.email || null,
@@ -455,6 +451,7 @@ const EMPLOYMENT_STATUS_TO_CLASSIFICATION: Record<string, string> = {
   'self-employed': 'Self Employed',
   retired: 'Retired',
   student: 'Student',
+  vocational: 'Vocational Student',
 };
 
 function isCollegeLevel(educationAttainment?: string | null): boolean {
@@ -477,7 +474,7 @@ function isCollegeLevel(educationAttainment?: string | null): boolean {
  * Uses raw SQL since resident_classifications is not in the Prisma schema.
  * Best-effort — errors are logged but do not throw.
  */
-async function autoClassifyResident(
+export async function autoClassifyResident(
   residentUUID: string,
   municipalityId: number,
   resident: {
@@ -488,14 +485,17 @@ async function autoClassifyResident(
     birthdate?: Date | null;
   },
   ameliorationData?: {
-    seniorCitizen?: { pensionTypeIds?: string[] };
-    pwd?: { disabilityTypeId?: string; disabilityLevel?: string };
-    student?: { gradeLevelId?: string; courseField?: string };
-    soloParent?: { categoryId?: string };
+    seniorCitizen?: { pensionTypes?: string[] };
+    pwd?: { disabilityType?: string; disabilityLevel?: string };
+    student?: { gradeLevel?: string; courseField?: string; ncLevel?: string };
+    soloParent?: { category?: string };
     voter?: { voterType?: string };
   }
 ): Promise<void> {
   const toInsert: Array<{ type: string; details: Record<string, unknown> }> = [];
+
+  // ── Text values now come directly from the frontend (no UUID lookup needed) ─
+  // social_amelioration_settings table has been dropped.
 
   if (resident.isVoter) {
     toInsert.push({
@@ -516,14 +516,24 @@ async function autoClassifyResident(
       const isCollege = isCollegeLevel(resident.educationAttainment);
       const classType = isCollege ? 'College Student' : 'Student';
 
-      const details: Record<string, any> = { remarks: '' };
+      const details: Record<string, unknown> = { remarks: '' };
       if (isCollege) {
         details.courseField = ameliorationData?.student?.courseField || '';
       } else {
-        details.gradeLevel = ameliorationData?.student?.gradeLevelId || '';
+        details.gradeLevel = ameliorationData?.student?.gradeLevel || null;
       }
 
       toInsert.push({ type: classType, details });
+    } else if (resident.employmentStatus === 'vocational') {
+      // Vocational Student — TESDA NC levels from ameliorationData.student.ncLevel
+      toInsert.push({
+        type: 'Vocational Student',
+        details: {
+          ncLevel: ameliorationData?.student?.ncLevel || null,
+          courseField: ameliorationData?.student?.courseField || null,
+          remarks: '',
+        },
+      });
     } else {
       toInsert.push({ type: employmentClass, details: {} });
     }
@@ -536,11 +546,11 @@ async function autoClassifyResident(
   if (resident.birthdate) {
     const ageDays = (Date.now() - new Date(resident.birthdate).getTime()) / 86400000;
     if (ageDays >= 60 * 365.25) {
-      // Map pensionTypeIds (BIMS) → pensionTypes (form schema)
+      const pensionTypes = ameliorationData?.seniorCitizen?.pensionTypes || [];
       toInsert.push({
         type: 'Senior Citizen',
         details: {
-          pensionTypes: ameliorationData?.seniorCitizen?.pensionTypeIds || [],
+          pensionTypes,
           remarks: '',
         },
       });
@@ -548,26 +558,23 @@ async function autoClassifyResident(
   }
 
   // Social amelioration: PWD
-  // Read BIMS keys from ameliorationData (frontend sends disabilityTypeId),
-  // map to form schema keys for classification_details (matching migrate_classification_details.sql)
-  if (ameliorationData?.pwd?.disabilityTypeId) {
+  if (ameliorationData?.pwd?.disabilityType) {
     toInsert.push({
       type: 'Person with Disability',
       details: {
-        disabilityType: ameliorationData.pwd.disabilityTypeId,
-        disabilityLevel: ameliorationData.pwd.disabilityLevel || '',
+        disabilityType: ameliorationData.pwd.disabilityType,
+        disabilityLevel: ameliorationData.pwd.disabilityLevel || null,
         remarks: '',
       },
     });
   }
 
   // Social amelioration: Solo Parent
-  // Map categoryId (BIMS) → category (form schema)
-  if (ameliorationData?.soloParent?.categoryId) {
+  if (ameliorationData?.soloParent?.category) {
     toInsert.push({
       type: 'Solo Parent',
       details: {
-        category: ameliorationData.soloParent.categoryId,
+        category: ameliorationData.soloParent.category,
         remarks: '',
       },
     });
@@ -878,3 +885,79 @@ async function generateResidentId(municipalityId: number, year: number): Promise
   const cntPart = String(counter).padStart(4, '0');
   return `${prefix}-${year}-${munPart}${cntPart}`;
 }
+
+// =============================================================================
+// GET CLASSIFICATION OPTIONS  (public — no auth required)
+// Returns dropdown option choices for registration form sub-fields by reading
+// classification_types.details[].options[] for select/multiselect fields.
+// Replaces the defunct /portal-registration/amelioration-settings endpoint
+// which depended on the now-dropped social_amelioration_settings table.
+// =============================================================================
+
+interface ClassificationOption {
+  id: string;
+  name: string;
+}
+
+interface ClassificationTypeRow {
+  id: number;
+  municipality_id: number;
+  name: string;
+  details: Array<{
+    key: string;
+    label: string;
+    type: string;
+    options?: string[];
+  }>;
+  is_active: boolean;
+}
+
+export const getClassificationOptions = async (
+  municipalityId: number,
+  typeName: string,
+  fieldKey?: string,
+): Promise<ClassificationOption[]> => {
+  const cacheKey = `portal:classifications:${municipalityId}:${typeName}${fieldKey ? `:${fieldKey}` : ''}`;
+
+  const cached = await cacheService.get<ClassificationOption[]>(cacheKey);
+  if (cached !== null && cached !== undefined) return cached;
+
+  const rows = await prisma.$queryRaw<ClassificationTypeRow[]>`
+    SELECT
+      id,
+      municipality_id,
+      name,
+      details,
+      is_active
+    FROM classification_types
+    WHERE municipality_id = ${municipalityId}
+      AND name = ${typeName}
+      AND is_active = true
+    LIMIT 1
+  `;
+
+  if (rows.length === 0) {
+    throw new Error('CLASSIFICATION_TYPE_NOT_FOUND');
+  }
+
+  const row = rows[0];
+  const details = Array.isArray(row.details) ? row.details : [];
+
+  const options: ClassificationOption[] = [];
+
+  for (const field of details) {
+    // Only extract options from select and multiselect field types
+    if ((field.type === 'select' || field.type === 'multiselect') && Array.isArray(field.options)) {
+      // If fieldKey is specified, only return options for that field
+      if (fieldKey && field.key !== fieldKey) continue;
+      for (const optionValue of field.options) {
+        if (typeof optionValue === 'string' && optionValue.length > 0) {
+          options.push({ id: optionValue, name: optionValue });
+        }
+      }
+    }
+  }
+
+  await cacheService.set(cacheKey, options, 1800); // 30 min TTL
+  return options;
+};

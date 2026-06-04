@@ -1,2 +1,0 @@
-This directory will contain custom fonts.
-For now, this is a placeholder file.

@@ -27,7 +27,18 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { PortalHeader } from '@/components/layout/PortalHeader';
 import api from '@/services/api/auth.service';
-import { Camera, UserRound, FileText, Shield, Phone, Mail, Briefcase, GraduationCap, ChevronRight, Check } from 'lucide-react';
+import {
+  Camera,
+  UserRound,
+  FileText,
+  Shield,
+  Phone,
+  Mail,
+  Briefcase,
+  GraduationCap,
+  ChevronRight,
+  Check,
+} from 'lucide-react';
 
 // =============================================================================
 // SCHEMAS
@@ -84,9 +95,7 @@ const step1Schema = z.object({
     .refine(v => !isNaN(new Date(v).getTime()), 'Invalid date')
     .refine(v => new Date(v) < new Date(), 'Birthdate cannot be in the future')
     .refine(v => new Date(v) >= new Date('1900-01-01'), 'Please enter a valid birthdate'),
-  birthRegion: z.string().max(100).optional().or(z.literal('')),
-  birthProvince: z.string().max(100).optional().or(z.literal('')),
-  birthMunicipality: z.string().max(100).optional().or(z.literal('')),
+  placeOfBirth: z.string().max(200).optional().or(z.literal('')),
   citizenship: z.string().max(100).optional().or(z.literal('')),
   contactNumber: phPhone,
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
@@ -108,6 +117,7 @@ const step1Schema = z.object({
   disabilityLevel: z.string().optional().or(z.literal('')),
   gradeLevelId: z.string().optional().or(z.literal('')),
   courseField: z.string().max(200).optional().or(z.literal('')),
+  ncLevelId: z.string().optional().or(z.literal('')),
   soloParentCategoryId: z.string().optional().or(z.literal('')),
   voterType: z.enum(['Regular', 'SK']).optional(),
   emergencyContactPerson: z
@@ -201,8 +211,11 @@ export const ResidentRegister: React.FC = () => {
   const [ameliorationSettings, setAmeliorationSettings] = useState<Record<string, any[]>>({
     PENSION_TYPE: [],
     DISABILITY_TYPE: [],
+    DISABILITY_LEVEL: [],
     GRADE_LEVEL: [],
     SOLO_PARENT_CATEGORY: [],
+    COLLEGE_LEVEL: [],
+    VOCATIONAL_LEVEL: [],
   });
   const [formData, setFormData] = useState<Partial<Step1Data & Step2Data & Step3Data>>({});
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
@@ -224,37 +237,47 @@ export const ResidentRegister: React.FC = () => {
         // Auto-select Borongan municipality
         const borongan = data.find((m: any) => m.municipalityName?.toLowerCase().includes('borongan'));
         if (borongan) {
-          setSelectedMunicipalityId(String(borongan.id));
-          handleMunicipalityChange(String(borongan.id));
+          const muniId = String(borongan.id);
+          setSelectedMunicipalityId(muniId);
+          handleMunicipalityChange(muniId);
+
+          // Load classification options after municipality is selected
+          const typeNameMap: Record<string, { typeName: string; fieldKey?: string }> = {
+            DISABILITY_TYPE:       { typeName: 'Person with Disability', fieldKey: 'disabilityType' },
+            DISABILITY_LEVEL:      { typeName: 'Person with Disability', fieldKey: 'disabilityLevel' },
+            GRADE_LEVEL:           { typeName: 'Student', fieldKey: 'gradeLevel' },
+            PENSION_TYPE:          { typeName: 'Senior Citizen', fieldKey: 'pensionTypes' },
+            SOLO_PARENT_CATEGORY:  { typeName: 'Solo Parent', fieldKey: 'category' },
+            COLLEGE_LEVEL:         { typeName: 'College Student', fieldKey: 'gradeLevel' },
+            VOCATIONAL_LEVEL:      { typeName: 'Vocational Student', fieldKey: 'ncLevel' },
+          };
+          const types = Object.keys(typeNameMap);
+          Promise.all(
+            types.map(type =>
+              api
+                .get(`/portal-registration/classification-options?municipalityId=${muniId}&typeName=${typeNameMap[type].typeName}${typeNameMap[type].fieldKey ? `&fieldKey=${typeNameMap[type].fieldKey}` : ''}`)
+                .then(res => ({ type, data: res.data.data || [], failed: false }))
+                .catch(() => ({ type, data: [], failed: true }))
+            )
+          ).then(results => {
+            const map: Record<string, any[]> = {};
+            let anyFailed = false;
+            results.forEach(({ type, data, failed }) => {
+              map[type] = data;
+              if (failed) anyFailed = true;
+            });
+            setAmeliorationSettings(map);
+            if (anyFailed) {
+              toast({
+                variant: 'destructive',
+                title: 'Failed to load options',
+                description: 'Some dropdown options could not be loaded. Please refresh and try again.',
+              });
+            }
+          });
         }
       })
       .catch(() => {});
-
-    // Load social amelioration settings for registration form dropdowns
-    const types = ['PENSION_TYPE', 'DISABILITY_TYPE', 'GRADE_LEVEL', 'SOLO_PARENT_CATEGORY'];
-    Promise.all(
-      types.map(type =>
-        api
-          .get(`/portal-registration/amelioration-settings?type=${type}`)
-          .then(res => ({ type, data: res.data.data || [], failed: false }))
-          .catch(() => ({ type, data: [], failed: true }))
-      )
-    ).then(results => {
-      const map: Record<string, any[]> = {};
-      let anyFailed = false;
-      results.forEach(({ type, data, failed }) => {
-        map[type] = data;
-        if (failed) anyFailed = true;
-      });
-      setAmeliorationSettings(map);
-      if (anyFailed) {
-        toast({
-          variant: 'destructive',
-          title: 'Failed to load options',
-          description: 'Some dropdown options could not be loaded. Please refresh and try again.',
-        });
-      }
-    });
   }, []);
 
   const step1Form = useForm<Step1Data>({
@@ -371,10 +394,49 @@ export const ResidentRegister: React.FC = () => {
     );
   })();
 
+  // Is the student vocational/technical level (TESDA — separate classification from college)
+  const isVocational = (() => {
+    if (!watchedEducationAttainment) return false;
+    const v = watchedEducationAttainment.toLowerCase();
+    return v.includes('vocational') || v.includes('technical') || v.includes('tesda');
+  })();
+
+  // TESDA NTVQF qualification levels — fetched from backend (Vocational Student classification options).
+  // Falls back to hardcoded values if the API call hasn't completed yet.
+  const vocationalOptions = ameliorationSettings.VOCATIONAL_LEVEL?.length
+    ? ameliorationSettings.VOCATIONAL_LEVEL
+    : [
+        { id: 'NC I',   name: 'NC I (National Certificate I)' },
+        { id: 'NC II',  name: 'NC II (National Certificate II)' },
+        { id: 'NC III', name: 'NC III (National Certificate III)' },
+        { id: 'NC IV',  name: 'NC IV (National Certificate IV)' },
+        { id: 'NC V',   name: 'NC V (National Certificate V)' },
+        { id: 'NC VI',  name: 'NC VI (National Certificate VI)' },
+        { id: 'Diploma', name: 'Diploma' },
+        { id: 'Bachelor', name: "Bachelor's Degree" },
+        { id: 'Master',  name: "Master's Degree" },
+        { id: 'Doctorate', name: 'Doctorate / PhD' },
+      ];
+
   // Non-college grade levels only (Elementary, JHS, SHS) — college students get a text field instead
-  const filteredGradeLevels = ameliorationSettings.GRADE_LEVEL.filter((s: any) =>
-    ['sas-gl-elem', 'sas-gl-jhs', 'sas-gl-shs'].includes(s.id)
-  );
+  // Filter by name keyword to exclude college/tertiary, then by education level.
+  // No hardcoded IDs — backend returns text values now.
+  const filteredGradeLevels = ameliorationSettings.GRADE_LEVEL.filter((s: any) => {
+    const name = (s.name || '').toLowerCase();
+    // First: exclude college/university/vocational
+    if (name.includes('college') || name.includes('university') || name.includes('vocational')) {
+      return false;
+    }
+    // Second: filter by education level
+    if (watchedEducationAttainment === 'Elementary') {
+      return name.includes('elementary');
+    }
+    if (watchedEducationAttainment === 'High School') {
+      return name.includes('junior') || name.includes('senior');
+    }
+    // No education selected — show all 3
+    return true;
+  });
 
   // Age-based voter type eligibility (SK: 15–30, Regular: 18+)
   const residentAgeYears = watchedBirthdate
@@ -391,6 +453,10 @@ export const ResidentRegister: React.FC = () => {
       step1Form.setError('disabilityTypeId', { message: 'Please select your type of disability.' });
       hasConditionalError = true;
     }
+    if (isPWD && !data.disabilityLevel) {
+      step1Form.setError('disabilityLevel', { message: 'Please select your disability level.' });
+      hasConditionalError = true;
+    }
     if (isSoloParent && !data.soloParentCategoryId) {
       step1Form.setError('soloParentCategoryId', { message: 'Please select your solo parent category.' });
       hasConditionalError = true;
@@ -400,23 +466,28 @@ export const ResidentRegister: React.FC = () => {
     // Build ameliorationData from sub-fields matching each trigger
     const ameliorationData: Record<string, any> = {};
     if (isSeniorCitizen && data.pensionTypeIds?.length) {
-      ameliorationData.seniorCitizen = { pensionTypeIds: data.pensionTypeIds };
+      ameliorationData.seniorCitizen = { pensionTypes: data.pensionTypeIds };
     }
     if (isPWD && data.disabilityTypeId) {
       ameliorationData.pwd = {
-        disabilityTypeId: data.disabilityTypeId,
+        disabilityType: data.disabilityTypeId,
         disabilityLevel: data.disabilityLevel || undefined,
       };
     }
     if (isStudent) {
-      if (isCollegeLevel && data.courseField) {
+      if (isVocational && data.ncLevelId) {
+        ameliorationData.student = {
+          ncLevel: data.ncLevelId,
+          courseField: data.courseField || undefined,
+        };
+      } else if (isCollegeLevel && data.courseField) {
         ameliorationData.student = { courseField: data.courseField };
-      } else if (!isCollegeLevel && data.gradeLevelId) {
-        ameliorationData.student = { gradeLevelId: data.gradeLevelId };
+      } else if (!isCollegeLevel && !isVocational && data.gradeLevelId) {
+        ameliorationData.student = { gradeLevel: data.gradeLevelId };
       }
     }
     if (isSoloParent && data.soloParentCategoryId) {
-      ameliorationData.soloParent = { categoryId: data.soloParentCategoryId };
+      ameliorationData.soloParent = { category: data.soloParentCategoryId };
     }
     if (data.isVoter && data.voterType) {
       ameliorationData.voter = { voterType: data.voterType };
@@ -784,47 +855,19 @@ export const ResidentRegister: React.FC = () => {
                       <CardTitle className="text-lg flex items-center gap-2">Place of Birth</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <FormField
-                          control={step1Form.control}
-                          name="birthRegion"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Region</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="e.g., Region VIII" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={step1Form.control}
-                          name="birthProvince"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Province</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="e.g., Eastern Samar" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={step1Form.control}
-                          name="birthMunicipality"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Municipality / City</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="e.g., Borongan" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                      <FormField
+                        control={step1Form.control}
+                        name="placeOfBirth"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Place of Birth</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="e.g., Borongan, Eastern Samar" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </CardContent>
                   </Card>
 
@@ -987,9 +1030,13 @@ export const ResidentRegister: React.FC = () => {
                             control={step1Form.control}
                             name="isVoter"
                             render={({ field }) => (
-                              <FormItem className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                              <label
+                                htmlFor="isVoter"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
                                 <FormControl>
                                   <Checkbox
+                                    id="isVoter"
                                     checked={!!field.value}
                                     onCheckedChange={field.onChange}
                                     className="mt-0.5"
@@ -1002,7 +1049,7 @@ export const ResidentRegister: React.FC = () => {
                                     representation.
                                   </FormDescription>
                                 </div>
-                              </FormItem>
+                              </label>
                             )}
                           />
                           {/* Voter type — shown when isVoter is checked */}
@@ -1072,9 +1119,13 @@ export const ResidentRegister: React.FC = () => {
                             control={step1Form.control}
                             name="hasDisability"
                             render={({ field }) => (
-                              <FormItem className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                              <label
+                                htmlFor="hasDisability"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
                                 <FormControl>
                                   <Checkbox
+                                    id="hasDisability"
                                     checked={!!field.value}
                                     onCheckedChange={field.onChange}
                                     className="mt-0.5"
@@ -1088,16 +1139,20 @@ export const ResidentRegister: React.FC = () => {
                                     Check if you have a physical, sensory, intellectual, or mental disability.
                                   </FormDescription>
                                 </div>
-                              </FormItem>
+                              </label>
                             )}
                           />
                           <FormField
                             control={step1Form.control}
                             name="hasChildren"
                             render={({ field }) => (
-                              <FormItem className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                              <label
+                                htmlFor="hasChildren"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
                                 <FormControl>
                                   <Checkbox
+                                    id="hasChildren"
                                     checked={!!field.value}
                                     onCheckedChange={field.onChange}
                                     className="mt-0.5"
@@ -1110,7 +1165,7 @@ export const ResidentRegister: React.FC = () => {
                                     programs).
                                   </FormDescription>
                                 </div>
-                              </FormItem>
+                              </label>
                             )}
                           />
                         </div>
@@ -1245,9 +1300,11 @@ export const ResidentRegister: React.FC = () => {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="Mild">Mild</SelectItem>
-                                  <SelectItem value="Moderate">Moderate</SelectItem>
-                                  <SelectItem value="Severe">Severe</SelectItem>
+                                  {ameliorationSettings.DISABILITY_LEVEL.map((s: any) => (
+                                    <SelectItem key={s.id} value={s.id}>
+                                      {s.name}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -1264,13 +1321,55 @@ export const ResidentRegister: React.FC = () => {
                       <CardHeader className="pb-4">
                         <CardTitle className="text-lg text-green-800">Student Information</CardTitle>
                         <p className="text-sm text-green-700">
-                          {isCollegeLevel
+                          {isVocational
+                            ? 'Please select your TESDA NC qualification level and enter your course or trade area.'
+                            : isCollegeLevel
                             ? 'Please enter your course or field of study.'
                             : 'Please indicate your current grade level.'}
                         </p>
                       </CardHeader>
                       <CardContent>
-                        {isCollegeLevel ? (
+                        {isVocational ? (
+                          <>
+                            <FormField
+                              control={step1Form.control}
+                              name="ncLevelId"
+                              render={({ field }) => (
+                                <FormItem className="mb-4">
+                                  <FormLabel>NC Qualification Level *</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select NC level" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {vocationalOptions.map((n) => (
+                                        <SelectItem key={n.id} value={n.id}>
+                                          {n.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={step1Form.control}
+                              name="courseField"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Course / Trade Area</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="e.g., Computer Hardware Servicing, Automotive Servicing" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </>
+                        ) : isCollegeLevel ? (
                           <FormField
                             control={step1Form.control}
                             name="courseField"

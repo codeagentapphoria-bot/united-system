@@ -3,6 +3,95 @@ import prisma from '../config/database';
 import { getFileUrl } from '../middleware/upload';
 import { generateBeneficiaryId } from './classification.service';
 
+// =============================================================================
+// HELPERS — read/write resident_classifications via raw SQL (not in Prisma schema)
+// =============================================================================
+
+/** Classification detail shapes per type. */
+interface PWDClassificationDetails {
+  disabilityType?: string | null;
+  disabilityLevel?: string | null;
+  remarks?: string | null;
+}
+
+interface StudentClassificationDetails {
+  gradeLevel?: string | null;
+  courseField?: string | null;
+  ncLevel?: string | null;
+  remarks?: string | null;
+}
+
+interface SoloParentClassificationDetails {
+  category?: string | null;
+  remarks?: string | null;
+}
+
+interface SeniorClassificationDetails {
+  pensionTypes?: string[];
+  remarks?: string | null;
+}
+
+/**
+ * Fetch resident_classifications.classification_details for a single resident + type.
+ * Returns null when no record exists.
+ */
+async function getClassificationDetails(
+  residentId: string,
+  classificationType: string
+): Promise<any | null> {
+  const rows = await prisma.$queryRaw<Array<{ classification_details: any }>>`
+    SELECT classification_details
+    FROM resident_classifications
+    WHERE resident_id = ${residentId}
+      AND classification_type = ${classificationType}
+    LIMIT 1
+  `;
+  return rows[0]?.classification_details ?? null;
+}
+
+/**
+ * Batch-fetch classification_details for multiple residents of the same type.
+ * Returns a Map of residentId → details.
+ */
+async function batchGetClassificationDetails(
+  residentIds: string[],
+  classificationType: string
+): Promise<Map<string, any>> {
+  const map = new Map<string, any>();
+  if (residentIds.length === 0) return map;
+  // Use $queryRawUnsafe because Prisma $queryRaw cannot embed nested raw queries for unnest()
+  const rows = await prisma.$queryRawUnsafe<Array<{ resident_id: string; classification_details: any }>>(
+    `SELECT resident_id, classification_details
+     FROM resident_classifications
+     WHERE resident_id = ANY($1::text[])
+       AND classification_type = $2`,
+    residentIds,
+    classificationType
+  );
+  for (const row of rows) {
+    map.set(row.resident_id, row.classification_details);
+  }
+  return map;
+}
+
+/**
+ * Upsert (insert-or-update) resident_classifications.classification_details.
+ * Uses INSERT ... ON CONFLICT ... DO UPDATE so it works for ALL beneficiary
+ * types — even when no resident_classifications record exists yet.
+ */
+async function upsertClassificationDetails(
+  residentId: string,
+  classificationType: string,
+  details: PWDClassificationDetails | StudentClassificationDetails | SoloParentClassificationDetails | SeniorClassificationDetails
+): Promise<void> {
+  await prisma.$executeRaw`
+    INSERT INTO resident_classifications (resident_id, classification_type, classification_details)
+    VALUES (${residentId}, ${classificationType}, ${JSON.stringify(details)}::jsonb)
+    ON CONFLICT ON CONSTRAINT resident_classifications_unique_type
+    DO UPDATE SET classification_details = EXCLUDED.classification_details
+  `;
+}
+
 interface BeneficiaryFilters {
   search?: string;
   status?: BeneficiaryStatus;
@@ -112,26 +201,18 @@ const getBeneficiaryProgramsMap = async (
 
 const seniorInclude = {
   resident: true,
-  pensionTypes: {
-    include: {
-      setting: true,
-    },
-  },
 } as any;
 
 const pwdInclude = {
   resident: true,
-  disabilityType: true,
 } as any;
 
 const studentInclude = {
   resident: true,
-  gradeLevel: true,
 } as any;
 
 const soloParentInclude = {
   resident: true,
-  category: true,
 } as any;
 
 type SeniorWithRelations = any;
@@ -139,15 +220,20 @@ type PWDWithRelations = any;
 type StudentWithRelations = any;
 type SoloParentWithRelations = any;
 
-const formatSeniorBeneficiary = async (record: SeniorWithRelations, preloadedProgramIds?: string[]) => {
-  const { pensionTypes, resident, ...rest } = record as any;
+const formatSeniorBeneficiary = async (
+  record: SeniorWithRelations,
+  preloadedProgramIds?: string[],
+  classificationDetails?: any | null
+) => {
+  const { resident, ...rest } = record as any;
   const programIds = preloadedProgramIds ??
     (await getBeneficiaryPrograms('SENIOR_CITIZEN', record.id)).map((p: any) => p.programId);
+  const details = classificationDetails ?? (await getClassificationDetails(resident.id, 'Senior Citizen'));
   return {
     ...rest,
     governmentPrograms: programIds,
-    pensionTypes: pensionTypes?.map((pivot: any) => pivot.settingId) ?? [],
-    pensionTypeNames: pensionTypes?.map((pivot: any) => pivot.setting?.name).filter(Boolean) ?? [],
+    pensionTypes: details?.pensionTypes ?? [],
+    pensionTypeNames: [], // setting names are no longer stored; text IDs only
     resident: resident
       ? {
           ...resident,
@@ -160,15 +246,21 @@ const formatSeniorBeneficiary = async (record: SeniorWithRelations, preloadedPro
   };
 };
 
-const formatPWDBeneficiary = async (record: PWDWithRelations, preloadedProgramIds?: string[]) => {
-  const { disabilityType, resident, ...rest } = record as any;
+const formatPWDBeneficiary = async (
+  record: PWDWithRelations,
+  preloadedProgramIds?: string[],
+  classificationDetails?: any | null
+) => {
+  const { resident, ...rest } = record as any;
   const programIds = preloadedProgramIds ??
     (await getBeneficiaryPrograms('PWD', record.id)).map((p: any) => p.programId);
+  const details = classificationDetails ?? (await getClassificationDetails(resident.id, 'Person with Disability'));
   return {
     ...rest,
     governmentPrograms: programIds,
-    disabilityType: disabilityType?.id || rest.disabilityTypeId,
-    disabilityTypeName: disabilityType?.name || null,
+    disabilityType: details?.disabilityType ?? null,
+    disabilityLevel: details?.disabilityLevel ?? null,
+    disabilityTypeName: null, // name lookup no longer available; text ID used
     resident: resident
       ? {
           ...resident,
@@ -181,15 +273,35 @@ const formatPWDBeneficiary = async (record: PWDWithRelations, preloadedProgramId
   };
 };
 
-const formatStudentBeneficiary = async (record: StudentWithRelations, preloadedProgramIds?: string[]) => {
-  const { gradeLevel, resident, ...rest } = record as any;
+const formatStudentBeneficiary = async (
+  record: StudentWithRelations,
+  preloadedProgramIds?: string[],
+  classificationDetails?: any | null
+) => {
+  const { resident, ...rest } = record as any;
   const programIds = preloadedProgramIds ??
     (await getBeneficiaryPrograms('STUDENT', record.id)).map((p: any) => p.programId);
+  // Portal classifies students as 'Student' (elem/JHS/SHS), 'College Student' (college),
+  // or 'Vocational Student' (vocational/technical). Query all three to ensure we
+  // always get details regardless of which classification type was used at creation.
+  const [studentDetails, collegeStudentDetails, vocationalStudentDetails] = await Promise.all([
+    classificationDetails ?? getClassificationDetails(resident.id, 'Student'),
+    classificationDetails ? null : getClassificationDetails(resident.id, 'College Student'),
+    classificationDetails ? null : getClassificationDetails(resident.id, 'Vocational Student'),
+  ]);
+  const details = studentDetails ?? collegeStudentDetails ?? vocationalStudentDetails ?? null;
+  const merged = {
+    ...(studentDetails ?? {}),
+    ...(collegeStudentDetails ?? {}),
+    ...(vocationalStudentDetails ?? {}),
+  };
   return {
     ...rest,
     programs: programIds,
-    gradeLevel: gradeLevel?.id || rest.gradeLevelId,
-    gradeLevelName: gradeLevel?.name || null,
+    gradeLevel:  (merged.gradeLevel  ?? null) || (details?.gradeLevel  ?? null),
+    courseField: (merged.courseField ?? null) || (details?.courseField ?? null),
+    ncLevel:     (merged.ncLevel     ?? null) || (details?.ncLevel     ?? null),
+    gradeLevelName: null, // name lookup no longer available; text used
     resident: resident
       ? {
           ...resident,
@@ -202,15 +314,20 @@ const formatStudentBeneficiary = async (record: StudentWithRelations, preloadedP
   };
 };
 
-const formatSoloParentBeneficiary = async (record: SoloParentWithRelations, preloadedProgramIds?: string[]) => {
-  const { category, resident, ...rest } = record as any;
+const formatSoloParentBeneficiary = async (
+  record: SoloParentWithRelations,
+  preloadedProgramIds?: string[],
+  classificationDetails?: any | null
+) => {
+  const { resident, ...rest } = record as any;
   const programIds = preloadedProgramIds ??
     (await getBeneficiaryPrograms('SOLO_PARENT', record.id)).map((p: any) => p.programId);
+  const details = classificationDetails ?? (await getClassificationDetails(resident.id, 'Solo Parent'));
   return {
     ...rest,
     assistancePrograms: programIds,
-    category: category?.id || rest.categoryId,
-    categoryName: category?.name || null,
+    category: details?.category ?? null,
+    categoryName: null, // name lookup no longer available; text used
     resident: resident
       ? {
           ...resident,
@@ -263,14 +380,18 @@ export interface UpdatePWDBeneficiaryData {
 
 export interface CreateStudentBeneficiaryData {
   residentId: string;
-  gradeLevel: string; // SocialAmeliorationSetting ID
+  gradeLevel: string; // Text value (e.g. 'Senior High School')
+  courseField?: string; // College / Vocational
+  ncLevel?: string;    // Vocational only
   programs?: string[];
   status?: BeneficiaryStatus;
   remarks?: string;
 }
 
 export interface UpdateStudentBeneficiaryData {
-  gradeLevel?: string; // SocialAmeliorationSetting ID
+  gradeLevel?: string; // Text value
+  courseField?: string; // College / Vocational
+  ncLevel?: string;    // Vocational only
   programs?: string[];
   status?: BeneficiaryStatus;
   remarks?: string;
@@ -454,8 +575,17 @@ export const socialAmeliorationService = {
       'SENIOR_CITIZEN',
       items.map((i) => i.id)
     );
+
+    // Batch-fetch classification_details from resident_classifications
+    const detailsMap = await batchGetClassificationDetails(
+      items.map((i) => i.residentId),
+      'Senior Citizen'
+    );
+
     const formattedItems = await Promise.all(
-      items.map((item) => formatSeniorBeneficiary(item, programMap.get(item.id) ?? []))
+      items.map((item) =>
+        formatSeniorBeneficiary(item, programMap.get(item.id) ?? [], detailsMap.get(item.residentId))
+      )
     );
 
     return {
@@ -473,14 +603,14 @@ export const socialAmeliorationService = {
         seniorCitizenId: seniorCitizenId as any,
         status: data.status || BeneficiaryStatus.ACTIVE,
         remarks: data.remarks,
-        // Programs will be created separately after beneficiary creation
-        pensionTypes: data.pensionTypes?.length
-          ? {
-              create: data.pensionTypes.map((settingId) => ({ settingId })),
-            }
-          : undefined,
       } as any,
       include: seniorInclude,
+    });
+
+    // Write pension types to resident_classifications.classification_details
+    await upsertClassificationDetails(data.residentId, 'Senior Citizen', {
+      pensionTypes: Array.isArray(data.pensionTypes) ? data.pensionTypes : [],
+      remarks: data.remarks ?? null,
     });
 
     // Create program associations
@@ -501,11 +631,14 @@ export const socialAmeliorationService = {
       include: seniorInclude,
     });
 
-    return formatSeniorBeneficiary(updatedRecord as SeniorWithRelations);
+    // Also fetch freshly written classification details
+    const details = await getClassificationDetails(data.residentId, 'Senior Citizen');
+
+    return formatSeniorBeneficiary(updatedRecord as SeniorWithRelations, undefined, details);
   },
 
   async updateSeniorBeneficiary(id: string, data: UpdateSeniorBeneficiaryData) {
-    await prisma.seniorCitizenBeneficiary.findUniqueOrThrow({ where: { id } });
+    const beneficiary = await prisma.seniorCitizenBeneficiary.findUniqueOrThrow({ where: { id } });
 
     return prisma.$transaction(async (tx) => {
       await tx.seniorCitizenBeneficiary.update({
@@ -516,15 +649,18 @@ export const socialAmeliorationService = {
         },
       });
 
-      if (data.pensionTypes !== undefined) {
-        await (tx as any).seniorCitizenPensionTypePivot.deleteMany({
-          where: { beneficiaryId: id },
-        });
-        if (data.pensionTypes.length > 0) {
-          await (tx as any).seniorCitizenPensionTypePivot.createMany({
-            data: data.pensionTypes.map((settingId) => ({ beneficiaryId: id, settingId })),
-          });
-        }
+      // Update classification_details in resident_classifications
+      if (data.pensionTypes !== undefined || data.remarks !== undefined) {
+        const existing = await getClassificationDetails(beneficiary.residentId, 'Senior Citizen');
+        await tx.$executeRaw`
+          UPDATE resident_classifications
+          SET classification_details = ${JSON.stringify({
+            pensionTypes: data.pensionTypes ?? existing?.pensionTypes ?? [],
+            remarks: data.remarks ?? existing?.remarks ?? null,
+          })}::jsonb
+          WHERE resident_id = ${beneficiary.residentId}
+            AND classification_type = 'Senior Citizen'
+        `;
       }
 
       if (data.governmentPrograms !== undefined) {
@@ -552,7 +688,8 @@ export const socialAmeliorationService = {
         include: seniorInclude,
       });
 
-      return await formatSeniorBeneficiary(refreshed);
+      const details = await getClassificationDetails(beneficiary.residentId, 'Senior Citizen');
+      return await formatSeniorBeneficiary(refreshed, undefined, details);
     });
   },
 
@@ -562,9 +699,6 @@ export const socialAmeliorationService = {
         beneficiaryType: 'SENIOR_CITIZEN',
         beneficiaryId: id,
       },
-    });
-    await (prisma as any).seniorCitizenPensionTypePivot.deleteMany({
-      where: { beneficiaryId: id },
     });
     return prisma.seniorCitizenBeneficiary.delete({ where: { id } });
   },
@@ -608,8 +742,17 @@ export const socialAmeliorationService = {
       'PWD',
       items.map((i) => i.id)
     );
+
+    // Batch-fetch classification_details from resident_classifications
+    const detailsMap = await batchGetClassificationDetails(
+      items.map((i) => i.residentId),
+      'Person with Disability'
+    );
+
     const formattedItems = await Promise.all(
-      items.map((item) => formatPWDBeneficiary(item, programMap.get(item.id) ?? []))
+      items.map((item) =>
+        formatPWDBeneficiary(item, programMap.get(item.id) ?? [], detailsMap.get(item.residentId))
+      )
     );
 
     return {
@@ -625,16 +768,21 @@ export const socialAmeliorationService = {
       data: {
         residentId: data.residentId,
         pwdId: pwdId as any,
-        disabilityTypeId: data.disabilityType,
         disabilityLevel: data.disabilityLevel,
         monetaryAllowance: data.monetaryAllowance ?? false,
         assistedDevice: data.assistedDevice ?? false,
         donorDevice: data.donorDevice,
         status: data.status || BeneficiaryStatus.ACTIVE,
         remarks: data.remarks,
-        // Programs will be created separately after beneficiary creation
       } as any,
       include: pwdInclude,
+    });
+
+    // Write classification details to resident_classifications.classification_details
+    await upsertClassificationDetails(data.residentId, 'Person with Disability', {
+      disabilityType: data.disabilityType,
+      disabilityLevel: data.disabilityLevel,
+      remarks: data.remarks ?? null,
     });
 
     // Create program associations
@@ -655,11 +803,13 @@ export const socialAmeliorationService = {
       include: pwdInclude,
     });
 
-    return formatPWDBeneficiary(updatedRecord as PWDWithRelations);
+    const details = await getClassificationDetails(data.residentId, 'Person with Disability');
+
+    return formatPWDBeneficiary(updatedRecord as PWDWithRelations, undefined, details);
   },
 
   async updatePWDBeneficiary(id: string, data: UpdatePWDBeneficiaryData) {
-    await prisma.pWDBeneficiary.findUniqueOrThrow({ where: { id } });
+    const beneficiary = await prisma.pWDBeneficiary.findUniqueOrThrow({ where: { id } });
 
     return prisma.$transaction(async (tx) => {
       const updateData: any = {
@@ -671,14 +821,29 @@ export const socialAmeliorationService = {
         remarks: data.remarks,
       };
 
-      if (data.disabilityType !== undefined) {
-        updateData.disabilityTypeId = data.disabilityType;
-      }
-
       await tx.pWDBeneficiary.update({
         where: { id },
         data: updateData,
       });
+
+      // Update classification_details in resident_classifications
+      if (
+        data.disabilityType !== undefined ||
+        data.disabilityLevel !== undefined ||
+        data.remarks !== undefined
+      ) {
+        const existing = await getClassificationDetails(beneficiary.residentId, 'Person with Disability');
+        await tx.$executeRaw`
+          UPDATE resident_classifications
+          SET classification_details = ${JSON.stringify({
+            disabilityType: data.disabilityType ?? existing?.disabilityType ?? null,
+            disabilityLevel: data.disabilityLevel ?? existing?.disabilityLevel ?? null,
+            remarks: data.remarks ?? existing?.remarks ?? null,
+          })}::jsonb
+          WHERE resident_id = ${beneficiary.residentId}
+            AND classification_type = 'Person with Disability'
+        `;
+      }
 
       if (data.governmentPrograms !== undefined) {
         await (tx as any).beneficiaryProgramPivot.deleteMany({
@@ -705,7 +870,8 @@ export const socialAmeliorationService = {
         include: pwdInclude,
       });
 
-      return await formatPWDBeneficiary(refreshed);
+      const details = await getClassificationDetails(beneficiary.residentId, 'Person with Disability');
+      return await formatPWDBeneficiary(refreshed, undefined, details);
     });
   },
 
@@ -758,8 +924,17 @@ export const socialAmeliorationService = {
       'STUDENT',
       items.map((i) => i.id)
     );
+
+    // Batch-fetch classification_details from resident_classifications
+    const detailsMap = await batchGetClassificationDetails(
+      items.map((i) => i.residentId),
+      'Student'
+    );
+
     const formattedItems = await Promise.all(
-      items.map((item) => formatStudentBeneficiary(item, programMap.get(item.id) ?? []))
+      items.map((item) =>
+        formatStudentBeneficiary(item, programMap.get(item.id) ?? [], detailsMap.get(item.residentId))
+      )
     );
 
     return {
@@ -775,12 +950,27 @@ export const socialAmeliorationService = {
       data: {
         residentId: data.residentId,
         studentId: studentId as any,
-        gradeLevelId: data.gradeLevel,
         status: data.status || BeneficiaryStatus.ACTIVE,
         remarks: data.remarks,
-        // Programs will be created separately after beneficiary creation
       } as any,
       include: studentInclude,
+    });
+
+    // Write classification details to resident_classifications.classification_details.
+    // Determine classification type:
+    //   - ncLevel provided  → 'Vocational Student'
+    //   - courseField       → 'College Student'
+    //   - gradeLevel only   → 'Student'
+    const classType = data.ncLevel
+      ? 'Vocational Student'
+      : data.courseField
+        ? 'College Student'
+        : 'Student';
+    await upsertClassificationDetails(data.residentId, classType, {
+      gradeLevel:  data.gradeLevel  ?? null,
+      courseField: data.courseField ?? null,
+      ncLevel:     data.ncLevel     ?? null,
+      remarks:     data.remarks     ?? null,
     });
 
     // Create program associations
@@ -801,11 +991,13 @@ export const socialAmeliorationService = {
       include: studentInclude,
     });
 
-    return formatStudentBeneficiary(updatedRecord as StudentWithRelations);
+    const details = await getClassificationDetails(data.residentId, classType);
+
+    return formatStudentBeneficiary(updatedRecord as StudentWithRelations, undefined, details);
   },
 
   async updateStudentBeneficiary(id: string, data: UpdateStudentBeneficiaryData) {
-    await prisma.studentBeneficiary.findUniqueOrThrow({ where: { id } });
+    const beneficiary = await prisma.studentBeneficiary.findUniqueOrThrow({ where: { id } });
 
     return prisma.$transaction(async (tx) => {
       const updateData: any = {
@@ -813,14 +1005,38 @@ export const socialAmeliorationService = {
         remarks: data.remarks,
       };
 
-      if (data.gradeLevel !== undefined) {
-        updateData.gradeLevelId = data.gradeLevel;
-      }
-
       await tx.studentBeneficiary.update({
         where: { id },
         data: updateData,
       });
+
+      // Update classification_details in resident_classifications.
+      // Query all three student classification types to handle portal and BIMS registrations.
+      if (data.gradeLevel !== undefined || data.remarks !== undefined
+        || data.courseField !== undefined || data.ncLevel !== undefined) {
+        const [studentDetails, collegeStudentDetails, vocationalStudentDetails] = await Promise.all([
+          getClassificationDetails(beneficiary.residentId, 'Student'),
+          getClassificationDetails(beneficiary.residentId, 'College Student'),
+          getClassificationDetails(beneficiary.residentId, 'Vocational Student'),
+        ]);
+        const existing = studentDetails ?? collegeStudentDetails ?? vocationalStudentDetails;
+        const classType = vocationalStudentDetails
+          ? 'Vocational Student'
+          : collegeStudentDetails
+            ? 'College Student'
+            : 'Student';
+        await tx.$executeRaw`
+          UPDATE resident_classifications
+          SET classification_details = ${JSON.stringify({
+            gradeLevel:  data.gradeLevel  ?? existing?.gradeLevel  ?? null,
+            courseField: data.courseField ?? existing?.courseField ?? null,
+            ncLevel:     data.ncLevel     ?? existing?.ncLevel     ?? null,
+            remarks:     data.remarks     ?? existing?.remarks     ?? null,
+          })}::jsonb
+          WHERE resident_id = ${beneficiary.residentId}
+            AND classification_type = ${classType}
+        `;
+      }
 
       if (data.programs !== undefined) {
         await (tx as any).beneficiaryProgramPivot.deleteMany({
@@ -847,7 +1063,13 @@ export const socialAmeliorationService = {
         include: studentInclude,
       });
 
-      return await formatStudentBeneficiary(refreshed);
+      const [studentDetails, collegeStudentDetails, vocationalStudentDetails] = await Promise.all([
+        getClassificationDetails(beneficiary.residentId, 'Student'),
+        getClassificationDetails(beneficiary.residentId, 'College Student'),
+        getClassificationDetails(beneficiary.residentId, 'Vocational Student'),
+      ]);
+      const details = studentDetails ?? collegeStudentDetails ?? vocationalStudentDetails;
+      return await formatStudentBeneficiary(refreshed, undefined, details);
     });
   },
 
@@ -900,8 +1122,17 @@ export const socialAmeliorationService = {
       'SOLO_PARENT',
       items.map((i) => i.id)
     );
+
+    // Batch-fetch classification_details from resident_classifications
+    const detailsMap = await batchGetClassificationDetails(
+      items.map((i) => i.residentId),
+      'Solo Parent'
+    );
+
     const formattedItems = await Promise.all(
-      items.map((item) => formatSoloParentBeneficiary(item, programMap.get(item.id) ?? []))
+      items.map((item) =>
+        formatSoloParentBeneficiary(item, programMap.get(item.id) ?? [], detailsMap.get(item.residentId))
+      )
     );
 
     return {
@@ -917,12 +1148,16 @@ export const socialAmeliorationService = {
       data: {
         residentId: data.residentId,
         soloParentId: soloParentId as any,
-        categoryId: data.category,
         status: data.status || BeneficiaryStatus.ACTIVE,
         remarks: data.remarks,
-        // Programs will be created separately after beneficiary creation
       } as any,
       include: soloParentInclude,
+    });
+
+    // Write classification details to resident_classifications.classification_details
+    await upsertClassificationDetails(data.residentId, 'Solo Parent', {
+      category: data.category,
+      remarks: data.remarks ?? null,
     });
 
     // Create program associations
@@ -943,11 +1178,13 @@ export const socialAmeliorationService = {
       include: soloParentInclude,
     });
 
-    return formatSoloParentBeneficiary(updatedRecord as SoloParentWithRelations);
+    const details = await getClassificationDetails(data.residentId, 'Solo Parent');
+
+    return formatSoloParentBeneficiary(updatedRecord as SoloParentWithRelations, undefined, details);
   },
 
   async updateSoloParentBeneficiary(id: string, data: UpdateSoloParentBeneficiaryData) {
-    await prisma.soloParentBeneficiary.findUniqueOrThrow({ where: { id } });
+    const beneficiary = await prisma.soloParentBeneficiary.findUniqueOrThrow({ where: { id } });
 
     return prisma.$transaction(async (tx) => {
       const updateData: any = {
@@ -955,14 +1192,24 @@ export const socialAmeliorationService = {
         remarks: data.remarks,
       };
 
-      if (data.category !== undefined) {
-        updateData.categoryId = data.category;
-      }
-
       await tx.soloParentBeneficiary.update({
         where: { id },
         data: updateData,
       });
+
+      // Update classification_details in resident_classifications
+      if (data.category !== undefined || data.remarks !== undefined) {
+        const existing = await getClassificationDetails(beneficiary.residentId, 'Solo Parent');
+        await tx.$executeRaw`
+          UPDATE resident_classifications
+          SET classification_details = ${JSON.stringify({
+            category: data.category ?? existing?.category ?? null,
+            remarks: data.remarks ?? existing?.remarks ?? null,
+          })}::jsonb
+          WHERE resident_id = ${beneficiary.residentId}
+            AND classification_type = 'Solo Parent'
+        `;
+      }
 
       if (data.assistancePrograms !== undefined) {
         await (tx as any).beneficiaryProgramPivot.deleteMany({
@@ -989,7 +1236,8 @@ export const socialAmeliorationService = {
         include: soloParentInclude,
       });
 
-      return await formatSoloParentBeneficiary(refreshed);
+      const details = await getClassificationDetails(beneficiary.residentId, 'Solo Parent');
+      return await formatSoloParentBeneficiary(refreshed, undefined, details);
     });
   },
 

@@ -59,8 +59,6 @@ CREATE TYPE public.permission_action AS ENUM ('READ', 'ALL');
 CREATE TYPE public.beneficiary_status              AS ENUM ('ACTIVE', 'INACTIVE', 'PENDING');
 CREATE TYPE public.beneficiary_type                AS ENUM ('SENIOR_CITIZEN', 'PWD', 'STUDENT', 'SOLO_PARENT');
 CREATE TYPE public.government_program_type         AS ENUM ('SENIOR_CITIZEN', 'PWD', 'STUDENT', 'SOLO_PARENT', 'ALL');
-CREATE TYPE public.social_amelioration_setting_type AS ENUM ('PENSION_TYPE', 'DISABILITY_TYPE', 'GRADE_LEVEL', 'SOLO_PARENT_CATEGORY');
-
 -- E-Services: Tax
 CREATE TYPE public.tax_version_status AS ENUM ('DRAFT', 'ACTIVE', 'ARCHIVED');
 CREATE TYPE public.exemption_type     AS ENUM ('SENIOR_CITIZEN', 'PWD', 'SOLO_PARENT', 'OTHER');
@@ -448,10 +446,8 @@ CREATE TABLE public.residents (
     sex                      character varying(10),
     civil_status             character varying(25),
     birthdate                date NOT NULL,
-    -- Place of birth (replaces separate place_of_birth table)
-    birth_region             text,
-    birth_province           text,
-    birth_municipality       text,
+    -- Place of birth
+    place_of_birth           text,
     citizenship              text,
 
     -- Contact
@@ -1108,17 +1104,6 @@ CREATE TABLE public.payments (
 -- Social Amelioration / Beneficiaries
 -- citizen_id renamed to resident_id throughout
 -- ---------------------------------------------------------------------------
-CREATE TABLE public.social_amelioration_settings (
-    id          text NOT NULL DEFAULT gen_random_uuid()::text,
-    type        public.social_amelioration_setting_type NOT NULL,
-    name        text NOT NULL,
-    description text,
-    is_active   boolean NOT NULL DEFAULT true,
-    created_at  timestamp without time zone DEFAULT now(),
-    updated_at  timestamp without time zone DEFAULT now()
-);
-
-
 CREATE TABLE public.senior_citizen_beneficiaries (
     id                text NOT NULL DEFAULT gen_random_uuid()::text,
     resident_id       text NOT NULL,         -- FK → residents(id) ON DELETE CASCADE
@@ -1130,19 +1115,11 @@ CREATE TABLE public.senior_citizen_beneficiaries (
 );
 
 
-CREATE TABLE public.senior_citizen_pension_type_pivots (
-    id             text NOT NULL DEFAULT gen_random_uuid()::text,
-    beneficiary_id text NOT NULL,
-    setting_id     text NOT NULL
-);
-
-
 CREATE TABLE public.pwd_beneficiaries (
     id                 text NOT NULL DEFAULT gen_random_uuid()::text,
     resident_id        text NOT NULL,         -- FK → residents(id) ON DELETE CASCADE
     pwd_id             text NOT NULL,
     disability_level   text,                  -- nullable until record is completed (PENDING → ACTIVE)
-    disability_type_id text,                  -- nullable until record is completed (PENDING → ACTIVE)
     monetary_allowance boolean NOT NULL DEFAULT false,
     assisted_device    boolean NOT NULL DEFAULT false,
     donor_device       text,
@@ -1157,7 +1134,6 @@ CREATE TABLE public.student_beneficiaries (
     id             text NOT NULL DEFAULT gen_random_uuid()::text,
     resident_id    text NOT NULL,             -- FK → residents(id) ON DELETE CASCADE
     student_id     text NOT NULL,
-    grade_level_id text,                      -- nullable until record is completed (PENDING → ACTIVE)
     status         public.beneficiary_status NOT NULL DEFAULT 'ACTIVE',
     remarks        text,
     created_at     timestamp without time zone DEFAULT now(),
@@ -1169,7 +1145,6 @@ CREATE TABLE public.solo_parent_beneficiaries (
     id             text NOT NULL DEFAULT gen_random_uuid()::text,
     resident_id    text NOT NULL,             -- FK → residents(id) ON DELETE CASCADE
     solo_parent_id text NOT NULL,
-    category_id    text,                      -- nullable until record is completed (PENDING → ACTIVE)
     status         public.beneficiary_status NOT NULL DEFAULT 'ACTIVE',
     remarks        text,
     created_at     timestamp without time zone DEFAULT now(),
@@ -1260,9 +1235,7 @@ ALTER TABLE ONLY public.tax_profile_versions    ADD CONSTRAINT tax_profile_versi
 ALTER TABLE ONLY public.tax_computations        ADD CONSTRAINT tax_computations_pkey        PRIMARY KEY (id);
 ALTER TABLE ONLY public.exemptions              ADD CONSTRAINT exemptions_pkey              PRIMARY KEY (id);
 ALTER TABLE ONLY public.payments                ADD CONSTRAINT payments_pkey                PRIMARY KEY (id);
-ALTER TABLE ONLY public.social_amelioration_settings ADD CONSTRAINT social_amelioration_settings_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.senior_citizen_beneficiaries ADD CONSTRAINT senior_citizen_beneficiaries_pkey PRIMARY KEY (id);
-ALTER TABLE ONLY public.senior_citizen_pension_type_pivots ADD CONSTRAINT senior_citizen_pension_type_pivots_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.pwd_beneficiaries       ADD CONSTRAINT pwd_beneficiaries_pkey       PRIMARY KEY (id);
 ALTER TABLE ONLY public.student_beneficiaries   ADD CONSTRAINT student_beneficiaries_pkey   PRIMARY KEY (id);
 ALTER TABLE ONLY public.solo_parent_beneficiaries ADD CONSTRAINT solo_parent_beneficiaries_pkey PRIMARY KEY (id);
@@ -1320,7 +1293,6 @@ ALTER TABLE ONLY public.transactions            ADD CONSTRAINT transactions_refe
 ALTER TABLE ONLY public.tax_profile_versions    ADD CONSTRAINT tax_profile_versions_profile_version_key UNIQUE (tax_profile_id, version);
 ALTER TABLE ONLY public.senior_citizen_beneficiaries ADD CONSTRAINT scb_resident_id_key        UNIQUE (resident_id);
 ALTER TABLE ONLY public.senior_citizen_beneficiaries ADD CONSTRAINT scb_senior_citizen_id_key  UNIQUE (senior_citizen_id);
-ALTER TABLE ONLY public.senior_citizen_pension_type_pivots ADD CONSTRAINT scptp_beneficiary_setting_key UNIQUE (beneficiary_id, setting_id);
 ALTER TABLE ONLY public.pwd_beneficiaries       ADD CONSTRAINT pwd_resident_id_key          UNIQUE (resident_id);
 ALTER TABLE ONLY public.pwd_beneficiaries       ADD CONSTRAINT pwd_pwd_id_key               UNIQUE (pwd_id);
 ALTER TABLE ONLY public.student_beneficiaries   ADD CONSTRAINT student_resident_id_key      UNIQUE (resident_id);
@@ -1484,8 +1456,6 @@ CREATE INDEX idx_exemptions_transaction          ON public.exemptions           
 CREATE INDEX idx_exemptions_status               ON public.exemptions           USING btree (status);
 CREATE INDEX idx_payments_transaction            ON public.payments             USING btree (transaction_id);
 CREATE INDEX idx_payments_date                   ON public.payments             USING btree (payment_date);
-CREATE INDEX idx_social_amelioration_type        ON public.social_amelioration_settings USING btree (type);
-CREATE INDEX idx_social_amelioration_active      ON public.social_amelioration_settings USING btree (is_active);
 CREATE INDEX idx_government_programs_type        ON public.government_programs  USING btree (type);
 CREATE INDEX idx_beneficiary_pivots_type_id      ON public.beneficiary_program_pivots USING btree (beneficiary_type, beneficiary_id);
 CREATE INDEX idx_beneficiary_pivots_program      ON public.beneficiary_program_pivots USING btree (program_id);
@@ -1741,37 +1711,17 @@ ALTER TABLE ONLY public.senior_citizen_beneficiaries
     ADD CONSTRAINT scb_resident_id_fkey
     FOREIGN KEY (resident_id) REFERENCES public.residents(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.senior_citizen_pension_type_pivots
-    ADD CONSTRAINT scptp_beneficiary_id_fkey
-    FOREIGN KEY (beneficiary_id) REFERENCES public.senior_citizen_beneficiaries(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.senior_citizen_pension_type_pivots
-    ADD CONSTRAINT scptp_setting_id_fkey
-    FOREIGN KEY (setting_id) REFERENCES public.social_amelioration_settings(id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY public.pwd_beneficiaries
     ADD CONSTRAINT pwd_resident_id_fkey
     FOREIGN KEY (resident_id) REFERENCES public.residents(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.pwd_beneficiaries
-    ADD CONSTRAINT pwd_disability_type_id_fkey
-    FOREIGN KEY (disability_type_id) REFERENCES public.social_amelioration_settings(id);
 
 ALTER TABLE ONLY public.student_beneficiaries
     ADD CONSTRAINT student_resident_id_fkey
     FOREIGN KEY (resident_id) REFERENCES public.residents(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.student_beneficiaries
-    ADD CONSTRAINT student_grade_level_id_fkey
-    FOREIGN KEY (grade_level_id) REFERENCES public.social_amelioration_settings(id);
-
 ALTER TABLE ONLY public.solo_parent_beneficiaries
     ADD CONSTRAINT sp_resident_id_fkey
     FOREIGN KEY (resident_id) REFERENCES public.residents(id) ON DELETE CASCADE;
-
-ALTER TABLE ONLY public.solo_parent_beneficiaries
-    ADD CONSTRAINT sp_category_id_fkey
-    FOREIGN KEY (category_id) REFERENCES public.social_amelioration_settings(id);
 
 ALTER TABLE ONLY public.beneficiary_program_pivots
     ADD CONSTRAINT bpp_program_id_fkey

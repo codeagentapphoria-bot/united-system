@@ -12,7 +12,7 @@ import { Form } from '@/components/ui/form';
 
 // Custom Components
 import { EditSoloParentFields } from '@/components/social-amelioration/forms/EditSoloParentFields';
-import { useCitizenSearch, createReactSelectStyles } from '@/components/social-amelioration/shared';
+import { useCitizenSearch } from '@/components/social-amelioration/shared';
 
 // Hooks
 import { residentService } from '@/services/api/resident.service';
@@ -51,8 +51,6 @@ export const EditSoloParentModal: React.FC<EditSoloParentModalProps> = ({
     },
   });
 
-  const reactSelectStyles = createReactSelectStyles(false);
-
   // Pre-fill form when modal opens
   const prevInitialDataIdRef = useRef<string | undefined>(undefined);
   const prevOpenRef = useRef(false);
@@ -83,7 +81,8 @@ export const EditSoloParentModal: React.FC<EditSoloParentModalProps> = ({
         prevOpenRef.current = true;
 
         const citizenId = initialData.citizenId || initialData.citizen?.id || '';
-        const category = initialData.category || '';
+        const existingClassificationDetails = initialData.classification_details;
+        const category = existingClassificationDetails?.category ?? initialData.category ?? '';
 
         form.reset({
           citizenId,
@@ -145,7 +144,6 @@ export const EditSoloParentModal: React.FC<EditSoloParentModalProps> = ({
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pb-6">
               <EditSoloParentFields
                 selectedCitizen={selectedCitizen}
-                reactSelectStyles={reactSelectStyles}
               />
             </form>
           </Form>
