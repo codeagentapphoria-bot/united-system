@@ -37,7 +37,7 @@ export const EditPWDFields: React.FC<EditPWDFieldsProps> = ({
   selectedCitizen,
 }) => {
   const form = useFormContext<PWDInput>();
-  const { data: pwdType } = useClassificationOptions('Person with Disability');
+  const { data: pwdType, loading: isLoadingCategories } = useClassificationOptions('Person with Disability');
 
   const fetchedDisabilityTypes: string[] =
     pwdType?.details.find(f => f.key === 'disabilityType')?.options ?? [];
@@ -73,7 +73,7 @@ export const EditPWDFields: React.FC<EditPWDFieldsProps> = ({
                 <Select
                   value={field.value}
                   onValueChange={field.onChange}
-                  disabled={pwdType?.loading ?? false}
+                  disabled={isLoadingCategories}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select disability type" />

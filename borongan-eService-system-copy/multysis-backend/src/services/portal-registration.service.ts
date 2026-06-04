@@ -474,7 +474,7 @@ function isCollegeLevel(educationAttainment?: string | null): boolean {
  * Uses raw SQL since resident_classifications is not in the Prisma schema.
  * Best-effort — errors are logged but do not throw.
  */
-async function autoClassifyResident(
+export async function autoClassifyResident(
   residentUUID: string,
   municipalityId: number,
   resident: {

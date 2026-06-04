@@ -21,11 +21,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { residentService, type Resident } from '@/services/api/resident.service';
 import { uploadService } from '@/services/api/upload.service';
-import {
-  getRegions,
-  getProvincesByRegion as getPHProvinces,
-  getMunicipalitiesByProvince as getPHMunicipalities,
-} from '@/constants/philippine-addresses';
 import { formatDateWithoutTimezone } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useMyProfile } from '@/hooks/residents/useMyProfile';

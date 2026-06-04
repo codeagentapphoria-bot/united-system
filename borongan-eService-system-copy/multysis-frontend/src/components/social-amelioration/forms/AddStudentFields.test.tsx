@@ -18,7 +18,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FormProvider, useForm } from 'react-hook-form';
-import { z } from 'zod';
+import type { StudentInput } from '@/validations/beneficiary.schema';
 import { AddStudentFields } from '../AddStudentFields';
 
 // ---------------------------------------------------------------------------
@@ -26,8 +26,6 @@ import { AddStudentFields } from '../AddStudentFields';
 // ---------------------------------------------------------------------------
 
 /** Minimal StudentInput shape for testing */
-type StudentInput = z.infer<typeof import('@/validations/beneficiary.schema').studentSchema>;
-
 function TestWrapper({
   children,
   defaultValues = {},

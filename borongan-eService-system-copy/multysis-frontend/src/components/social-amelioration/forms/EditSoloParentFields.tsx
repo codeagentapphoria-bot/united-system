@@ -37,7 +37,7 @@ export const EditSoloParentFields: React.FC<EditSoloParentFieldsProps> = ({
   selectedCitizen,
 }) => {
   const form = useFormContext<SoloParentInput>();
-  const { data: soloParentType } = useClassificationOptions('Solo Parent');
+  const { data: soloParentType, loading: isLoadingCategories } = useClassificationOptions('Solo Parent');
 
   const fetchedCategories: string[] =
     soloParentType?.details.find(f => f.key === 'category')?.options ?? [];
@@ -65,7 +65,7 @@ export const EditSoloParentFields: React.FC<EditSoloParentFieldsProps> = ({
                 <Select
                   value={field.value}
                   onValueChange={field.onChange}
-                  disabled={soloParentType?.loading ?? false}
+                  disabled={isLoadingCategories}
                 >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />

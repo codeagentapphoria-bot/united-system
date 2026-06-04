@@ -135,7 +135,7 @@ const ResidentClassificationsForm = ({
         label: type.label,
         color: type.color,
         description: type.description,
-        details: type.details ?? [],
+        details: (type.details ?? []) as ClassificationTypeOption['details'],
       }));
       setLocalClassificationOptions(options);
     }

@@ -8,16 +8,18 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { socialAmeliorationSettingApi, type SocialAmeliorationSettingType, type SocialAmeliorationSetting } from '@/services/api/social-amelioration-setting.service';
+import { socialAmeliorationSettingApi, type SettingOption } from '@/services/api/social-amelioration-setting.service';
 
-const SETTING_TYPES: SocialAmeliorationSettingType[] = [
+const SETTING_TYPES = [
   'DISABILITY_TYPE',
   'GRADE_LEVEL',
   'SOLO_PARENT_CATEGORY',
   'PENSION_TYPE',
   'VOCATIONAL_STUDENT',
   'COLLEGE_STUDENT',
-];
+] as const;
+
+type SettingType = typeof SETTING_TYPES[number];
 
 interface SettingsMap {
   [type: string]: Array<{ id: string; name: string }>;
@@ -36,9 +38,9 @@ export const useAmeliorationSettings = () => {
         const results = await Promise.all(
           SETTING_TYPES.map((type) =>
             socialAmeliorationSettingApi
-              .getSettings({ type, isActive: true })
+              .getSettings({ type })
               .then((items) => ({ type, items }))
-              .catch(() => ({ type, items: [] as SocialAmeliorationSetting[] }))
+              .catch(() => ({ type, items: [] as SettingOption[] }))
           )
         );
 
@@ -60,7 +62,7 @@ export const useAmeliorationSettings = () => {
 
   /** Returns settings array for the given type, e.g. getSettingsByType('DISABILITY_TYPE') */
   const getSettingsByType = useCallback(
-    (type: SocialAmeliorationSettingType) => settingsMap[type] ?? [],
+    (type: SettingType) => settingsMap[type] ?? [],
     [settingsMap]
   );
 

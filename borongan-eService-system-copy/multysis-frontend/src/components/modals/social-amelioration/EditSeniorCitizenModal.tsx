@@ -12,7 +12,7 @@ import { Form } from '@/components/ui/form';
 
 // Custom Components
 import { EditSeniorCitizenFields } from '@/components/social-amelioration/forms/EditSeniorCitizenFields';
-import { useCitizenSearch, createReactSelectStyles } from '@/components/social-amelioration/shared';
+import { useCitizenSearch } from '@/components/social-amelioration/shared';
 
 // Hooks
 import { useToast } from '@/hooks/use-toast';
@@ -54,8 +54,6 @@ export const EditSeniorCitizenModal: React.FC<EditSeniorCitizenModalProps> = ({
       pensionTypes: [],
     },
   });
-
-  const reactSelectStyles = createReactSelectStyles(false);
 
   // Pre-fill form when modal opens
   const prevInitialDataIdRef = useRef<string | undefined>(undefined);

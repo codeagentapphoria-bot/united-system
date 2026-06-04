@@ -12,7 +12,7 @@ import { Form } from '@/components/ui/form';
 
 // Custom Components
 import { EditSoloParentFields } from '@/components/social-amelioration/forms/EditSoloParentFields';
-import { useCitizenSearch, createReactSelectStyles } from '@/components/social-amelioration/shared';
+import { useCitizenSearch } from '@/components/social-amelioration/shared';
 
 // Hooks
 import { residentService } from '@/services/api/resident.service';

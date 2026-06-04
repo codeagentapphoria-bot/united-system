@@ -30,14 +30,14 @@ export const socialAmeliorationSettingApi = {
    * Fetch classification option lookup values by setting type.
    * Falls back to empty array on error so CSV export still proceeds.
    *
-   * @param municipalityId  Municipality ID for the lookup
+   * @param municipalityId  Municipality ID for the lookup (optional - uses default if not provided)
    * @param settingType     One of: PENSION_TYPE | DISABILITY_TYPE | GRADE_LEVEL | SOLO_PARENT_CATEGORY
    */
   async getSettings({
     municipalityId,
     type,
   }: {
-    municipalityId: number;
+    municipalityId?: number;
     type: 'PENSION_TYPE' | 'DISABILITY_TYPE' | 'GRADE_LEVEL' | 'SOLO_PARENT_CATEGORY' | 'VOCATIONAL_STUDENT' | 'COLLEGE_STUDENT';
   }): Promise<SettingOption[]> {
     const mapping = SETTING_MAP[type];
@@ -45,7 +45,7 @@ export const socialAmeliorationSettingApi = {
 
     try {
       const params = new URLSearchParams({
-        municipalityId: String(municipalityId),
+        ...(municipalityId ? { municipalityId: String(municipalityId) } : {}),
         typeName: mapping.typeName,
         ...(mapping.fieldKey ? { fieldKey: mapping.fieldKey } : {}),
       });

@@ -78,7 +78,7 @@ export const AddSoloParentFields: React.FC<AddSoloParentFieldsProps> = ({
               <Select
                 value={categoryOptions.find(option => option === field.value) ?? null}
                 onChange={selectedOption => field.onChange((selectedOption as any)?.value ?? '')}
-                options={categoryOptions.map(opt => ({ value: opt, label: opt }))}
+                options={categoryOptions.map(opt => ({ value: opt, label: opt })) as any}
                 placeholder="Select Category"
                 className="mt-1"
                 classNamePrefix="react-select"
