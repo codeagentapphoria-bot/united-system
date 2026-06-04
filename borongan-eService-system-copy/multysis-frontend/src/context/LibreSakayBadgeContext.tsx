@@ -1,54 +1,38 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { portalProgramsService } from '@/services/api/portal-programs.service';
+import { useAdminNotifications } from '@/hooks/notifications/useAdminNotifications';
 
 export type LibreSakayBadgeMap = Map<string, number>;
 
 interface LibreSakayBadgeContextValue {
   badgeOverrides: LibreSakayBadgeMap;
   setBadgeOverrides: (badges: LibreSakayBadgeMap) => void;
-  isBadgeLoading: boolean;
 }
 
 const LibreSakayBadgeContext = createContext<LibreSakayBadgeContextValue | null>(null);
 
 export const LibreSakayBadgeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [badgeOverrides, setBadgeOverridesState] = useState<LibreSakayBadgeMap>(new Map());
-  const [isBadgeLoading, setIsBadgeLoading] = useState(true);
+  const { counts } = useAdminNotifications();
+  const pendingProgramApplications = counts.pendingProgramApplications;
 
-  // Eagerly fetch badge count on mount so sidebar badge is available for all users immediately
+  // Subscribe to pendingProgramApplications from global notification state (real-time via WebSocket)
+  // No eager fetch needed — updates come through WebSocket events filtered to gp-all-libre-sakay
   useEffect(() => {
-    let cancelled = false;
-    setIsBadgeLoading(true);
-
-    portalProgramsService
-      .listApplicationsAdmin({
-        status: 'pending',
-        programId: 'gp-all-libre-sakay',
-        limit: 1,
-      })
-      .then(data => {
-        if (cancelled) return;
-        const count = data?.pagination?.total ?? 0;
-        setBadgeOverridesState(new Map([['/admin/libre-sakay/applications', count]]));
-      })
-      .catch(() => {
-        // silently ignore — badge just won't show
-      })
-      .finally(() => {
-        if (!cancelled) setIsBadgeLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    const count = pendingProgramApplications;
+    if (count > 0) {
+      setBadgeOverridesState(new Map([['/admin/libre-sakay/applications', count]]));
+    } else {
+      // Clear badge when count reaches zero
+      setBadgeOverridesState(new Map());
+    }
+  }, [pendingProgramApplications]);
 
   const setBadgeOverrides = (badges: LibreSakayBadgeMap) => {
     setBadgeOverridesState(badges);
   };
 
   return (
-    <LibreSakayBadgeContext.Provider value={{ badgeOverrides, setBadgeOverrides, isBadgeLoading }}>
+    <LibreSakayBadgeContext.Provider value={{ badgeOverrides, setBadgeOverrides }}>
       {children}
     </LibreSakayBadgeContext.Provider>
   );

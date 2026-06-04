@@ -2,7 +2,6 @@
 import React from 'react';
 
 // Third-party libraries
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,16 +13,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 // Custom Components
-import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 
 // Hooks
 import { useAuth } from '@/context/AuthContext';
-import { useAdminNotifications } from '@/hooks/notifications/useAdminNotifications';
 import { useProfileModal } from '@/context/ProfileModalContext';
 
 // Utils
 import { cn } from '@/lib/utils';
-import { FiBell, FiChevronDown, FiLogOut, FiMenu, FiUser } from 'react-icons/fi';
+import { FiChevronDown, FiLogOut, FiMenu, FiUser } from 'react-icons/fi';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -31,10 +28,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { user, logout, isLoggingOut } = useAuth();
-  const { counts } = useAdminNotifications();
   const { open: openProfileModal } = useProfileModal();
-  const isAdmin = user?.role === 'admin';
-  const hasNotifications = isAdmin && counts.total > 0;
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
@@ -52,32 +46,6 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
         <div className="flex items-center space-x-3">
           
-          {/* Notification Bell - Only show for admins */}
-          {isAdmin && (
-            <NotificationDropdown>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "relative hover:bg-primary-50 text-heading-600 hover:text-primary-700"
-                )}
-              >
-                <FiBell size={20} />
-                {hasNotifications && (
-                  <Badge
-                    className={cn(
-                      "absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0",
-                      "bg-red-600 text-white text-xs font-semibold rounded-full",
-                      "border-2 border-white"
-                    )}
-                  >
-                    {counts.total > 99 ? '99+' : counts.total}
-                  </Badge>
-                )}
-              </Button>
-            </NotificationDropdown>
-          )}
-
           {/* User Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

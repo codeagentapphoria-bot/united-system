@@ -15,6 +15,7 @@ import type {
   CitizenStatusChangePayload,
   TransactionNoteReadPayload,
   ProgramApplicationNewPayload,
+  ProgramApplicationReviewPayload,
 } from '@/types/socket.types';
 
 interface UseAdminNotificationsOptions {
@@ -221,8 +222,9 @@ export const useAdminNotifications = ({
       setAdminNotificationsGlobal({ counts: updated });
     };
 
-    const handleProgramApplicationNew = (_data: ProgramApplicationNewPayload) => {
+    const handleProgramApplicationNew = (data: ProgramApplicationNewPayload) => {
       updateLastEventTime();
+      if (data.programId !== 'gp-all-libre-sakay') return;
       const current = globalState.counts;
       const updated = {
         ...current,
@@ -232,8 +234,9 @@ export const useAdminNotifications = ({
       setAdminNotificationsGlobal({ counts: updated });
     };
 
-    const handleProgramApplicationReview = () => {
+    const handleProgramApplicationReview = (data: ProgramApplicationReviewPayload) => {
       updateLastEventTime();
+      if (data.programId !== 'gp-all-libre-sakay') return;
       const current = globalState.counts;
       const updated = {
         ...current,
@@ -248,7 +251,7 @@ export const useAdminNotifications = ({
     socket.on('citizen:status-change', handleCitizenStatusChange);
     socket.on('transaction:note:read', handleTransactionNoteRead);
     socket.on('program-application:new', handleProgramApplicationNew);
-    socket.on('program-application:review', handleProgramApplicationReview);
+    socket.on('program-application:review', handleProgramApplicationReview as Parameters<typeof socket.on>[1]);
 
     return () => {
       socket.off('transaction:new', handleNewTransaction);
@@ -259,7 +262,7 @@ export const useAdminNotifications = ({
       socket.off('program-application:review', handleProgramApplicationReview);
       socketListenerAttached = false;
     };
-  }, [socket, isConnected, user, globalState.counts]);
+  }, [socket, isConnected, user]);
 
   useEffect(() => {
     if (!autoFetch || !enabled || !user || user.role !== 'admin' || initializedRef.current) {
