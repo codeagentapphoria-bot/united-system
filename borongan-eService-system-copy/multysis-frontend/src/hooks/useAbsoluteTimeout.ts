@@ -8,6 +8,7 @@ interface UseAbsoluteTimeoutOptions {
   warningMinutes?: number; // Show warning X minutes before timeout (default: 5 minutes)
   sessionStartTime?: Date; // When the session started (default: now)
   onTimeout?: () => void;
+  enabled?: boolean; // default true — set to false when useSessionSync is active
 }
 
 /**
@@ -20,6 +21,7 @@ export const useAbsoluteTimeout = (options: UseAbsoluteTimeoutOptions = {}) => {
     warningMinutes = 5,
     sessionStartTime = new Date(),
     onTimeout,
+    enabled = true,
   } = options;
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ export const useAbsoluteTimeout = (options: UseAbsoluteTimeoutOptions = {}) => {
   const warningTimeoutMs = absoluteTimeoutMs - warningMinutes * 60 * 1000;
 
   const checkTimeout = () => {
+    if (enabled === false) return;
     const now = Date.now();
     const sessionStart = sessionStartTime.getTime();
     const elapsed = now - sessionStart;
@@ -72,6 +75,7 @@ export const useAbsoluteTimeout = (options: UseAbsoluteTimeoutOptions = {}) => {
   useEffect(() => {
     // Set warning timer
     warningTimeoutRef.current = setTimeout(() => {
+      if (enabled === false) return;
       setShowWarning(true);
       toast({
         title: 'Session Warning',

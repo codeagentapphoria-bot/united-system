@@ -17,6 +17,7 @@ import {
   unlinkGoogleAccountController,
 } from '../controllers/auth.controller';
 import { verifyResident, verifyToken, type AuthRequest } from '../middleware/auth';
+import { getSessionStatusController } from '../controllers/session.controller';
 import { validate } from '../middleware/validation';
 import { portalLoginValidation } from '../validations/auth.schema';
 
@@ -129,5 +130,6 @@ router.patch('/me/password', authenticatedLimiter, verifyToken, changeOwnPasswor
 router.get('/id-card-info', authenticatedLimiter, verifyResident, getIdCardInfoController);
 router.post('/refresh', authenticatedLimiter, verifyToken, refreshTokenController);
 router.get('/socket-token', authenticatedLimiter, verifyToken, getSocketTokenController);
+router.get('/session-status', authenticatedLimiter, verifyToken, getSessionStatusController);
 
 export default router;

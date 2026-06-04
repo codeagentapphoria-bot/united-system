@@ -9,6 +9,7 @@
 
 import axios from 'axios';
 import type { User } from '../../types/auth';
+import { refreshAccessToken } from './tokenRefresh';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -30,7 +31,7 @@ function formatValidationError(error: any): string {
   return data.message || error?.message || 'An unexpected error occurred.';
 }
 
-const getApiUrl = (): string => {
+export const getApiUrl = (): string => {
   const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
   const isProduction = import.meta.env.PROD;
   if (isProduction && apiUrl.startsWith('http://') && !apiUrl.includes('localhost')) {
@@ -61,18 +62,49 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Error handling interceptor
+// Response interceptor with automatic token refresh on 401
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.code === 'ECONNABORTED') {
+    const originalRequest = error.config;
+
+    // Handle timeout
+    if (error.code === 'ECONNABORTED' || error.message === 'timeout of 30000ms exceeded') {
       error.message = 'Request timeout. Please check your connection and try again.';
       return Promise.reject(error);
     }
+
+    // 401 — attempt token refresh once
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      // Skip retry for auth endpoints themselves (prevent loops)
+      const url = originalRequest.url || '';
+      if (url.includes('/auth/refresh') || url.includes('/auth/me')) {
+        const errorMessage = error.response?.data?.message || 'Session expired. Please log in again.';
+        error.message = errorMessage;
+        return Promise.reject(error);
+      }
+
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        // Refresh succeeded — replay the original request with refreshed cookies
+        return api(originalRequest);
+      }
+
+      // Refresh failed — session:expired event will fire from tokenRefresh.ts
+      // Format error message for downstream handlers
+      const errorMessage = error.response?.data?.message || 'Session expired. Please log in again.';
+      error.message = errorMessage;
+      return Promise.reject(error);
+    }
+
+    // Format 401 error message for non-retryable 401s
     if (error.response?.status === 401) {
       const errorMessage = error.response?.data?.message || 'Session expired. Please log in again.';
       error.message = errorMessage;
     }
+
     return Promise.reject(error);
   }
 );
