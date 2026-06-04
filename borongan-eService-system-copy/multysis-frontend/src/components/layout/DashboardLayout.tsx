@@ -11,6 +11,9 @@ import { useAdminNotifications } from '@/hooks/notifications/useAdminNotificatio
 import { useAuth } from '@/context/AuthContext';
 import { useLibreSakayBadgeOverrides } from '@/context/LibreSakayBadgeContext';
 import { useCityPopulationBadgeOverrides } from '@/context/CityPopulationBadgeContext';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+import { useSessionSync } from '@/hooks/useSessionSync';
 
 // Utils
 import { cn } from '@/lib/utils';
@@ -166,6 +169,53 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const { user } = useAuth();
   const { badgeOverrides: libreSakayBadgeOverrides } = useLibreSakayBadgeOverrides();
   const { badgeOverrides: cityPopulationBadgeOverrides } = useCityPopulationBadgeOverrides();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Server-synced session timeout toasts
+  // useSessionSync fires toasts ONLY when the server confirms session is expiring.
+  // useIdleTimeout and useAbsoluteTimeout run with enabled=false as fallback.
+  const onIdleWarning = () => {
+    toast({
+      title: 'Session Warning',
+      description: 'Your session will expire in 2 minutes due to inactivity.',
+      variant: 'default',
+    });
+  };
+
+  const onIdleTimeout = () => {
+    toast({
+      title: 'Session Expired',
+      description: 'Your session has expired due to inactivity. Please log in again.',
+      variant: 'destructive',
+    });
+    navigate('/admin/login');
+  };
+
+  const onAbsoluteWarning = () => {
+    toast({
+      title: 'Session Warning',
+      description: 'Your session will expire in 5 minutes. Please save your work.',
+      variant: 'default',
+    });
+  };
+
+  const onAbsoluteTimeout = () => {
+    toast({
+      title: 'Session Expired',
+      description: 'Your session has expired. Please log in again.',
+      variant: 'destructive',
+    });
+    navigate('/admin/login');
+  };
+
+  useSessionSync({
+    onIdleWarning,
+    onIdleTimeout,
+    onAbsoluteWarning,
+    onAbsoluteTimeout,
+    enabled: true,
+  });
 
   // Fetch user's allowed page paths from backend
   useEffect(() => {

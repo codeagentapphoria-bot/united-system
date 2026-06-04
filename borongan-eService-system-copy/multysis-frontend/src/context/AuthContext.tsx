@@ -43,9 +43,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Fetch current user from server (validates session)
-  const { data: fetchedUser, isSuccess, isError } = useQuery({
+  const { data: fetchedUser, isSuccess, isError, error } = useQuery({
     queryKey: queryKeys.auth.me,
-    queryFn: authService.getCurrentUser,
+    queryFn: async () => {
+      try {
+        return await authService.getCurrentUser();
+      } catch (err: any) {
+        if (err?.response?.status === 401) {
+          return null; // access token expired — let refresh flow handle it, don't throw
+        }
+        throw err; // re-throw network errors, 500s, etc.
+      }
+    },
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     retry: false,
@@ -57,22 +66,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (isSuccess && fetchedUser) {
       setUser(fetchedUser);
       saveUser({ id: fetchedUser.id, role: fetchedUser.role });
-    } else if (isSuccess && !fetchedUser) {
-      // Not authenticated - clear stored user and user state
-      setUser(null);
-      clearUser();
+    } else if (isSuccess && fetchedUser === null) {
+      // /auth/me returned null — this could mean the session is truly gone
+      // OR the refresh interceptor is handling it. Don't clear yet.
+      // The session:expired event will fire if refresh fails.
     }
   }, [isSuccess, fetchedUser, saveUser, clearUser]);
 
-  // Handle query error - server's 401 is authoritative, clear stale localStorage cache
-  // A 401 from /auth/me means the session is invalid regardless of localStorage
+  // Handle query error — differentiate between auth 401 (defer to refresh) vs network/500 (clear)
   useEffect(() => {
     if (isError) {
-      setUser(null);
-      clearUser();
+      const errorStatus = (error as any)?.response?.status;
+      if (errorStatus !== 401) {
+        // Network error or server 500 — clear session
+        setUser(null);
+        clearUser();
+      }
+      // 401 is handled by the refresh interceptor — don't clear yet
       setIsLoading(false);
     }
-  }, [isError, clearUser]);
+  }, [isError, error, clearUser]);
 
   // Mark loading as complete once query settles
   useEffect(() => {
@@ -80,6 +93,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(false);
     }
   }, [isSuccess, isError]);
+
+  // Listen for session:expired event — fire only when refresh truly fails
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setUser(null);
+      clearUser();
+      setIsLoading(false);
+    };
+    window.addEventListener('session:expired', handleSessionExpired);
+    return () => window.removeEventListener('session:expired', handleSessionExpired);
+  }, [clearUser]);
 
   const login = async (
     credentials:

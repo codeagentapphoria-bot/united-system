@@ -7,6 +7,7 @@ interface UseIdleTimeoutOptions {
   idleTimeoutMinutes?: number; // Default: 15 minutes
   warningMinutes?: number; // Show warning X minutes before timeout (default: 2 minutes)
   onTimeout?: () => void;
+  enabled?: boolean; // default true — set to false when useSessionSync is active
 }
 
 /**
@@ -14,7 +15,7 @@ interface UseIdleTimeoutOptions {
  * Shows warning before timeout and auto-logout when idle timeout is reached
  */
 export const useIdleTimeout = (options: UseIdleTimeoutOptions = {}) => {
-  const { idleTimeoutMinutes = 15, warningMinutes = 2, onTimeout } = options;
+  const { idleTimeoutMinutes = 15, warningMinutes = 2, onTimeout, enabled = true } = options;
   const { logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -40,6 +41,7 @@ export const useIdleTimeout = (options: UseIdleTimeoutOptions = {}) => {
 
     // Set warning timer
     warningTimeoutRef.current = setTimeout(() => {
+      if (enabled === false) return;
       setShowWarning(true);
       toast({
         title: 'Session Warning',
