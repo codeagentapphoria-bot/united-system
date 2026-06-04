@@ -517,9 +517,9 @@ export const reviewApplicationAdmin = async (
       );
 
       // Parallel upserts for all existing beneficiary records
-      await Promise.all(
+      const upsertResults = await Promise.allSettled(
         lookupResults
-          .filter((r): r is { type: string; beneficiary: { id: string } } => r.beneficiary !== null)
+          .filter((r): r is { type: string; beneficiary: { id: string } } => r.beneficiary !== null && r.beneficiary.id !== null)
           .map(({ type, beneficiary }) =>
             tx.beneficiaryProgramPivot.upsert({
               where: {
@@ -538,6 +538,11 @@ export const reviewApplicationAdmin = async (
             })
           )
       );
+
+      const failed = upsertResults.filter((r) => r.status === 'rejected');
+      if (failed.length > 0) {
+        console.error('[portal-programs] pivot upsert failed:', failed.map((f) => (f as PromiseRejectedResult).reason));
+      }
     }
 
     return updated;
