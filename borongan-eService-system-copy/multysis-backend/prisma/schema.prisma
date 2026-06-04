@@ -695,7 +695,7 @@ model GovernmentProgramApplication {
 // Not modeled during initial Prisma setup — accessed via raw SQL.
 model BeneficiaryProgramPivot {
   id              String    @id @default(uuid())
-  beneficiaryType String    @map("beneficiary_type")
+  beneficiaryType BeneficiaryType @map("beneficiary_type")
   beneficiaryId   String    @map("beneficiary_id")
   programId       String    @map("program_id")
   status         String    @default("active")

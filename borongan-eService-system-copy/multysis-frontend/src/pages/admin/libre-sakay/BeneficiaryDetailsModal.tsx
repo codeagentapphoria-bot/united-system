@@ -25,17 +25,10 @@ const CATEGORY_LABELS: Record<string, string> = {
   SOLO_PARENT: 'Solo Parent',
 };
 
-const ENROLLMENT_STATUS_STYLES: Record<string, string> = {
+const STATUS_STYLES: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-700',
   INACTIVE: 'bg-gray-100 text-gray-500',
   PENDING: 'bg-yellow-100 text-yellow-700',
-};
-
-const APPLICATION_STATUS_STYLES: Record<string, string> = {
-  approved: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700',
-  pending: 'bg-blue-100 text-blue-700',
-  cancelled: 'bg-gray-100 text-gray-500',
 };
 
 function fmt(v: string | null | undefined, fallback = '—') {
@@ -132,23 +125,16 @@ export function BeneficiaryDetailsModal({ id, open, onClose }: BeneficiaryDetail
                 <div className="flex flex-col items-end gap-1">
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      ENROLLMENT_STATUS_STYLES[b.enrollmentStatus] ?? 'bg-gray-100 text-gray-500'
+                      STATUS_STYLES[b.status] ?? 'bg-gray-100 text-gray-500'
                     }`}
                   >
-                    {b.enrollmentStatus.charAt(0) + b.enrollmentStatus.slice(1).toLowerCase()}
+                    {b.status === 'INACTIVE' ? 'Inactive' : b.status === 'ACTIVE' ? 'Active' : 'Pending'}
                   </span>
                   {b.suspendedAt && (
                     <span className="text-xs text-gray-400">
                       Suspended {new Date(b.suspendedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                   )}
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      APPLICATION_STATUS_STYLES[b.applicationStatus] ?? 'bg-gray-100 text-gray-500'
-                    }`}
-                  >
-                    {b.applicationStatus.charAt(0) + b.applicationStatus.slice(1).toLowerCase()}
-                  </span>
                 </div>
               </div>
 
@@ -239,16 +225,6 @@ export function BeneficiaryDetailsModal({ id, open, onClose }: BeneficiaryDetail
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Application Details</p>
                 <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100 text-sm">
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <span className="text-gray-500">Status</span>
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        APPLICATION_STATUS_STYLES[b.applicationStatus] ?? 'bg-gray-100 text-gray-500'
-                      }`}
-                    >
-                      {b.applicationStatus.charAt(0) + b.applicationStatus.slice(1).toLowerCase()}
-                    </span>
-                  </div>
                   <div className="flex items-center justify-between px-4 py-3">
                     <span className="text-gray-500">Applied</span>
                     <span className="font-medium">

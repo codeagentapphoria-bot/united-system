@@ -11,8 +11,7 @@ export interface BeneficiaryListItem {
   residentIdNumber: string;
   category: string;
   barangay: string;
-  enrollmentStatus: 'ACTIVE' | 'INACTIVE' | 'PENDING';
-  applicationStatus: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
   suspendedAt: string | null;
   enrolledAt: string;
   applicationId: string;

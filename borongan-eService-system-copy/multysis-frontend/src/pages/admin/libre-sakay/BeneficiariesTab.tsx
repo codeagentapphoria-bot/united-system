@@ -62,7 +62,7 @@ function SuspendActivateDialog({
             if (Array.isArray(old)) {
               return old.map((b: BeneficiaryListItem) =>
                 b.id === beneficiary!.id
-                  ? { ...b, enrollmentStatus: newStatus, suspendedAt: newSuspendedAt }
+                  ? { ...b, status: newStatus, suspendedAt: newSuspendedAt }
                   : b
               );
             }
@@ -71,7 +71,7 @@ function SuspendActivateDialog({
                 ...old,
                 data: old.data.map((b: BeneficiaryListItem) =>
                   b.id === beneficiary!.id
-                    ? { ...b, enrollmentStatus: newStatus, suspendedAt: newSuspendedAt }
+                    ? { ...b, status: newStatus, suspendedAt: newSuspendedAt }
                     : b
                 ),
               };
