@@ -470,18 +470,28 @@ export const reviewApplicationAdmin = async (
   // Typed lookup map — no `as any` on the Prisma client
   type BeneficiaryType = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT';
   type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+  // NOTE: beneficiaryId must be the human-readable ID (seniorCitizenId, pwdId, etc.)
+  // NOT the internal UUID id — pivot table stores the human-readable IDs.
   const beneficiaryLookup: Record<
     BeneficiaryType,
-    (rid: string, tx: TxClient) => Promise<{ id: string } | null>
+    (rid: string, tx: TxClient) => Promise<{ id: string | null } | null>
   > = {
-    SENIOR_CITIZEN: (rid, tx) =>
-      tx.seniorCitizenBeneficiary.findUnique({ where: { residentId: rid }, select: { id: true } }),
-    PWD: (rid, tx) =>
-      tx.pWDBeneficiary.findUnique({ where: { residentId: rid }, select: { id: true } }),
-    STUDENT: (rid, tx) =>
-      tx.studentBeneficiary.findUnique({ where: { residentId: rid }, select: { id: true } }),
-    SOLO_PARENT: (rid, tx) =>
-      tx.soloParentBeneficiary.findUnique({ where: { residentId: rid }, select: { id: true } }),
+    SENIOR_CITIZEN: async (rid, tx) => {
+      const r = await tx.seniorCitizenBeneficiary.findUnique({ where: { residentId: rid }, select: { seniorCitizenId: true } });
+      return r ? { id: r.seniorCitizenId } : null;
+    },
+    PWD: async (rid, tx) => {
+      const r = await tx.pWDBeneficiary.findUnique({ where: { residentId: rid }, select: { pwdId: true } });
+      return r ? { id: r.pwdId } : null;
+    },
+    STUDENT: async (rid, tx) => {
+      const r = await tx.studentBeneficiary.findUnique({ where: { residentId: rid }, select: { studentId: true } });
+      return r ? { id: r.studentId } : null;
+    },
+    SOLO_PARENT: async (rid, tx) => {
+      const r = await tx.soloParentBeneficiary.findUnique({ where: { residentId: rid }, select: { soloParentId: true } });
+      return r ? { id: r.soloParentId } : null;
+    },
   };
 
   // Wrap status update + pivot creation in a single transaction so partial

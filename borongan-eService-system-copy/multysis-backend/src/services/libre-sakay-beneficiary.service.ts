@@ -1,4 +1,5 @@
 import prisma from '../config/database';
+import { Prisma, BeneficiaryType } from '@prisma/client';
 
 const LIBRE_SAKAY_PROGRAM_ID = 'gp-all-libre-sakay';
 
@@ -11,7 +12,7 @@ export interface BeneficiaryListItem {
   residentId: string;
   fullName: string;
   residentIdNumber: string;
-  category: string;
+  category: BeneficiaryType | 'N/A';
   barangay: string;
   enrollmentStatus: 'ACTIVE' | 'INACTIVE' | 'PENDING';
   applicationStatus: 'pending' | 'approved' | 'rejected' | 'cancelled';
@@ -63,15 +64,15 @@ function buildFullName(first: string, middle: string | null, last: string, exten
 }
 
 function determineCategory(
-  senior: { id: string } | null,
-  pwd: { id: string } | null,
-  student: { id: string } | null,
-  soloParent: { id: string } | null,
-): { type: string; id: string } | null {
-  if (senior) return { type: 'SENIOR_CITIZEN', id: senior.id };
-  if (pwd) return { type: 'PWD', id: pwd.id };
-  if (student) return { type: 'STUDENT', id: student.id };
-  if (soloParent) return { type: 'SOLO_PARENT', id: soloParent.id };
+  senior: { seniorCitizenId: string | null } | null,
+  pwd: { pwdId: string | null } | null,
+  student: { studentId: string | null } | null,
+  soloParent: { soloParentId: string | null } | null,
+): { type: BeneficiaryType; id: string } | null {
+  if (senior?.seniorCitizenId) return { type: 'SENIOR_CITIZEN', id: senior.seniorCitizenId };
+  if (pwd?.pwdId) return { type: 'PWD', id: pwd.pwdId };
+  if (student?.studentId) return { type: 'STUDENT', id: student.studentId };
+  if (soloParent?.soloParentId) return { type: 'SOLO_PARENT', id: soloParent.soloParentId };
   return null;
 }
 
@@ -113,18 +114,18 @@ export const listBeneficiaries = async (
   const [rows, total] = await Promise.all([
     prisma.governmentProgramApplication.findMany({
       where: baseWhere,
-      include: {
-        resident: {
-          include: {
-            barangay: { select: { barangayName: true, municipality: true } },
-            seniorCitizenBeneficiary: { select: { id: true } },
-            pwdBeneficiary: { select: { id: true } },
-            studentBeneficiary: { select: { id: true } },
-            soloParentBeneficiary: { select: { id: true } },
-          },
+    include: {
+      resident: {
+        include: {
+          barangay: { select: { barangayName: true, municipality: true } },
+          seniorCitizenBeneficiary: { select: { seniorCitizenId: true } },
+          pwdBeneficiary: { select: { pwdId: true } },
+          studentBeneficiary: { select: { studentId: true } },
+          soloParentBeneficiary: { select: { soloParentId: true } },
         },
       },
-      orderBy: { reviewedAt: { sort: 'desc', nulls: 'last' } },
+    },
+    orderBy: { reviewedAt: { sort: 'desc', nulls: 'last' } },
       skip,
       take: limit,
     }),
@@ -150,29 +151,28 @@ export const listBeneficiaries = async (
     }
   }
 
-  // Batch-fetch all relevant pivot rows in one query
+  // Batch-fetch all relevant pivot rows using Prisma ORM
   let pivotMap = new Map<string, { status: string | null; suspendedAt: Date | null }>();
   if (categoryEntries.length > 0) {
     const pivotRows = await prisma.beneficiaryProgramPivot.findMany({
       where: {
         programId: LIBRE_SAKAY_PROGRAM_ID,
         OR: categoryEntries.map((e) => ({
-          beneficiaryType: e.cat.type as any,
+          beneficiaryType: e.cat.type as BeneficiaryType,
           beneficiaryId: e.cat.id,
         })),
       },
       select: { beneficiaryType: true, beneficiaryId: true, status: true, suspendedAt: true },
     });
 
-    const pivotKeyMap = new Map<string, { status: string | null; suspendedAt: Date | null }>();
     for (const p of pivotRows) {
-      pivotKeyMap.set(`${p.beneficiaryType}:${p.beneficiaryId}`, {
+      pivotMap.set(`${p.beneficiaryType}:${p.beneficiaryId}`, {
         status: p.status,
         suspendedAt: p.suspendedAt,
       });
     }
     for (const entry of categoryEntries) {
-      const pivot = pivotKeyMap.get(`${entry.cat.type}:${entry.cat.id}`);
+      const pivot = pivotMap.get(`${entry.cat.type}:${entry.cat.id}`);
       if (pivot) {
         pivotMap.set(entry.applicationId, { status: pivot.status, suspendedAt: pivot.suspendedAt });
       }
@@ -233,15 +233,14 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
       resident: {
         include: {
           barangay: { select: { barangayName: true, municipality: true } },
-          seniorCitizenBeneficiary: { select: { id: true } },
-          pwdBeneficiary: { select: { id: true } },
-          studentBeneficiary: { select: { id: true } },
-          soloParentBeneficiary: { select: { id: true } },
+          seniorCitizenBeneficiary: { select: { seniorCitizenId: true } },
+          pwdBeneficiary: { select: { pwdId: true } },
+          studentBeneficiary: { select: { studentId: true } },
+          soloParentBeneficiary: { select: { soloParentId: true } },
         },
       },
     },
   });
-
   if (!row) return null;
 
   const r = row.resident;
@@ -259,7 +258,7 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
     const pivot = await prisma.beneficiaryProgramPivot.findFirst({
       where: {
         programId: LIBRE_SAKAY_PROGRAM_ID,
-        beneficiaryType: cat.type as any,
+        beneficiaryType: cat.type as BeneficiaryType,
         beneficiaryId: cat.id,
       },
       select: { status: true, suspendedAt: true },
@@ -353,10 +352,10 @@ export const suspendBeneficiary = async (id: string): Promise<void> => {
     include: {
       resident: {
         include: {
-          seniorCitizenBeneficiary: { select: { id: true } },
-          pwdBeneficiary: { select: { id: true } },
-          studentBeneficiary: { select: { id: true } },
-          soloParentBeneficiary: { select: { id: true } },
+          seniorCitizenBeneficiary: { select: { seniorCitizenId: true } },
+          pwdBeneficiary: { select: { pwdId: true } },
+          studentBeneficiary: { select: { studentId: true } },
+          soloParentBeneficiary: { select: { soloParentId: true } },
         },
       },
     },
@@ -406,10 +405,10 @@ export const activateBeneficiary = async (id: string): Promise<void> => {
     include: {
       resident: {
         include: {
-          seniorCitizenBeneficiary: { select: { id: true } },
-          pwdBeneficiary: { select: { id: true } },
-          studentBeneficiary: { select: { id: true } },
-          soloParentBeneficiary: { select: { id: true } },
+          seniorCitizenBeneficiary: { select: { seniorCitizenId: true } },
+          pwdBeneficiary: { select: { pwdId: true } },
+          studentBeneficiary: { select: { studentId: true } },
+          soloParentBeneficiary: { select: { soloParentId: true } },
         },
       },
     },
@@ -453,10 +452,10 @@ export const removeBeneficiary = async (id: string): Promise<void> => {
     include: {
       resident: {
         include: {
-          seniorCitizenBeneficiary: { select: { id: true } },
-          pwdBeneficiary: { select: { id: true } },
-          studentBeneficiary: { select: { id: true } },
-          soloParentBeneficiary: { select: { id: true } },
+          seniorCitizenBeneficiary: { select: { seniorCitizenId: true } },
+          pwdBeneficiary: { select: { pwdId: true } },
+          studentBeneficiary: { select: { studentId: true } },
+          soloParentBeneficiary: { select: { soloParentId: true } },
         },
       },
     },
