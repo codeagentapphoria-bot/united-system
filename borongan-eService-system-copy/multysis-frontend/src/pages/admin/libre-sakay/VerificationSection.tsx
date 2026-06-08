@@ -38,7 +38,7 @@ export const VerificationSection: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 items-center">
+      <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
         <select
           value={field}
           onChange={e => {
@@ -47,7 +47,7 @@ export const VerificationSection: React.FC = () => {
             setResult(null);
             setError(null);
           }}
-          className="h-9 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full sm:w-auto sm:min-w-[140px] h-9 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
           <option value="residentId">Resident ID</option>
           <option value="email">Email</option>
@@ -62,12 +62,12 @@ export const VerificationSection: React.FC = () => {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="flex-1 h-9 px-3 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full sm:w-auto flex-1 box-border h-9 px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
         <button
           onClick={handleVerify}
           disabled={loading || !input.trim()}
-          className="h-9 px-4 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full sm:w-auto h-9 px-4 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
         >
           {loading ? 'Verifying...' : 'Verify'}
         </button>
