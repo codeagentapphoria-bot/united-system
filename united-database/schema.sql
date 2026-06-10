@@ -1152,6 +1152,16 @@ CREATE TABLE public.solo_parent_beneficiaries (
 );
 
 
+CREATE TABLE public.healthcare_worker_beneficiaries (
+    id                   text NOT NULL DEFAULT gen_random_uuid()::text,
+    resident_id          text NOT NULL,
+    healthcare_worker_id text NOT NULL,
+    status               public.beneficiary_status NOT NULL DEFAULT 'ACTIVE',
+    remarks              text,
+    created_at           timestamp without time zone DEFAULT now(),
+    updated_at           timestamp without time zone DEFAULT now()
+);
+
 CREATE TABLE public.government_programs (
     id           text NOT NULL DEFAULT gen_random_uuid()::text,
     name         text NOT NULL,
@@ -1239,6 +1249,7 @@ ALTER TABLE ONLY public.senior_citizen_beneficiaries ADD CONSTRAINT senior_citiz
 ALTER TABLE ONLY public.pwd_beneficiaries       ADD CONSTRAINT pwd_beneficiaries_pkey       PRIMARY KEY (id);
 ALTER TABLE ONLY public.student_beneficiaries   ADD CONSTRAINT student_beneficiaries_pkey   PRIMARY KEY (id);
 ALTER TABLE ONLY public.solo_parent_beneficiaries ADD CONSTRAINT solo_parent_beneficiaries_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.healthcare_worker_beneficiaries ADD CONSTRAINT healthcare_worker_beneficiaries_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.government_programs     ADD CONSTRAINT government_programs_pkey     PRIMARY KEY (id);
 ALTER TABLE ONLY public.beneficiary_program_pivots ADD CONSTRAINT beneficiary_program_pivots_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.faqs                    ADD CONSTRAINT faqs_pkey                    PRIMARY KEY (id);
@@ -1299,6 +1310,8 @@ ALTER TABLE ONLY public.student_beneficiaries   ADD CONSTRAINT student_resident_
 ALTER TABLE ONLY public.student_beneficiaries   ADD CONSTRAINT student_student_id_key       UNIQUE (student_id);
 ALTER TABLE ONLY public.solo_parent_beneficiaries ADD CONSTRAINT sp_resident_id_key         UNIQUE (resident_id);
 ALTER TABLE ONLY public.solo_parent_beneficiaries ADD CONSTRAINT sp_solo_parent_id_key      UNIQUE (solo_parent_id);
+ALTER TABLE ONLY public.healthcare_worker_beneficiaries ADD CONSTRAINT hw_resident_id_key        UNIQUE (resident_id);
+ALTER TABLE ONLY public.healthcare_worker_beneficiaries ADD CONSTRAINT hw_healthcare_worker_id_key UNIQUE (healthcare_worker_id);
 ALTER TABLE ONLY public.beneficiary_program_pivots ADD CONSTRAINT bpp_type_id_program_key   UNIQUE (beneficiary_type, beneficiary_id, program_id);
 
 

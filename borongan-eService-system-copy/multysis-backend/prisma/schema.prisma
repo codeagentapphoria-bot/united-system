@@ -141,6 +141,7 @@ model Resident {
   pwdBeneficiary           PWDBeneficiary?
   studentBeneficiary       StudentBeneficiary?
   soloParentBeneficiary    SoloParentBeneficiary?
+  healthcareWorkerBeneficiary HealthcareWorkerBeneficiary?
   programApplications      GovernmentProgramApplication[]
   medicineRequests         MedicineRequest[]
 
@@ -654,6 +655,19 @@ model SoloParentBeneficiary {
   @@map("solo_parent_beneficiaries")
 }
 
+model HealthcareWorkerBeneficiary {
+  id                   String            @id @default(uuid())
+  residentId           String            @map("resident_id") @unique
+  healthcareWorkerId  String            @map("healthcare_worker_id") @unique
+  status               BeneficiaryStatus @default(ACTIVE)
+  remarks              String?
+  createdAt            DateTime          @map("created_at") @default(now())
+  updatedAt            DateTime          @map("updated_at") @updatedAt
+  resident             Resident          @relation(fields: [residentId], references: [id], onDelete: Cascade)
+
+  @@map("healthcare_worker_beneficiaries")
+}
+
 model GovernmentProgram {
   id                  String                         @id @default(uuid())
   name                String
@@ -840,6 +854,7 @@ enum BeneficiaryType {
   PWD
   STUDENT
   SOLO_PARENT
+  HEALTHCARE_WORKER
 
   @@map("beneficiary_type")
 }
@@ -849,6 +864,7 @@ enum GovernmentProgramType {
   PWD
   STUDENT
   SOLO_PARENT
+  HEALTHCARE_WORKER
   ALL
 
   @@map("government_program_type")
