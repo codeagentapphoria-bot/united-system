@@ -3,5 +3,6 @@ export { SeniorCitizenTab } from './SeniorCitizenTab';
 export { PWDTab } from './PWDTab';
 export { StudentsTab } from './StudentsTab';
 export { SoloParentsTab } from './SoloParentsTab';
+export { HealthcareWorkersTab } from './HealthcareWorkersTab';
 export { SettingsTab } from './SettingsTab';
 export { ProgramApplicationsTab } from './ProgramApplicationsTab';

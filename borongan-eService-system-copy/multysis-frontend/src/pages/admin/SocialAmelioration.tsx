@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { cn } from '@/lib/utils';
 import React, { useEffect, useState } from 'react';
-import { FiBookOpen, FiHeart, FiSettings, FiUserCheck, FiUsers } from 'react-icons/fi';
+import { FiBookOpen, FiHeart, FiPlus, FiSettings, FiUserCheck, FiUsers } from 'react-icons/fi';
 import { useSearchParams } from 'react-router-dom';
 
 // Import tab components
@@ -16,6 +16,7 @@ import {
   SettingsTab,
   SoloParentsTab,
   StudentsTab,
+  HealthcareWorkersTab,
 } from '@/components/social-amelioration';
 
 export const SocialAmelioration: React.FC = () => {
@@ -94,6 +95,15 @@ export const SocialAmelioration: React.FC = () => {
                     <span className="hidden sm:inline">Solo Parents</span>
                   </TabsTrigger>
                   <TabsTrigger
+                    value="healthcare-workers"
+                    className={cn(
+                      'flex items-center gap-2 px-3 sm:px-6 py-4 data-[state=active]:bg-teal-50 data-[state=active]:text-teal-700 data-[state=active]:border-b-2 data-[state=active]:border-teal-600'
+                    )}
+                  >
+                    <FiUserCheck size={18} />
+                    <span className="hidden sm:inline">Healthcare Workers</span>
+                  </TabsTrigger>
+                  <TabsTrigger
                     value="settings"
                     className={cn(
                       'flex items-center gap-2 px-3 sm:px-6 py-4 data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
@@ -125,6 +135,10 @@ export const SocialAmelioration: React.FC = () => {
 
                 <TabsContent value="solo-parents" className={cn('mt-0')} forceMount hidden={activeTab !== 'solo-parents'}>
                   <SoloParentsTab />
+                </TabsContent>
+
+                <TabsContent value="healthcare-workers" className={cn('mt-0')} forceMount hidden={activeTab !== 'healthcare-workers'}>
+                  <HealthcareWorkersTab />
                 </TabsContent>
 
                 <TabsContent value="settings" className={cn('mt-0')} forceMount hidden={activeTab !== 'settings'}>
