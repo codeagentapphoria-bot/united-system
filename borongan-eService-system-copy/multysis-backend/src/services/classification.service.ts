@@ -179,6 +179,12 @@ function normalizeDetails(
         category: (details.category as string) ?? null,
         remarks:  (details.remarks  as string) ?? null,
       };
+    case 'Healthcare Worker':
+      return {
+        occupation: (details.occupation as string) ?? null,
+        workplace:  (details.workplace  as string) ?? null,
+        remarks:    (details.remarks    as string) ?? null,
+      };
     case 'Senior Citizen':
       return {
         pensionTypes: Array.isArray(details.pensionTypes)
