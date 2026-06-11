@@ -1,5 +1,6 @@
 import type { Resident as Citizen } from '@/services/api/resident.service';
 import type {
+  HealthcareWorkerInput,
   PWDInput,
   SeniorCitizenInput,
   SoloParentInput,
@@ -81,6 +82,22 @@ export interface SoloParentBeneficiary {
   assistancePrograms: string[];
   status: BeneficiaryStatus;
   remarks?: string;
+  createdAt: string;
+  updatedAt: string;
+  citizen?: Citizen;
+  resident?: Citizen;
+}
+
+export interface HealthcareWorkerBeneficiary {
+  id: string;
+  residentId: string;
+  citizenId: string; // alias for residentId — kept for backward compat
+  healthcareWorkerId: string;
+  occupation: string;
+  workplace?: string;
+  remarks?: string;
+  governmentPrograms: string[];
+  status: BeneficiaryStatus;
   createdAt: string;
   updatedAt: string;
   citizen?: Citizen;
@@ -223,6 +240,27 @@ export const socialAmeliorationApi = {
 
   async deleteSoloParentBeneficiary(id: string) {
     await api.delete(`/social-amelioration/solo-parents/${id}`);
+  },
+
+  async getHealthcareWorkerBeneficiaries(params?: ListParams): Promise<PaginatedResponse<HealthcareWorkerBeneficiary>> {
+    const response = await api.get('/social-amelioration/healthcare-workers', {
+      params: buildQueryParams(params),
+    });
+    return { data: (response.data.data ?? []).map(normalizeBeneficiary), pagination: response.data.pagination };
+  },
+
+  async createHealthcareWorkerBeneficiary(data: HealthcareWorkerInput) {
+    const response = await api.post('/social-amelioration/healthcare-workers', toBackendPayload(data as any));
+    return normalizeBeneficiary(response.data.data) as HealthcareWorkerBeneficiary;
+  },
+
+  async updateHealthcareWorkerBeneficiary(id: string, data: Partial<HealthcareWorkerInput> & { status?: BeneficiaryStatus }) {
+    const response = await api.put(`/social-amelioration/healthcare-workers/${id}`, toBackendPayload(data as any));
+    return normalizeBeneficiary(response.data.data) as HealthcareWorkerBeneficiary;
+  },
+
+  async deleteHealthcareWorkerBeneficiary(id: string) {
+    await api.delete(`/social-amelioration/healthcare-workers/${id}`);
   },
 
   async getOverviewStats(): Promise<OverviewStats> {

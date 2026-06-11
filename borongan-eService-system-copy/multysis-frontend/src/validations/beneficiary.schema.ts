@@ -83,6 +83,16 @@ export const soloParentSchema = z.object({
 
 export type SoloParentInput = z.infer<typeof soloParentSchema>;
 
+// Healthcare Worker Schema
+export const healthcareWorkerSchema = z.object({
+  citizenId: z.string().min(1, 'Citizen is required'),
+  occupation: z.string().min(1, 'Occupation is required'),
+  workplace: z.string().optional(),
+  remarks: z.string().optional(),
+});
+
+export type HealthcareWorkerInput = z.infer<typeof healthcareWorkerSchema>;
+
 // Edit schemas (same as add schemas for now)
 export const editSeniorCitizenSchema = seniorCitizenSchema;
 export const editPWDSchema = pwdSchema;
@@ -93,4 +103,7 @@ export type EditSeniorCitizenInput = z.infer<typeof editSeniorCitizenSchema>;
 export type EditPWDInput = z.infer<typeof editPWDSchema>;
 export type EditStudentInput = z.infer<typeof editStudentSchema>;
 export type EditSoloParentInput = z.infer<typeof editSoloParentSchema>;
+
+export const editHealthcareWorkerSchema = healthcareWorkerSchema;
+export type EditHealthcareWorkerInput = z.infer<typeof editHealthcareWorkerSchema>;
 
