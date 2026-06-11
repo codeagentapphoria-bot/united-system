@@ -162,6 +162,7 @@ export const AdminGovernmentPrograms: React.FC = () => {
       PWD: 'PWD',
       STUDENT: 'Student',
       SOLO_PARENT: 'Solo Parent',
+      HEALTHCARE_WORKER: 'Healthcare Worker',
       ALL: 'All Residents',
     };
     return labels[type] || type;
@@ -296,6 +297,18 @@ export const AdminGovernmentPrograms: React.FC = () => {
                       }
                     >
                       Solo Parent
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={typeFilter === 'HEALTHCARE_WORKER' ? 'default' : 'outline'}
+                      onClick={() => setTypeFilter('HEALTHCARE_WORKER')}
+                      className={
+                        typeFilter === 'HEALTHCARE_WORKER'
+                          ? 'bg-primary-600 hover:bg-primary-700'
+                          : 'text-primary-600 hover:bg-primary-50'
+                      }
+                    >
+                      Healthcare Worker
                     </Button>
                     <Button
                       size="sm"

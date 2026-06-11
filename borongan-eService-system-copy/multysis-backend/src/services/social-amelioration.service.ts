@@ -161,7 +161,7 @@ const generateSequentialId = async (type: 'SENIOR' | 'PWD' | 'STUDENT' | 'SOLO_P
 // Only returns programs the admin has manually enrolled this beneficiary in.
 // ALL-type programs are NOT auto-injected here — admins assign them explicitly.
 const getBeneficiaryPrograms = async (
-  beneficiaryType: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT',
+  beneficiaryType: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER',
   beneficiaryId: string
 ) => {
   return (prisma as any).beneficiaryProgramPivot.findMany({
@@ -176,7 +176,7 @@ const getBeneficiaryPrograms = async (
 };
 
 const getBeneficiaryProgramsMap = async (
-  beneficiaryType: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT',
+  beneficiaryType: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER',
   beneficiaryIds: string[]
 ): Promise<Map<string, string[]>> => {
   if (beneficiaryIds.length === 0) return new Map();

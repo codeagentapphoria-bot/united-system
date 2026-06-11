@@ -175,7 +175,7 @@ export interface SubscribeSubscriberPayload {
 // Beneficiary Events
 export interface BeneficiaryNewPayload {
   beneficiaryId: string;
-  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT';
+  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER';
   residentId: string;
   status?: string;
   programIds?: string[];
@@ -184,7 +184,7 @@ export interface BeneficiaryNewPayload {
 
 export interface BeneficiaryUpdatePayload {
   beneficiaryId: string;
-  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT';
+  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER';
   residentId?: string;
   status?: string;
   oldStatus?: string;
@@ -194,7 +194,7 @@ export interface BeneficiaryUpdatePayload {
 
 export interface BeneficiaryDeletePayload {
   beneficiaryId: string;
-  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT';
+  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER';
   residentId?: string;
 }
 
@@ -203,7 +203,7 @@ export interface GovernmentProgramNewPayload {
   id: string;
   name: string;
   description?: string;
-  types: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL')[];
+  types: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER' | 'ALL')[];
   isActive: boolean;
   createdAt: Date | string;
 }
@@ -212,7 +212,7 @@ export interface GovernmentProgramUpdatePayload {
   programId: string;
   name?: string;
   description?: string;
-  types?: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL')[];
+  types?: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER' | 'ALL')[];
   isActive?: boolean;
   oldIsActive?: boolean;
   updatedAt: Date | string;

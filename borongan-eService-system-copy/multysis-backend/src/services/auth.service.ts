@@ -398,6 +398,11 @@ export const getCurrentUser = async (
     include: {
       barangay: { include: { municipality: true } },
       credentials: true,
+      seniorCitizenBeneficiary: true,
+      pwdBeneficiary: true,
+      studentBeneficiary: true,
+      soloParentBeneficiary: true,
+      healthcareWorkerBeneficiary: true,
     },
   });
 
@@ -477,6 +482,9 @@ export const formatResidentResponse = (resident: any) => ({
     : null,
   soloParent: resident.soloParentBeneficiary
     ? { id: resident.soloParentBeneficiary.soloParentId, status: resident.soloParentBeneficiary.status }
+    : null,
+  healthcareWorker: resident.healthcareWorkerBeneficiary
+    ? { id: resident.healthcareWorkerBeneficiary.healthcareWorkerId, status: resident.healthcareWorkerBeneficiary.status }
     : null,
   createdAt: resident.createdAt,
   updatedAt: resident.updatedAt,

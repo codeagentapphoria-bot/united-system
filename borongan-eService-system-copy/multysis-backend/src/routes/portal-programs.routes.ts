@@ -29,7 +29,7 @@ router.get(
     query('search').optional().trim().isLength({ max: 200 }),
     query('type')
       .optional()
-      .isIn(['all', 'SENIOR_CITIZEN', 'PWD', 'STUDENT', 'SOLO_PARENT', 'ALL']),
+      .isIn(['all', 'SENIOR_CITIZEN', 'PWD', 'STUDENT', 'SOLO_PARENT', 'HEALTHCARE_WORKER', 'ALL']),
     query('name').optional().trim().isLength({ max: 200 }),
     query('page').optional().isInt({ min: 1 }).toInt(),
     query('limit').optional().isInt({ min: 1, max: 50 }).toInt(),

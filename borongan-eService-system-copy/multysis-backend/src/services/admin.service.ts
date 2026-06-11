@@ -255,6 +255,7 @@ export interface DashboardStatistics {
     pwd: number;
     students: number;
     soloParents: number;
+    healthcareWorkers: number;
   };
 }
 
@@ -293,6 +294,7 @@ export const getDashboardStatistics = async (): Promise<DashboardStatistics> => 
     pwd,
     students,
     soloParents,
+    healthcareWorkers,
     recentTransactionsData,
     recentResidentsData,
     transactionTrendsRaw,
@@ -340,6 +342,7 @@ export const getDashboardStatistics = async (): Promise<DashboardStatistics> => 
     prisma.pWDBeneficiary.count({ where: { status: 'ACTIVE' } }),
     prisma.studentBeneficiary.count({ where: { status: 'ACTIVE' } }),
     prisma.soloParentBeneficiary.count({ where: { status: 'ACTIVE' } }),
+    prisma.healthcareWorkerBeneficiary.count({ where: { status: 'ACTIVE' } }),
     // Optimized recent activity: select only what's needed, avoid big JSON blobs
     prisma.transaction.findMany({
       take: 20,
@@ -499,6 +502,7 @@ export const getDashboardStatistics = async (): Promise<DashboardStatistics> => 
       pwd,
       students,
       soloParents,
+      healthcareWorkers,
     },
   };
 

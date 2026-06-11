@@ -138,7 +138,7 @@ export interface ResidentVerification {
   barangay_name: string | null;
 }
 
-export type GovernmentProgramTypeEnum = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+export type GovernmentProgramTypeEnum = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER' | 'ALL';
 
 export interface RequirementItem {
   type: string;

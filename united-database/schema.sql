@@ -1312,6 +1312,11 @@ ALTER TABLE ONLY public.solo_parent_beneficiaries ADD CONSTRAINT sp_resident_id_
 ALTER TABLE ONLY public.solo_parent_beneficiaries ADD CONSTRAINT sp_solo_parent_id_key      UNIQUE (solo_parent_id);
 ALTER TABLE ONLY public.healthcare_worker_beneficiaries ADD CONSTRAINT hw_resident_id_key        UNIQUE (resident_id);
 ALTER TABLE ONLY public.healthcare_worker_beneficiaries ADD CONSTRAINT hw_healthcare_worker_id_key UNIQUE (healthcare_worker_id);
+
+ALTER TABLE ONLY public.healthcare_worker_beneficiaries
+    ADD CONSTRAINT hw_resident_id_fkey
+    FOREIGN KEY (resident_id) REFERENCES public.residents(id) ON DELETE CASCADE;
+
 ALTER TABLE ONLY public.beneficiary_program_pivots ADD CONSTRAINT bpp_type_id_program_key   UNIQUE (beneficiary_type, beneficiary_id, program_id);
 
 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const programTypeEnum = z.enum(['SENIOR_CITIZEN', 'PWD', 'STUDENT', 'SOLO_PARENT', 'ALL']);
+const programTypeEnum = z.enum(['SENIOR_CITIZEN', 'PWD', 'STUDENT', 'SOLO_PARENT', 'HEALTHCARE_WORKER', 'ALL']);
 
 const requirementItemSchema = z.object({
   type: z.string().min(1, 'Type is required'),

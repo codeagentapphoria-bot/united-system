@@ -375,7 +375,7 @@ export const emitNewTransaction = async (transaction: {
 
 export const emitBeneficiaryNew = async (beneficiary: {
   beneficiaryId: string;
-  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT';
+  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER';
   residentId: string;
   status?: string;
   programIds?: string[];
@@ -402,7 +402,7 @@ export const emitBeneficiaryNew = async (beneficiary: {
 
 export const emitBeneficiaryUpdate = async (
   beneficiaryId: string,
-  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT',
+  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER',
   update: {
     residentId?: string;
     status?: string;
@@ -430,7 +430,7 @@ export const emitBeneficiaryUpdate = async (
 
 export const emitBeneficiaryDelete = async (
   beneficiaryId: string,
-  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT',
+  type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER',
   residentId?: string
 ): Promise<void> => {
   const io = getSocketInstance();
@@ -450,7 +450,7 @@ export const emitGovernmentProgramNew = async (program: {
   id: string;
   name: string;
   description?: string;
-  types: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL')[];
+  types: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER' | 'ALL')[];
   isActive: boolean;
   createdAt: Date | string;
 }): Promise<void> => {
@@ -476,7 +476,7 @@ export const emitGovernmentProgramUpdate = async (
   update: {
     name?: string;
     description?: string;
-    types?: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL')[];
+    types?: ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER' | 'ALL')[];
     isActive?: boolean;
     oldIsActive?: boolean;
     updatedAt: Date;

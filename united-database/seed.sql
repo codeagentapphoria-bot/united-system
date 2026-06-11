@@ -141,7 +141,7 @@ ON CONFLICT (id) DO NOTHING;
 -- =============================================================================
 
 INSERT INTO public.government_programs (id, name, description, types, is_active, created_at, updated_at) VALUES
-    ('00000501-0501-4001-8001-000000000001', 'Libre Sakay',                  'Free bus services for the city residents',                   '{ALL}',            true, now(), now()),
+    ('gp-all-libre-sakay',                   'Libre Sakay',                  'Free bus services for the city residents',                   '{ALL}',            true, now(), now()),
     ('00000501-0501-4001-8001-000000000002', 'Libre Medisina',               'City Pharmacy Free Medicine Program',                      '{ALL}',            true, now(), now()),
     ('00000501-0501-4001-8001-000000000003', 'Direkta Ayuda',                'Student Financial Assistance Program',                     '{STUDENT}',        true, now(), now()),
     ('00000501-0501-4001-8001-000000000004', 'Senior Citizen Allowance',      'Monthly financial assistance for qualified senior citizens', '{SENIOR_CITIZEN}', true, now(), now())

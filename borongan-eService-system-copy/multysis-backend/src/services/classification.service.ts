@@ -139,13 +139,15 @@ const BENEFICIARY_SYNC_MAP: Record<string, { table: string; idCol: string; prefi
   'College Student':       { table: 'student_beneficiaries',         idCol: 'student_id',        prefix: 'ST'  },
   'Vocational Student':    { table: 'student_beneficiaries',         idCol: 'student_id',        prefix: 'ST'  },
   'Solo Parent':           { table: 'solo_parent_beneficiaries',     idCol: 'solo_parent_id',    prefix: 'SP'  },
+  'Healthcare Worker':     { table: 'healthcare_worker_beneficiaries', idCol: 'healthcare_worker_id', prefix: 'HW'  },
 };
 
-const tableToSocketType: Record<string, 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT'> = {
+const tableToSocketType: Record<string, 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER'> = {
   senior_citizen_beneficiaries: 'SENIOR_CITIZEN',
   pwd_beneficiaries: 'PWD',
   student_beneficiaries: 'STUDENT',
   solo_parent_beneficiaries: 'SOLO_PARENT',
+  healthcare_worker_beneficiaries: 'HEALTHCARE_WORKER',
 };
 
 // Normalize detail keys for resident_classifications.classification_details.
@@ -215,6 +217,8 @@ export const generateBeneficiaryId = async (table: string, prefix: string) => {
      SELECT student_id as display_id FROM public.student_beneficiaries WHERE student_id LIKE $1
      UNION
      SELECT solo_parent_id as display_id FROM public.solo_parent_beneficiaries WHERE solo_parent_id LIKE $1
+     UNION
+     SELECT healthcare_worker_id as display_id FROM public.healthcare_worker_beneficiaries WHERE healthcare_worker_id LIKE $1
      ORDER BY display_id DESC LIMIT 1`,
     `${yearPrefix}%`
   );
@@ -266,6 +270,9 @@ export async function syncBeneficiaryOnInsert(
     case 'solo_parent_beneficiaries':
       existing = await prisma.soloParentBeneficiary.findUnique({ where: { residentId } });
       break;
+    case 'healthcare_worker_beneficiaries':
+      existing = await prisma.healthcareWorkerBeneficiary.findUnique({ where: { residentId } });
+      break;
   }
 
   if (existing) {
@@ -285,6 +292,9 @@ export async function syncBeneficiaryOnInsert(
           break;
         case 'solo_parent_beneficiaries':
           await prisma.soloParentBeneficiary.update({ where: { residentId }, data: updateData as any });
+          break;
+        case 'healthcare_worker_beneficiaries':
+          await prisma.healthcareWorkerBeneficiary.update({ where: { residentId }, data: updateData as any });
           break;
       }
       console.info(`[beneficiary-sync] Reactivated ${table} record for resident ${residentId}`);
@@ -342,6 +352,15 @@ export async function syncBeneficiaryOnInsert(
           data: {
             residentId,
             seniorCitizenId: displayId,
+            status: initialStatus as any,
+          },
+        });
+        break;
+      case 'healthcare_worker_beneficiaries':
+        await prisma.healthcareWorkerBeneficiary.create({
+          data: {
+            residentId,
+            healthcareWorkerId: displayId,
             status: initialStatus as any,
           },
         });
