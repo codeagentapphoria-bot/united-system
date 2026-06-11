@@ -82,6 +82,7 @@ export interface ResidentRegistrationData {
     student?: { gradeLevel?: string; courseField?: string; ncLevel?: string };
     soloParent?: { category?: string };
     voter?: { voterType?: string };
+    healthcareWorker?: { occupation?: string; workplace?: string };
   };
 }
 
@@ -490,6 +491,7 @@ export async function autoClassifyResident(
     student?: { gradeLevel?: string; courseField?: string; ncLevel?: string };
     soloParent?: { category?: string };
     voter?: { voterType?: string };
+    healthcareWorker?: { occupation?: string; workplace?: string };
   }
 ): Promise<void> {
   const toInsert: Array<{ type: string; details: Record<string, unknown> }> = [];
@@ -576,6 +578,18 @@ export async function autoClassifyResident(
       details: {
         category: ameliorationData.soloParent.category,
         remarks: '',
+      },
+    });
+  }
+
+  // Social amelioration: Healthcare Worker
+  if (ameliorationData?.healthcareWorker?.occupation) {
+    toInsert.push({
+      type: 'Healthcare Worker',
+      details: {
+        occupation: ameliorationData.healthcareWorker.occupation || '',
+        workplace:  ameliorationData.healthcareWorker.workplace  || '',
+        remarks:    '',
       },
     });
   }
