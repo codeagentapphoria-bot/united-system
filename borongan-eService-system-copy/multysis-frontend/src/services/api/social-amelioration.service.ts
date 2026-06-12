@@ -109,6 +109,7 @@ export interface OverviewStats {
   totalPWD: number;
   totalStudents: number;
   totalSoloParents: number;
+  totalHealthcareWorkers: number;
   totalBeneficiaries: number;
 }
 
@@ -118,6 +119,7 @@ export interface TrendStat {
   pwd: number;
   students: number;
   soloParents: number;
+  healthcareWorkers: number;
 }
 
 interface ListParams {

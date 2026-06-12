@@ -2,11 +2,13 @@ import { BeneficiaryStatus } from '@prisma/client';
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import {
+  CreateHWBeneficiaryData,
   CreatePWDBeneficiaryData,
   CreateSeniorBeneficiaryData,
   CreateSoloParentBeneficiaryData,
   CreateStudentBeneficiaryData,
   socialAmeliorationService,
+  UpdateHWBeneficiaryData,
   UpdatePWDBeneficiaryData,
   UpdateSeniorBeneficiaryData,
   UpdateSoloParentBeneficiaryData,
@@ -461,6 +463,107 @@ export const deleteSoloParentBeneficiaryController = async (req: Request, res: R
         status: 'error',
         message: error.message || 'Failed to remove solo parent beneficiary',
       });
+  }
+};
+
+export const getHWBeneficiariesController = async (req: Request, res: Response) => {
+  try {
+    const result = await socialAmeliorationService.listHWBeneficiaries(
+      parseFilters(req),
+      parsePagination(req)
+    );
+    res.status(200).json({ status: 'success', data: result.data, pagination: result.pagination });
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ status: 'error', message: error.message || 'Failed to fetch healthcare worker beneficiaries' });
+  }
+};
+
+export const createHWBeneficiaryController = async (req: Request, res: Response) => {
+  try {
+    const payload: CreateHWBeneficiaryData = {
+      residentId: req.body.residentId,
+      occupation: req.body.occupation,
+      workplace: req.body.workplace,
+      governmentPrograms: req.body.governmentPrograms,
+      status: parseStatus(req.body.status),
+      remarks: req.body.remarks,
+    };
+    const record = await socialAmeliorationService.createHWBeneficiary(payload);
+
+    // Emit WebSocket event for new beneficiary
+    emitBeneficiaryNew({
+      beneficiaryId: record.id,
+      type: 'HEALTHCARE_WORKER',
+      residentId: record.residentId,
+      status: record.status || undefined,
+      programIds: record.governmentPrograms?.map((p: any) => p.id || p) || undefined,
+      createdAt: record.createdAt,
+    });
+
+    res.status(201).json({ status: 'success', data: record });
+  } catch (error: any) {
+    res
+      .status(400)
+      .json({ status: 'error', message: error.message || 'Failed to create healthcare worker beneficiary' });
+  }
+};
+
+export const updateHWBeneficiaryController = async (req: Request, res: Response) => {
+  try {
+    // Get old record to capture old status
+    const oldRecord = await prisma.healthcareWorkerBeneficiary.findUnique({
+      where: { id: req.params.id },
+    });
+    const oldStatus = oldRecord?.status || undefined;
+
+    const payload: UpdateHWBeneficiaryData = {
+      occupation: req.body.occupation,
+      workplace: req.body.workplace,
+      governmentPrograms: req.body.governmentPrograms,
+      status: parseStatus(req.body.status),
+      remarks: req.body.remarks,
+    };
+    const record = await socialAmeliorationService.updateHWBeneficiary(req.params.id, payload);
+
+    // Emit WebSocket event for beneficiary update
+    emitBeneficiaryUpdate(req.params.id, 'HEALTHCARE_WORKER', {
+      residentId: record.residentId,
+      status: record.status || undefined,
+      oldStatus,
+      programIds: record.governmentPrograms?.map((p: any) => p.id || p) || undefined,
+      updatedAt: record.updatedAt,
+    });
+
+    res.status(200).json({ status: 'success', data: record });
+  } catch (error: any) {
+    res
+      .status(400)
+      .json({ status: 'error', message: error.message || 'Failed to update healthcare worker beneficiary' });
+  }
+};
+
+export const deleteHWBeneficiaryController = async (req: Request, res: Response) => {
+  try {
+    // Get record before deletion to get residentId
+    const record = await prisma.healthcareWorkerBeneficiary.findUnique({
+      where: { id: req.params.id },
+    });
+    const residentId = record?.residentId;
+
+    await socialAmeliorationService.deleteHWBeneficiary(req.params.id);
+
+    // Emit WebSocket event for beneficiary deletion
+    emitBeneficiaryDelete(req.params.id, 'HEALTHCARE_WORKER', residentId);
+
+    res
+      .status(200)
+      .json({ status: 'success', message: 'Healthcare worker beneficiary removed successfully' });
+  } catch (error: any) {
+    res
+      .status(400)
+      .json({ status: 'error', message: error.message || 'Failed to remove healthcare worker beneficiary' });
   }
 };
 
