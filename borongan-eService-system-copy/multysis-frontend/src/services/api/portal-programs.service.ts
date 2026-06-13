@@ -19,6 +19,7 @@ interface BeneficiaryInfo {
   pwdId?: string;
   studentId?: string;
   soloParentId?: string;
+  healthcareWorkerId?: string;
 }
 
 export interface AdminProgramApplication {
@@ -76,6 +77,7 @@ export interface AdminProgramApplicationDetail {
     pwdBeneficiary?: BeneficiaryInfo | null;
     studentBeneficiary?: BeneficiaryInfo | null;
     soloParentBeneficiary?: BeneficiaryInfo | null;
+    healthcareWorkerBeneficiary?: BeneficiaryInfo | null;
   };
   program: {
     id: string;

@@ -377,6 +377,7 @@ export const getApplicationAdmin = async (applicationId: string) => {
           pwdBeneficiary: { select: { status: true, pwdId: true } },
           studentBeneficiary: { select: { status: true, studentId: true } },
           soloParentBeneficiary: { select: { status: true, soloParentId: true } },
+          healthcareWorkerBeneficiary: { select: { status: true, healthcareWorkerId: true } },
         },
       },
       program: true,

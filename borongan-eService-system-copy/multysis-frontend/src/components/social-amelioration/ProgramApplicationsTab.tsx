@@ -115,6 +115,7 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
         { label: 'PWD', data: r.pwdBeneficiary, idField: r.pwdBeneficiary?.pwdId },
         { label: 'Student', data: r.studentBeneficiary, idField: r.studentBeneficiary?.studentId },
         { label: 'Solo Parent', data: r.soloParentBeneficiary, idField: r.soloParentBeneficiary?.soloParentId },
+        { label: 'Healthcare Worker', data: r.healthcareWorkerBeneficiary, idField: r.healthcareWorkerBeneficiary?.healthcareWorkerId },
       ].filter(b => b.data)
     : [];
 
