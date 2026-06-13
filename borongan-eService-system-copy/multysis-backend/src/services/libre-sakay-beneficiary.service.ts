@@ -67,11 +67,13 @@ function determineCategory(
   pwd: { pwdId: string | null } | null,
   student: { studentId: string | null } | null,
   soloParent: { soloParentId: string | null } | null,
+  healthcareWorker: { healthcareWorkerId: string | null } | null,
 ): { type: BeneficiaryType; id: string } | null {
   if (senior?.seniorCitizenId) return { type: 'SENIOR_CITIZEN', id: senior.seniorCitizenId };
   if (pwd?.pwdId) return { type: 'PWD', id: pwd.pwdId };
   if (student?.studentId) return { type: 'STUDENT', id: student.studentId };
   if (soloParent?.soloParentId) return { type: 'SOLO_PARENT', id: soloParent.soloParentId };
+  if (healthcareWorker?.healthcareWorkerId) return { type: 'HEALTHCARE_WORKER', id: healthcareWorker.healthcareWorkerId };
   return null;
 }
 
@@ -121,6 +123,7 @@ export const listBeneficiaries = async (
           pwdBeneficiary: { select: { pwdId: true } },
           studentBeneficiary: { select: { studentId: true } },
           soloParentBeneficiary: { select: { soloParentId: true } },
+          healthcareWorkerBeneficiary: { select: { healthcareWorkerId: true } },
         },
       },
     },
@@ -144,6 +147,7 @@ export const listBeneficiaries = async (
       r.pwdBeneficiary,
       r.studentBeneficiary,
       r.soloParentBeneficiary,
+      r.healthcareWorkerBeneficiary,
     );
     if (cat) {
       categoryEntries.push({ applicationId: row.id, cat });
@@ -185,6 +189,7 @@ export const listBeneficiaries = async (
       r.pwdBeneficiary,
       r.studentBeneficiary,
       r.soloParentBeneficiary,
+      r.healthcareWorkerBeneficiary,
     );
     const pivotInfo = pivotMap.get(row.id) ?? { status: null, suspendedAt: null };
 
@@ -235,6 +240,7 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
           pwdBeneficiary: { select: { pwdId: true } },
           studentBeneficiary: { select: { studentId: true } },
           soloParentBeneficiary: { select: { soloParentId: true } },
+          healthcareWorkerBeneficiary: { select: { healthcareWorkerId: true } },
         },
       },
     },
@@ -247,6 +253,7 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
     r.pwdBeneficiary,
     r.studentBeneficiary,
     r.soloParentBeneficiary,
+    r.healthcareWorkerBeneficiary,
   );
 
   // Fetch pivot for this specific category + Libre-Sakay
@@ -353,6 +360,7 @@ export const suspendBeneficiary = async (id: string): Promise<void> => {
           pwdBeneficiary: { select: { pwdId: true } },
           studentBeneficiary: { select: { studentId: true } },
           soloParentBeneficiary: { select: { soloParentId: true } },
+          healthcareWorkerBeneficiary: { select: { healthcareWorkerId: true } },
         },
       },
     },
@@ -365,6 +373,7 @@ export const suspendBeneficiary = async (id: string): Promise<void> => {
     application.resident.pwdBeneficiary,
     application.resident.studentBeneficiary,
     application.resident.soloParentBeneficiary,
+    application.resident.healthcareWorkerBeneficiary,
   );
 
   if (!cat) throw new Error('No beneficiary category found');
@@ -406,6 +415,7 @@ export const activateBeneficiary = async (id: string): Promise<void> => {
           pwdBeneficiary: { select: { pwdId: true } },
           studentBeneficiary: { select: { studentId: true } },
           soloParentBeneficiary: { select: { soloParentId: true } },
+          healthcareWorkerBeneficiary: { select: { healthcareWorkerId: true } },
         },
       },
     },
@@ -418,6 +428,7 @@ export const activateBeneficiary = async (id: string): Promise<void> => {
     application.resident.pwdBeneficiary,
     application.resident.studentBeneficiary,
     application.resident.soloParentBeneficiary,
+    application.resident.healthcareWorkerBeneficiary,
   );
 
   if (!cat) throw new Error('No beneficiary category found');
@@ -453,6 +464,7 @@ export const removeBeneficiary = async (id: string): Promise<void> => {
           pwdBeneficiary: { select: { pwdId: true } },
           studentBeneficiary: { select: { studentId: true } },
           soloParentBeneficiary: { select: { soloParentId: true } },
+          healthcareWorkerBeneficiary: { select: { healthcareWorkerId: true } },
         },
       },
     },
@@ -465,6 +477,7 @@ export const removeBeneficiary = async (id: string): Promise<void> => {
     application.resident.pwdBeneficiary,
     application.resident.studentBeneficiary,
     application.resident.soloParentBeneficiary,
+    application.resident.healthcareWorkerBeneficiary,
   );
 
   if (!cat) throw new Error('No beneficiary category found');
