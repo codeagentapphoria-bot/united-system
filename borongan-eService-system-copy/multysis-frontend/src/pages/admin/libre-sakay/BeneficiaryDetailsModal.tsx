@@ -23,6 +23,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   PWD: 'PWD',
   STUDENT: 'Student',
   SOLO_PARENT: 'Solo Parent',
+  HEALTHCARE_WORKER: 'Healthcare Worker',
 };
 
 const STATUS_STYLES: Record<string, string> = {
