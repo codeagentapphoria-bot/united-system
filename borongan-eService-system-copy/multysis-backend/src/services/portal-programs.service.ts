@@ -14,7 +14,7 @@ type ProgramTypeValue = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | '
 async function getResidentEligibleTypes(residentId: string): Promise<Set<ProgramTypeValue>> {
   const eligible = new Set<ProgramTypeValue>();
 
-  const [senior, pwd, student, soloParent] = await Promise.all([
+  const [senior, pwd, student, soloParent, healthcareWorker] = await Promise.all([
     prisma.seniorCitizenBeneficiary.findUnique({
       where: { residentId },
       select: { status: true },
@@ -31,12 +31,17 @@ async function getResidentEligibleTypes(residentId: string): Promise<Set<Program
       where: { residentId },
       select: { status: true },
     }),
+    prisma.healthcareWorkerBeneficiary.findUnique({
+      where: { residentId },
+      select: { status: true },
+    }),
   ]);
 
   if (senior?.status === 'ACTIVE') eligible.add('SENIOR_CITIZEN');
   if (pwd?.status === 'ACTIVE') eligible.add('PWD');
   if (student?.status === 'ACTIVE') eligible.add('STUDENT');
   if (soloParent?.status === 'ACTIVE') eligible.add('SOLO_PARENT');
+  if (healthcareWorker?.status === 'ACTIVE') eligible.add('HEALTHCARE_WORKER');
 
   return eligible;
 }
