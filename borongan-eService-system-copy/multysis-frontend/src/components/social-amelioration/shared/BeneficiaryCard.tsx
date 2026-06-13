@@ -38,7 +38,7 @@ export const BeneficiaryCard: React.FC<BeneficiaryCardProps> = ({
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-heading-700 truncate">
+              <h3 className="font-semibold text-heading-700 uppercase truncate">
                 {beneficiary.firstName} {beneficiary.middleName} {beneficiary.lastName}
                 {beneficiary.extensionName && ` ${beneficiary.extensionName}`}
               </h3>
