@@ -119,7 +119,7 @@ export function BeneficiaryDetailsModal({ id, open, onClose }: BeneficiaryDetail
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-base truncate">{b.fullName}</p>
+                  <p className="font-semibold text-base uppercase truncate">{b.fullName}</p>
                   <p className="text-xs font-mono text-primary-600 mt-0.5">{b.residentIdNumber}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{b.barangay}</p>
                 </div>

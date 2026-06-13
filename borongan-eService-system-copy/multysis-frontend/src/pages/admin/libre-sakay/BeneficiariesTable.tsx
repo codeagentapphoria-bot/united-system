@@ -124,7 +124,7 @@ export function BeneficiariesTable({
       <TableBody>
         {data.map(b => (
           <TableRow key={b.id}>
-            <TableCell className="font-medium">{b.fullName}</TableCell>
+            <TableCell className="font-medium uppercase">{b.fullName}</TableCell>
             <TableCell className="text-sm text-gray-500">{b.residentIdNumber}</TableCell>
             <TableCell>
               <span className="text-sm">{CATEGORY_LABELS[b.category] ?? b.category}</span>
