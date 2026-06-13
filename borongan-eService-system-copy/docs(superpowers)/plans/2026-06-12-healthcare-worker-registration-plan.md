@@ -26,41 +26,41 @@ This plan implements the Healthcare Worker self-identification feature in the re
 
 ## Task A: Database Migration — Add Healthcare Worker Classification Type
 
-### A1. Create Migration File
+**Status:** ✅ Migration file created — `united-database/migrations/38_add_healthcare_worker_classification_type.sql`
 
-**File:** `united-database/migrations/38_add_healthcare_worker_classification_type.sql`
-
-**Change:** Add Healthcare Worker to classification_types:
-
+**Run this SQL manually:**
 ```sql
--- Add Healthcare Worker classification type for all municipalities
-INSERT INTO classification_types (municipality_id, name, description, color, details)
+-- Insert Healthcare Worker classification type for all municipalities
+INSERT INTO classification_types (municipality_id, name, description, color, details, is_active, created_at, updated_at)
 SELECT
   m.id,
-  'Healthcare Worker',
-  'Individuals working in healthcare facilities (hospitals, clinics, RHUs)',
-  '#14B8A6',
-  '[{"key":"occupation","label":"Occupation","type":"text"},{"key":"workplace","label":"Workplace / Facility","type":"text"},{"key":"remarks","label":"Remarks","type":"text"}]'
+  'Healthcare Worker'::text,
+  'Individuals working in healthcare facilities such as hospitals, clinics, and rural health units'::text,
+  '#14B8A6'::text,
+  (
+    SELECT jsonb_build_array(
+      jsonb_build_object('key', 'occupation', 'label', 'Occupation', 'type', 'text'),
+      jsonb_build_object('key', 'workplace', 'label', 'Workplace / Facility', 'type', 'text'),
+      jsonb_build_object('key', 'remarks', 'label', 'Remarks', 'type', 'text')
+    )
+  )::jsonb,
+  true,
+  NOW(),
+  NOW()
 FROM municipalities m
-ON CONFLICT (municipality_id, name) DO NOTHING;
+ON CONFLICT (municipality_id, name)
+DO UPDATE SET
+  description = EXCLUDED.description,
+  color       = EXCLUDED.color,
+  details     = EXCLUDED.details,
+  is_active   = EXCLUDED.is_active,
+  updated_at  = NOW();
+
+-- Verify:
+SELECT name, description, color, details FROM classification_types WHERE name = 'Healthcare Worker';
 ```
 
-**Done when:** Migration runs successfully, Healthcare Worker appears in classification_types
-
----
-
-### A2. Verify Seed.sql (Optional)
-
-**File:** `united-database/seed_bims.sql`
-
-**Change:** Verify Healthcare Worker is NOT already present. If not in migration, add to seed:
-
-```sql
--- After line 47 in seed_bims.sql, add:
-('Healthcare Worker',  'Individuals working in healthcare facilities','#14B8A6', '[{"key":"occupation","label":"Occupation","type":"text"},{"key":"workplace","label":"Workplace / Facility","type":"text"},{"key":"remarks","label":"Remarks","type":"text"}]'),
-```
-
-**Done when:** Healthcare Worker exists in database after migration/seed
+**Done when:** `SELECT` returns Healthcare Worker row with occupation/workplace/remarks details JSONB.
 
 ---
 
@@ -495,11 +495,11 @@ Run these checks after implementation:
 | 1 | Frontend compiles | `cd multysis-frontend && npm run build` |
 | 2 | Backend compiles | `cd multysis-backend && npm run build` |
 | 3 | TypeScript strict | `npm run typecheck` (backend) |
-| 4 | Migration runs | `psql -f 38_add_healthcare_worker_classification_type.sql` |
+| 4 | Classification type exists | Run verify SELECT query from Task A |
 | 5 | Checkbox renders | Navigate to /portal/register, step 1 |
 | 6 | Fields show when checked | Toggle checkbox, card appears |
 | 7 | Submission includes HW data | Check network request payload |
-| 8 | Approval creates classification | BIMS approve, check resident_classifications |
+| 8 | Approval creates classification | Admin approve, check resident_classifications |
 | 9 | Beneficiary record created | Check healthcare_worker_beneficiaries table |
 | 10 | Admin tab shows | Navigate to /admin/city-population/social-amelioration?tab=healthcare-workers |
 | 11 | Table loads | Healthcare Workers tab shows list |
@@ -523,11 +523,10 @@ Run these checks after implementation:
 | Task G | Depends on Task F (import needs export) |
 
 **Recommended order:**
-1. Task A (database) — enables everything else
-2. Task 1, 2, 3 (registration wizard flow) — existing plan
-3. Task B (HealthcareWorkersTab) — admin management
-4. Task C, D, E (forms and modals) — supporting components
-5. Task F, G (integration) — wire everything together
+1. Task 1, 2, 3 (registration wizard flow) — can start immediately
+2. Task B (HealthcareWorkersTab) — admin management tab
+3. Task C, D, E (forms and modals) — supporting components
+4. Task F, G (integration) — wire everything together
 
 ---
 

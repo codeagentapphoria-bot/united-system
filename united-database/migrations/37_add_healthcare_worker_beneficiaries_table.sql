@@ -1,15 +1,17 @@
 -- Migration: 37_add_healthcare_worker_beneficiaries_table
 -- Adds healthcare_worker_beneficiaries table for HEALTHCARE_WORKER beneficiary type
 -- Date: 2026-06-11
+-- Updated: 2026-06-14 — use beneficiary_status enum type, add remarks column
 
 -- Step 1: Create the table
 CREATE TABLE IF NOT EXISTS public.healthcare_worker_beneficiaries (
-    id                   uuid        NOT NULL DEFAULT gen_random_uuid(),
-    resident_id           text        NOT NULL,
-    healthcare_worker_id  text        NOT NULL,
-    status               text        NOT NULL DEFAULT 'PENDING',
-    created_at           timestamptz NOT NULL DEFAULT NOW(),
-    updated_at           timestamptz NOT NULL DEFAULT NOW()
+    id                   uuid                    NOT NULL DEFAULT gen_random_uuid(),
+    resident_id          text                    NOT NULL,
+    healthcare_worker_id text                    NOT NULL,
+    status               beneficiary_status       NOT NULL DEFAULT 'ACTIVE',
+    remarks              text,
+    created_at          timestamptz             NOT NULL DEFAULT NOW(),
+    updated_at          timestamptz             NOT NULL DEFAULT NOW()
 );
 
 -- Step 2: Add primary key
