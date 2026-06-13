@@ -381,6 +381,7 @@ export const getApplicationAdmin = async (applicationId: string) => {
         },
       },
       program: true,
+      reviewedByUser: { select: { id: true, name: true } },
     },
   });
 

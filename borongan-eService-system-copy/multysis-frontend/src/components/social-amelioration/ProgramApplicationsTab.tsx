@@ -235,6 +235,23 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, ap
                     </p>
                   </div>
                 )}
+                {detail.reviewedByUser && (
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="text-gray-500">Reviewed By</span>
+                    <div className="flex items-center gap-2">
+                      {detail.reviewedByUser.name && (
+                        <span className="font-medium text-heading-700 uppercase">
+                          {detail.reviewedByUser.name}
+                        </span>
+                      )}
+                      {detail.reviewedAt && (
+                        <span className="text-xs text-gray-400">
+                          on {new Date(detail.reviewedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

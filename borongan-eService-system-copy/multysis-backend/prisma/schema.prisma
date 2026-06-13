@@ -212,9 +212,10 @@ model User {
   role          String         @default("admin")
   createdAt     DateTime @map("created_at") @default(now())
   updatedAt     DateTime @map("updated_at") @updatedAt
-  refreshTokens RefreshToken[]
-  sessions      Session[]
-  userRoles     UserRole[]
+  refreshTokens        RefreshToken[]
+  sessions             Session[]
+  userRoles            UserRole[]
+  applicationsReviewed GovernmentProgramApplication[] @relation("ReviewedBy")
 
   @@map("eservice_users")
 }
@@ -696,8 +697,9 @@ model GovernmentProgramApplication {
   reviewedAt    DateTime?         @map("reviewed_at")
   reviewedBy    String?           @map("reviewed_by") // eservice_users.id (UUID)
 
-  resident   Resident          @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  program    GovernmentProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  resident         Resident          @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  program          GovernmentProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  reviewedByUser  User?            @relation("ReviewedBy", fields: [reviewedBy], references: [id])
 
   @@unique([residentId, programId])
   @@index([status])

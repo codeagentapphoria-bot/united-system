@@ -58,6 +58,7 @@ export interface AdminProgramApplicationDetail {
   attachments?: ApplicationAttachment[] | null;
   reviewedAt?: string;
   reviewedBy?: number;
+  reviewedByUser?: { id: string; name: string } | null;
   resident: {
     id: string;
     residentId?: string | null;
