@@ -147,7 +147,7 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, ap
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-heading-700 text-base truncate">{fullName}</p>
+                <p className="font-semibold text-heading-700 text-base uppercase truncate">{fullName}</p>
                 {r?.residentId && <p className="text-xs font-mono text-primary-600 mt-0.5">{r.residentId}</p>}
                 <p className="text-xs text-gray-500 mt-0.5">{r?.barangay?.barangayName || '—'}</p>
               </div>
@@ -489,7 +489,7 @@ export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatu
               >
                 <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="flex-1">
-                    <p className="font-medium text-heading-700">{fullName(app.resident)}</p>
+                    <p className="font-medium text-heading-700 uppercase">{fullName(app.resident)}</p>
                     <p className="text-xs text-gray-500 mt-0.5">
                       {app.resident.barangay?.barangayName || '—'} ·{' '}
                       {new Date(app.appliedAt).toLocaleDateString('en-US', {
