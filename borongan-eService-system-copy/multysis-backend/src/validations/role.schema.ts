@@ -12,7 +12,11 @@ export const createRoleValidation: ValidationChain[] = [
     .trim()
     .isLength({ min: 1 })
     .withMessage('System is required'),
-  body('redirectPageId').optional().matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).withMessage('redirectPageId must be a valid UUID'),
+  body('redirectPageId')
+    .trim()
+    .notEmpty().withMessage('redirectPageId is required')
+    .matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+    .withMessage('redirectPageId must be a valid UUID'),
 ];
 
 export const updateRoleValidation: ValidationChain[] = [

@@ -253,6 +253,7 @@ export const authService = {
           email: u.email,
           role: u.role || 'admin',
           createdAt: u.createdAt || new Date().toISOString(),
+          redirectPath: u.redirectPath,
         } as any;
       }
 

@@ -8,9 +8,9 @@ interface BlockPortalUsersProps {
 }
 
 /**
- * Component that blocks portal users (subscribers) from accessing admin routes.
- * If a portal user is authenticated, they will be redirected to the portal.
- * If an admin user is authenticated, they will be redirected to the admin dashboard.
+ * Component that blocks portal users (residents) from accessing admin routes.
+ * If a portal user (resident) is authenticated, they will be redirected to /portal.
+ * If an admin user is authenticated, they will be redirected to their role's redirectPath.
  * Unauthenticated users can access the route (for login pages).
  */
 export const BlockPortalUsers: React.FC<BlockPortalUsersProps> = ({
@@ -39,10 +39,10 @@ export const BlockPortalUsers: React.FC<BlockPortalUsersProps> = ({
     return <Navigate to="/portal" replace />;
   }
 
-  // If user is authenticated and is an admin, redirect to admin dashboard
-  // This prevents authenticated admin users from accessing login pages
+  // If admin is authenticated, redirect to their role's redirectPath (not the login page)
   if (isAuthenticated && user && user.role === 'admin') {
-    return <Navigate to="/admin/dashboard" replace />;
+    const redirectTo = user.redirectPath || '/portal';
+    return <Navigate to={redirectTo} replace />;
   }
 
   // Allow access if not authenticated (for login)
