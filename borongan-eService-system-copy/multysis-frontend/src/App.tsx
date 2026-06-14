@@ -8,10 +8,22 @@ import { LibreSakayBadgeProvider } from './context/LibreSakayBadgeContext';
 import { CityPopulationBadgeProvider } from './context/CityPopulationBadgeContext';
 import { router } from './routes';
 import { queryClient } from './lib/query-client';
+import { MaintenanceOverlay } from './components/MaintenanceOverlay';
 
 interface AppProps {}
 
 export const App: React.FC<AppProps> = () => {
+  if (
+    import.meta.env.VITE_MAINTENANCE_ADMIN === 'true' ||
+    import.meta.env.VITE_MAINTENANCE_PORTAL === 'true'
+  ) {
+    return (
+      <MaintenanceOverlay
+        message={import.meta.env.VITE_MAINTENANCE_MESSAGE as string | undefined}
+      />
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
