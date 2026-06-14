@@ -32,6 +32,7 @@ const typeOptions: { value: GovernmentProgramType; label: string }[] = [
   { value: 'PWD', label: 'PWD' },
   { value: 'STUDENT', label: 'Student' },
   { value: 'SOLO_PARENT', label: 'Solo Parent' },
+  { value: 'HEALTHCARE_WORKER', label: 'Healthcare Worker' },
   { value: 'ALL', label: 'All Residents' },
 ];
 

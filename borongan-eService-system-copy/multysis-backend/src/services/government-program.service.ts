@@ -1,7 +1,7 @@
 import { GovernmentProgramType, Prisma } from '@prisma/client';
 import prisma from '../config/database';
 
-type ProgramTypeValue = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+type ProgramTypeValue = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER' | 'ALL';
 
 export interface CreateGovernmentProgramData {
   name: string;

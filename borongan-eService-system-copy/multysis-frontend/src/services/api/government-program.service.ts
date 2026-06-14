@@ -2,7 +2,7 @@ import api from './auth.service';
 
 export type { RequirementItem } from '@/validations/government-program.schema';
 
-export type GovernmentProgramType = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+export type GovernmentProgramType = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER' | 'ALL';
 
 export interface GovernmentProgram {
   id: string;

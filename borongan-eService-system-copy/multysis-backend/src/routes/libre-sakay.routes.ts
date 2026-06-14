@@ -115,7 +115,7 @@ router.patch(
     body('description').optional().isString().trim(),
     body('requirements').optional().isString().trim(),
     body('types').optional().isArray().withMessage('types must be an array'),
-    body('types.*').optional().isIn(['SENIOR_CITIZEN', 'PWD', 'STUDENT', 'SOLO_PARENT', 'ALL']),
+    body('types.*').optional().isIn(['SENIOR_CITIZEN', 'PWD', 'STUDENT', 'SOLO_PARENT', 'HEALTHCARE_WORKER', 'ALL']),
     body('isActive').optional().isBoolean(),
   ]),
   updateProgramSettingsController,

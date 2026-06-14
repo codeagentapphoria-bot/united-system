@@ -12,7 +12,7 @@ import type {
 } from '@/types/socket.types';
 
 export interface UseBeneficiarySocketOptions {
-  type?: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT';
+  type?: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER';
   enabled?: boolean;
 }
 

@@ -3,7 +3,7 @@ import prisma from '../config/database';
 import { emitProgramApplicationNew, emitProgramApplicationReview } from './socket.service';
 import { getLibreSakaySupabase } from '../config/libre-sakay-supabase';
 
-type ProgramTypeValue = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL';
+type ProgramTypeValue = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER' | 'ALL';
 
 // ---------------------------------------------------------------------------
 // Eligibility check
@@ -14,7 +14,7 @@ type ProgramTypeValue = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | '
 async function getResidentEligibleTypes(residentId: string): Promise<Set<ProgramTypeValue>> {
   const eligible = new Set<ProgramTypeValue>();
 
-  const [senior, pwd, student, soloParent] = await Promise.all([
+  const [senior, pwd, student, soloParent, healthcareWorker] = await Promise.all([
     prisma.seniorCitizenBeneficiary.findUnique({
       where: { residentId },
       select: { status: true },
@@ -31,12 +31,17 @@ async function getResidentEligibleTypes(residentId: string): Promise<Set<Program
       where: { residentId },
       select: { status: true },
     }),
+    prisma.healthcareWorkerBeneficiary.findUnique({
+      where: { residentId },
+      select: { status: true },
+    }),
   ]);
 
   if (senior?.status === 'ACTIVE') eligible.add('SENIOR_CITIZEN');
   if (pwd?.status === 'ACTIVE') eligible.add('PWD');
   if (student?.status === 'ACTIVE') eligible.add('STUDENT');
   if (soloParent?.status === 'ACTIVE') eligible.add('SOLO_PARENT');
+  if (healthcareWorker?.status === 'ACTIVE') eligible.add('HEALTHCARE_WORKER');
 
   return eligible;
 }
@@ -372,9 +377,11 @@ export const getApplicationAdmin = async (applicationId: string) => {
           pwdBeneficiary: { select: { status: true, pwdId: true } },
           studentBeneficiary: { select: { status: true, studentId: true } },
           soloParentBeneficiary: { select: { status: true, soloParentId: true } },
+          healthcareWorkerBeneficiary: { select: { status: true, healthcareWorkerId: true } },
         },
       },
       program: true,
+      reviewedByUser: { select: { id: true, name: true } },
     },
   });
 
@@ -464,11 +471,11 @@ export const reviewApplicationAdmin = async (
 
   // For ALL-type programs, enroll across all existing beneficiary records
   const typesToEnroll = programTypes.includes('ALL')
-    ? (['SENIOR_CITIZEN', 'PWD', 'STUDENT', 'SOLO_PARENT'] as const)
-    : (programTypes as ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT')[]);
+    ? (['SENIOR_CITIZEN', 'PWD', 'STUDENT', 'SOLO_PARENT', 'HEALTHCARE_WORKER'] as const)
+    : (programTypes as ('SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER')[]);
 
   // Typed lookup map — no `as any` on the Prisma client
-  type BeneficiaryType = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT';
+  type BeneficiaryType = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER';
   type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
   // NOTE: beneficiaryId must be the human-readable ID (seniorCitizenId, pwdId, etc.)
   // NOT the internal UUID id — pivot table stores the human-readable IDs.
@@ -491,6 +498,10 @@ export const reviewApplicationAdmin = async (
     SOLO_PARENT: async (rid, tx) => {
       const r = await tx.soloParentBeneficiary.findUnique({ where: { residentId: rid }, select: { soloParentId: true } });
       return r ? { id: r.soloParentId } : null;
+    },
+    HEALTHCARE_WORKER: async (rid, tx) => {
+      const r = await tx.healthcareWorkerBeneficiary.findUnique({ where: { residentId: rid }, select: { healthcareWorkerId: true } });
+      return r ? { id: r.healthcareWorkerId } : null;
     },
   };
 

@@ -35,6 +35,7 @@ const TYPE_LABELS: Record<GovernmentProgramType, string> = {
   PWD: 'PWD',
   STUDENT: 'Student',
   SOLO_PARENT: 'Solo Parent',
+  HEALTHCARE_WORKER: 'Healthcare Worker',
   ALL: 'All Residents',
 };
 
@@ -69,16 +70,20 @@ const fmt = (v?: string | null) => (v ? v.replace(/_/g, ' ').replace(/\b\w/g, c 
 
 interface ResidentPreviewDialogProps {
   appId: string | null;
+  application: AdminProgramApplication | null;
   open: boolean;
   onClose: () => void;
+  onReview: (action: 'approve' | 'reject', notes?: string) => Promise<void>;
+  isReviewing: boolean;
   programId?: string;
   onImageClick?: (url: string, label: string) => void;
 }
 
-const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, open, onClose, programId, onImageClick }) => {
+const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, application, open, onClose, onReview, isReviewing, programId, onImageClick }) => {
   const { toast } = useToast();
   const [detail, setDetail] = useState<AdminProgramApplicationDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [reviewNotes, setReviewNotes] = useState('');
 
   useEffect(() => {
     if (!appId || !open) return;
@@ -114,6 +119,7 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
         { label: 'PWD', data: r.pwdBeneficiary, idField: r.pwdBeneficiary?.pwdId },
         { label: 'Student', data: r.studentBeneficiary, idField: r.studentBeneficiary?.studentId },
         { label: 'Solo Parent', data: r.soloParentBeneficiary, idField: r.soloParentBeneficiary?.soloParentId },
+        { label: 'Healthcare Worker', data: r.healthcareWorkerBeneficiary, idField: r.healthcareWorkerBeneficiary?.healthcareWorkerId },
       ].filter(b => b.data)
     : [];
 
@@ -141,7 +147,7 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-heading-700 text-base truncate">{fullName}</p>
+                <p className="font-semibold text-heading-700 text-base uppercase truncate">{fullName}</p>
                 {r?.residentId && <p className="text-xs font-mono text-primary-600 mt-0.5">{r.residentId}</p>}
                 <p className="text-xs text-gray-500 mt-0.5">{r?.barangay?.barangayName || '—'}</p>
               </div>
@@ -229,6 +235,23 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
                     </p>
                   </div>
                 )}
+                {detail.reviewedByUser && (
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="text-gray-500">Reviewed By</span>
+                    <div className="flex items-center gap-2">
+                      {detail.reviewedByUser.name && (
+                        <span className="font-medium text-heading-700 uppercase">
+                          {detail.reviewedByUser.name}
+                        </span>
+                      )}
+                      {detail.reviewedAt && (
+                        <span className="text-xs text-gray-400">
+                          on {new Date(detail.reviewedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -283,111 +306,52 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, op
             )}
 
             {/* Footer */}
-            <div className="flex justify-end pt-2 border-t border-gray-100">
-              <Button variant="outline" onClick={onClose}>
-                Close
-              </Button>
+            <div className="border-t border-gray-100 pt-4 space-y-3">
+              {/* Admin notes input — shown for pending apps */}
+              {application?.status === 'pending' && (
+                <div>
+                  <label className="text-xs font-medium text-gray-600 block mb-1.5">Admin Notes (optional)</label>
+                  <Textarea
+                    placeholder="Add notes or reason for rejection..."
+                    rows={2}
+                    value={reviewNotes}
+                    onChange={e => setReviewNotes(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2">
+                {application?.status === 'pending' ? (
+                  <>
+                    <Button variant="outline" onClick={onClose} disabled={isReviewing}>
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => onReview('reject', reviewNotes)}
+                      disabled={isReviewing}
+                      className="text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      {isReviewing ? 'Rejecting...' : 'Reject'}
+                    </Button>
+                    <Button
+                      onClick={() => onReview('approve', reviewNotes)}
+                      disabled={isReviewing}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {isReviewing ? 'Approving...' : 'Approve'}
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="outline" onClick={onClose}>
+                    Close
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Review Dialog
-// ---------------------------------------------------------------------------
-
-interface ReviewDialogProps {
-  application: AdminProgramApplication | null;
-  open: boolean;
-  onClose: () => void;
-  onReview: (action: 'approve' | 'reject', notes?: string) => Promise<void>;
-  isLoading: boolean;
-  programId?: string;
-}
-
-const ReviewDialog: React.FC<ReviewDialogProps> = ({ application, open, onClose, onReview, isLoading, programId }) => {
-  const [notes, setNotes] = useState('');
-
-  if (!application) return null;
-
-  const fullName = [
-    application.resident.firstName,
-    application.resident.middleName,
-    application.resident.lastName,
-    application.resident.extensionName,
-  ]
-    .filter(Boolean)
-    .join(' ');
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-heading-700">Review Application</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
-            <div>
-              <span className="text-gray-500">Applicant: </span>
-              <span className="font-medium text-heading-700">{fullName}</span>
-            </div>
-            {!programId && (
-              <div>
-                <span className="text-gray-500">Program: </span>
-                <span className="font-medium text-heading-700">{application.program.name}</span>
-              </div>
-            )}
-            <div>
-              <span className="text-gray-500">Barangay: </span>
-              <span className="font-medium">{application.resident.barangay?.barangayName || '—'}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">Applied: </span>
-              <span>
-                {new Date(application.appliedAt).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Admin Notes (optional)</label>
-            <Textarea
-              placeholder="Add notes or reason for rejection..."
-              rows={3}
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-            />
-          </div>
-
-          <div className="flex gap-3 justify-end pt-2">
-            <Button variant="outline" onClick={onClose} disabled={isLoading}>
-              Cancel
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => onReview('reject', notes)}
-              disabled={isLoading}
-              className="text-red-600 border-red-200 hover:bg-red-50"
-            >
-              {isLoading ? 'Rejecting...' : 'Reject'}
-            </Button>
-            <Button
-              onClick={() => onReview('approve', notes)}
-              disabled={isLoading}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              {isLoading ? 'Approving...' : 'Approve'}
-            </Button>
-          </div>
-        </div>
       </DialogContent>
     </Dialog>
   );
@@ -412,7 +376,6 @@ export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatu
   const debouncedSearch = useDebounce(localSearch, 300);
 
   const [selectedApp, setSelectedApp] = useState<AdminProgramApplication | null>(null);
-  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
 
   const [previewAppId, setPreviewAppId] = useState<string | null>(null);
@@ -457,7 +420,8 @@ export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatu
       toast({
         title: action === 'approve' ? 'Application approved' : 'Application rejected',
       });
-      setIsReviewDialogOpen(false);
+      setIsPreviewOpen(false);
+      setPreviewAppId(null);
       setSelectedApp(null);
       fetchApplications(pagination.page);
     } catch (error: any) {
@@ -536,12 +500,13 @@ export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatu
                 className="cursor-pointer hover:border-primary-300 transition-colors"
                 onClick={() => {
                   setSelectedApp(app);
-                  if (app.status === 'pending') setIsReviewDialogOpen(true);
+                  setPreviewAppId(app.id);
+                  setIsPreviewOpen(true);
                 }}
               >
                 <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="flex-1">
-                    <p className="font-medium text-heading-700">{fullName(app.resident)}</p>
+                    <p className="font-medium text-heading-700 uppercase">{fullName(app.resident)}</p>
                     <p className="text-xs text-gray-500 mt-0.5">
                       {app.resident.barangay?.barangayName || '—'} ·{' '}
                       {new Date(app.appliedAt).toLocaleDateString('en-US', {
@@ -588,6 +553,7 @@ export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatu
                       variant="outline"
                       className="text-gray-600 border-gray-200 hover:bg-gray-50"
                       onClick={() => {
+                        setSelectedApp(app);
                         setPreviewAppId(app.id);
                         setIsPreviewOpen(true);
                       }}
@@ -595,19 +561,6 @@ export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatu
                       <FiEye size={14} className="mr-1" />
                       Preview
                     </Button>
-
-                    {app.status === 'pending' && (
-                      <Button
-                        size="sm"
-                        className="bg-primary-600 hover:bg-primary-700 text-white"
-                        onClick={() => {
-                          setSelectedApp(app);
-                          setIsReviewDialogOpen(true);
-                        }}
-                      >
-                        Review
-                      </Button>
-                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -644,27 +597,17 @@ export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatu
       {/* Resident Preview Dialog */}
       <ResidentPreviewDialog
         appId={previewAppId}
+        application={selectedApp}
         open={isPreviewOpen}
         onClose={() => {
           setIsPreviewOpen(false);
           setPreviewAppId(null);
-        }}
-        programId={programId}
-        onImageClick={(url, label) => setLightbox({ url, label })}
-      />
-
-      {/* Review Dialog */}
-      <ReviewDialog
-        key={selectedApp?.id}
-        application={selectedApp}
-        open={isReviewDialogOpen}
-        onClose={() => {
-          setIsReviewDialogOpen(false);
           setSelectedApp(null);
         }}
         onReview={handleReview}
-        isLoading={isReviewing}
+        isReviewing={isReviewing}
         programId={programId}
+        onImageClick={(url, label) => setLightbox({ url, label })}
       />
 
       {/* Lightbox — rendered outside Dialog so it covers the full screen */}

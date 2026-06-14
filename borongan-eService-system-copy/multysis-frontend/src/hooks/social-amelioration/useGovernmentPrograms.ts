@@ -22,7 +22,7 @@ export const useGovernmentPrograms = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'ALL'>(
+  const [typeFilter, setTypeFilter] = useState<'all' | 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER' | 'ALL'>(
     'all'
   );
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
@@ -310,7 +310,7 @@ export const useGovernmentPrograms = () => {
   };
 
   // Get active government programs filtered by type (for use in forms)
-  const getActiveProgramsByType = (type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT'): GovernmentProgram[] => {
+  const getActiveProgramsByType = (type: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER'): GovernmentProgram[] => {
     return governmentPrograms.filter(
       program => program.isActive && (program.types.includes(type) || program.types.includes('ALL'))
     );

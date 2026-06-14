@@ -31,6 +31,12 @@ interface SeniorClassificationDetails {
   remarks?: string | null;
 }
 
+interface HealthcareWorkerClassificationDetails {
+  occupation?: string | null;
+  workplace?: string | null;
+  remarks?: string | null;
+}
+
 /**
  * Fetch resident_classifications.classification_details for a single resident + type.
  * Returns null when no record exists.
@@ -82,7 +88,7 @@ async function batchGetClassificationDetails(
 async function upsertClassificationDetails(
   residentId: string,
   classificationType: string,
-  details: PWDClassificationDetails | StudentClassificationDetails | SoloParentClassificationDetails | SeniorClassificationDetails
+  details: PWDClassificationDetails | StudentClassificationDetails | SoloParentClassificationDetails | SeniorClassificationDetails | HealthcareWorkerClassificationDetails
 ): Promise<void> {
   await prisma.$executeRaw`
     INSERT INTO resident_classifications (resident_id, classification_type, classification_details)
@@ -107,6 +113,7 @@ const SENIOR_PREFIX = 'SC';
 const PWD_PREFIX = 'PWD';
 const STUDENT_PREFIX = 'ST';
 const SOLO_PARENT_PREFIX = 'SP';
+const HW_PREFIX = 'HW';
 
 const getPagination = (options?: PaginationOptions) => {
   const page = options?.page && options.page > 0 ? options.page : 1;
@@ -131,7 +138,7 @@ const dateRangeForYear = (year: number) => ({
   end: new Date(`${year + 1}-01-01T00:00:00.000Z`),
 });
 
-const generateSequentialId = async (type: 'SENIOR' | 'PWD' | 'STUDENT' | 'SOLO_PARENT') => {
+const generateSequentialId = async (type: 'SENIOR' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HW') => {
   let table = '';
   let prefix = '';
 
@@ -152,6 +159,10 @@ const generateSequentialId = async (type: 'SENIOR' | 'PWD' | 'STUDENT' | 'SOLO_P
       table = 'solo_parent_beneficiaries';
       prefix = SOLO_PARENT_PREFIX;
       break;
+    case 'HW':
+      table = 'healthcare_worker_beneficiaries';
+      prefix = HW_PREFIX;
+      break;
   }
 
   return generateBeneficiaryId(table, prefix);
@@ -161,7 +172,7 @@ const generateSequentialId = async (type: 'SENIOR' | 'PWD' | 'STUDENT' | 'SOLO_P
 // Only returns programs the admin has manually enrolled this beneficiary in.
 // ALL-type programs are NOT auto-injected here — admins assign them explicitly.
 const getBeneficiaryPrograms = async (
-  beneficiaryType: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT',
+  beneficiaryType: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER',
   beneficiaryId: string
 ) => {
   return (prisma as any).beneficiaryProgramPivot.findMany({
@@ -176,7 +187,7 @@ const getBeneficiaryPrograms = async (
 };
 
 const getBeneficiaryProgramsMap = async (
-  beneficiaryType: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT',
+  beneficiaryType: 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER',
   beneficiaryIds: string[]
 ): Promise<Map<string, string[]>> => {
   if (beneficiaryIds.length === 0) return new Map();
@@ -215,10 +226,15 @@ const soloParentInclude = {
   resident: true,
 } as any;
 
+const hwInclude = {
+  resident: true,
+} as any;
+
 type SeniorWithRelations = any;
 type PWDWithRelations = any;
 type StudentWithRelations = any;
 type SoloParentWithRelations = any;
+type HWWithRelations = any;
 
 const formatSeniorBeneficiary = async (
   record: SeniorWithRelations,
@@ -340,6 +356,32 @@ const formatSoloParentBeneficiary = async (
   };
 };
 
+const formatHWBeneficiary = async (
+  record: HWWithRelations,
+  preloadedProgramIds?: string[],
+  classificationDetails?: any | null
+) => {
+  const { resident, ...rest } = record as any;
+  const programIds = preloadedProgramIds ??
+    (await getBeneficiaryPrograms('HEALTHCARE_WORKER', record.id)).map((p: any) => p.programId);
+  const details = classificationDetails ?? (await getClassificationDetails(resident.id, 'Healthcare Worker'));
+  return {
+    ...rest,
+    governmentPrograms: programIds,
+    occupation: details?.occupation ?? null,
+    workplace: details?.workplace ?? null,
+    resident: resident
+      ? {
+          ...resident,
+          picturePath: resident.picturePath ? getFileUrl(resident.picturePath) : null,
+          proofOfIdentification: resident.proofOfIdentification
+            ? getFileUrl(resident.proofOfIdentification)
+            : null,
+        }
+      : undefined,
+  };
+};
+
 export interface CreateSeniorBeneficiaryData {
   residentId: string;
   pensionTypes: string[]; // Array of SocialAmeliorationSetting IDs
@@ -408,6 +450,23 @@ export interface CreateSoloParentBeneficiaryData {
 export interface UpdateSoloParentBeneficiaryData {
   category?: string; // SocialAmeliorationSetting ID
   assistancePrograms?: string[];
+  status?: BeneficiaryStatus;
+  remarks?: string;
+}
+
+export interface CreateHWBeneficiaryData {
+  residentId: string;
+  occupation: string;
+  workplace?: string;
+  governmentPrograms?: string[];
+  status?: BeneficiaryStatus;
+  remarks?: string;
+}
+
+export interface UpdateHWBeneficiaryData {
+  occupation?: string;
+  workplace?: string;
+  governmentPrograms?: string[];
   status?: BeneficiaryStatus;
   remarks?: string;
 }
@@ -520,6 +579,36 @@ const buildSoloParentWhere = (
       } as Prisma.SoloParentBeneficiaryWhereInput,
       ...(searchClauses ?? []),
     ] as Prisma.SoloParentBeneficiaryWhereInput[];
+  }
+
+  // Note: programId filtering will be handled manually after fetching
+  // since we can't use Prisma relations for polymorphic associations
+
+  return where;
+};
+
+const buildHWWhere = (
+  filters?: BeneficiaryFilters
+): Prisma.HealthcareWorkerBeneficiaryWhereInput => {
+  const where: Prisma.HealthcareWorkerBeneficiaryWhereInput = {};
+
+  // If a specific status is requested, use it; otherwise exclude INACTIVE records
+  if (filters?.status) {
+    where.status = filters.status;
+  } else {
+    where.status = { not: 'INACTIVE' };
+  }
+
+  if (filters?.search) {
+    const searchClauses = buildSearchClauses(filters.search) as
+      | Prisma.HealthcareWorkerBeneficiaryWhereInput[]
+      | undefined;
+    where.OR = [
+      {
+        healthcareWorkerId: { contains: filters.search, mode: 'insensitive' },
+      } as Prisma.HealthcareWorkerBeneficiaryWhereInput,
+      ...(searchClauses ?? []),
+    ] as Prisma.HealthcareWorkerBeneficiaryWhereInput[];
   }
 
   // Note: programId filtering will be handled manually after fetching
@@ -1251,13 +1340,182 @@ export const socialAmeliorationService = {
     return prisma.soloParentBeneficiary.delete({ where: { id } });
   },
 
+  async listHWBeneficiaries(filters?: BeneficiaryFilters, pagination?: PaginationOptions) {
+    const { page, limit, skip } = getPagination(pagination);
+    const where = buildHWWhere(filters);
+
+    // If filtering by programId, first get beneficiary IDs with that program
+    if (filters?.programId) {
+      const pivots = await (prisma as any).beneficiaryProgramPivot.findMany({
+        where: {
+          beneficiaryType: 'HEALTHCARE_WORKER',
+          programId: filters.programId,
+        },
+        select: { beneficiaryId: true },
+      });
+      const beneficiaryIds = pivots.map((p: any) => p.beneficiaryId);
+      if (beneficiaryIds.length === 0) {
+        return {
+          data: [],
+          pagination: formatPagination(page, limit, 0),
+        };
+      }
+      (where as any).id = { in: beneficiaryIds };
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.healthcareWorkerBeneficiary.findMany({
+        where,
+        include: hwInclude,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.healthcareWorkerBeneficiary.count({ where }),
+    ]);
+
+    // Batch-fetch all programs for these beneficiaries in one query
+    const programMap = await getBeneficiaryProgramsMap(
+      'HEALTHCARE_WORKER',
+      items.map((i) => i.id)
+    );
+
+    // Batch-fetch classification_details from resident_classifications
+    const detailsMap = await batchGetClassificationDetails(
+      items.map((i) => i.residentId),
+      'Healthcare Worker'
+    );
+
+    const formattedItems = await Promise.all(
+      items.map((item) =>
+        formatHWBeneficiary(item, programMap.get(item.id) ?? [], detailsMap.get(item.residentId))
+      )
+    );
+
+    return {
+      data: formattedItems,
+      pagination: formatPagination(page, limit, total),
+    };
+  },
+
+  async createHWBeneficiary(data: CreateHWBeneficiaryData) {
+    const healthcareWorkerId = await generateSequentialId('HW');
+
+    const record = await prisma.healthcareWorkerBeneficiary.create({
+      data: {
+        residentId: data.residentId,
+        healthcareWorkerId: healthcareWorkerId as any,
+        status: data.status || BeneficiaryStatus.ACTIVE,
+        remarks: data.remarks,
+      } as any,
+      include: hwInclude,
+    });
+
+    // Write classification details to resident_classifications.classification_details
+    await upsertClassificationDetails(data.residentId, 'Healthcare Worker', {
+      occupation: data.occupation,
+      workplace: data.workplace ?? null,
+      remarks: data.remarks ?? null,
+    });
+
+    // Create program associations
+    if (data.governmentPrograms?.length) {
+      await (prisma as any).beneficiaryProgramPivot.createMany({
+        data: data.governmentPrograms.map((programId) => ({
+          beneficiaryType: 'HEALTHCARE_WORKER',
+          beneficiaryId: record.id,
+          programId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    // Refetch to get updated record
+    const updatedRecord = await prisma.healthcareWorkerBeneficiary.findUniqueOrThrow({
+      where: { id: record.id },
+      include: hwInclude,
+    });
+
+    const details = await getClassificationDetails(data.residentId, 'Healthcare Worker');
+
+    return formatHWBeneficiary(updatedRecord as HWWithRelations, undefined, details);
+  },
+
+  async updateHWBeneficiary(id: string, data: UpdateHWBeneficiaryData) {
+    const beneficiary = await prisma.healthcareWorkerBeneficiary.findUniqueOrThrow({ where: { id } });
+
+    return prisma.$transaction(async (tx) => {
+      await tx.healthcareWorkerBeneficiary.update({
+        where: { id },
+        data: {
+          status: data.status,
+          remarks: data.remarks,
+        },
+      });
+
+      // Update classification_details in resident_classifications
+      if (data.occupation !== undefined || data.workplace !== undefined || data.remarks !== undefined) {
+        const existing = await getClassificationDetails(beneficiary.residentId, 'Healthcare Worker');
+        await tx.$executeRaw`
+          UPDATE resident_classifications
+          SET classification_details = ${JSON.stringify({
+            occupation: data.occupation ?? existing?.occupation ?? null,
+            workplace: data.workplace ?? existing?.workplace ?? null,
+            remarks: data.remarks ?? existing?.remarks ?? null,
+          })}::jsonb
+          WHERE resident_id = ${beneficiary.residentId}
+            AND classification_type = 'Healthcare Worker'
+        `;
+      }
+
+      if (data.governmentPrograms !== undefined) {
+        await (tx as any).beneficiaryProgramPivot.deleteMany({
+          where: {
+            beneficiaryType: 'HEALTHCARE_WORKER',
+            beneficiaryId: id,
+          },
+        });
+        if (data.governmentPrograms.length > 0) {
+          await (tx as any).beneficiaryProgramPivot.createMany({
+            data: data.governmentPrograms.map((programId) => ({
+              beneficiaryType: 'HEALTHCARE_WORKER',
+              beneficiaryId: id,
+              programId,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+
+      // Refetch with all relations
+      const refreshed = await tx.healthcareWorkerBeneficiary.findUniqueOrThrow({
+        where: { id },
+        include: hwInclude,
+      });
+
+      const details = await getClassificationDetails(beneficiary.residentId, 'Healthcare Worker');
+      return await formatHWBeneficiary(refreshed, undefined, details);
+    });
+  },
+
+  async deleteHWBeneficiary(id: string) {
+    await (prisma as any).beneficiaryProgramPivot.deleteMany({
+      where: {
+        beneficiaryType: 'HEALTHCARE_WORKER',
+        beneficiaryId: id,
+      },
+    });
+    return prisma.healthcareWorkerBeneficiary.delete({ where: { id } });
+  },
+
   async getOverviewStats() {
     const activeFilter = { where: { status: { not: 'INACTIVE' as const } } };
-    const [seniorCount, pwdCount, studentCount, soloParentCount] = await Promise.all([
+    const [seniorCount, pwdCount, studentCount, soloParentCount, hwCount] = await Promise.all([
       prisma.seniorCitizenBeneficiary.count(activeFilter),
       prisma.pWDBeneficiary.count(activeFilter),
       prisma.studentBeneficiary.count(activeFilter),
       prisma.soloParentBeneficiary.count(activeFilter),
+      prisma.healthcareWorkerBeneficiary.count(activeFilter),
     ]);
 
     return {
@@ -1265,7 +1523,8 @@ export const socialAmeliorationService = {
       totalPWD: pwdCount,
       totalStudents: studentCount,
       totalSoloParents: soloParentCount,
-      totalBeneficiaries: seniorCount + pwdCount + studentCount + soloParentCount,
+      totalHealthcareWorkers: hwCount,
+      totalBeneficiaries: seniorCount + pwdCount + studentCount + soloParentCount + hwCount,
     };
   },
 
@@ -1293,7 +1552,7 @@ export const socialAmeliorationService = {
         break;
     }
 
-    const [seniors, pwds, students, soloParents] = await Promise.all([
+    const [seniors, pwds, students, soloParents, healthcareWorkers] = await Promise.all([
       prisma.seniorCitizenBeneficiary.findMany({
         where: { createdAt: { gte: start }, status: { not: 'INACTIVE' } },
         select: { createdAt: true },
@@ -1310,11 +1569,15 @@ export const socialAmeliorationService = {
         where: { createdAt: { gte: start }, status: { not: 'INACTIVE' } },
         select: { createdAt: true },
       }),
+      prisma.healthcareWorkerBeneficiary.findMany({
+        where: { createdAt: { gte: start }, status: { not: 'INACTIVE' } },
+        select: { createdAt: true },
+      }),
     ]);
 
     const buckets: Record<
       string,
-      { seniorCitizens: number; pwd: number; students: number; soloParents: number }
+      { seniorCitizens: number; pwd: number; students: number; soloParents: number; healthcareWorkers: number }
     > = {};
 
     const getBucketKey = (date: Date) => {
@@ -1335,7 +1598,7 @@ export const socialAmeliorationService = {
       collection.forEach((item) => {
         const key = getBucketKey(item.createdAt);
         if (!buckets[key]) {
-          buckets[key] = { seniorCitizens: 0, pwd: 0, students: 0, soloParents: 0 };
+          buckets[key] = { seniorCitizens: 0, pwd: 0, students: 0, soloParents: 0, healthcareWorkers: 0 };
         }
         buckets[key][field] += 1;
       });
@@ -1345,6 +1608,7 @@ export const socialAmeliorationService = {
     increment(pwds, 'pwd');
     increment(students, 'students');
     increment(soloParents, 'soloParents');
+    increment(healthcareWorkers, 'healthcareWorkers');
 
     const sortedKeys = Object.keys(buckets).sort((a, b) => (a > b ? 1 : -1));
     return sortedKeys.map((key) => ({

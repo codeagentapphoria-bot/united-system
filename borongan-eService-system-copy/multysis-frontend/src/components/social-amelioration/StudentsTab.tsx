@@ -135,7 +135,7 @@ const FullInformationModal: React.FC<{
               </div>
             </div>
             <div className="flex-1">
-              <h3 className="text-2xl font-bold text-heading-800 mb-3">
+              <h3 className="text-2xl font-bold uppercase text-heading-800 mb-3">
                 {citizen.firstName} {citizen.middleName} {citizen.lastName} {citizen.extensionName}
               </h3>
               <div className="flex items-center gap-6">
@@ -648,7 +648,7 @@ const StudentInfo: React.FC<{
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">
-              <h3 className="text-2xl font-bold text-heading-800">
+              <h3 className="text-2xl font-bold uppercase text-heading-800">
                 {citizen.firstName} {citizen.middleName} {citizen.lastName} {citizen.extensionName}
               </h3>
             </div>

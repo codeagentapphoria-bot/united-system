@@ -43,6 +43,11 @@ export const listSoloParentBeneficiariesValidation: ValidationChain[] = [
   ...filterValidation,
 ];
 
+export const listHWBeneficiariesValidation: ValidationChain[] = [
+  ...paginationValidation,
+  ...filterValidation,
+];
+
 export const createSeniorBeneficiaryValidation: ValidationChain[] = [
   body('residentId').isUUID().withMessage('Resident ID is required'),
   body('pensionTypes').isArray({ min: 1 }).withMessage('At least one pension type is required'),
@@ -110,6 +115,23 @@ export const updateSoloParentBeneficiaryValidation: ValidationChain[] = [
   body('status').optional().isIn(beneficiaryStatusValues),
   body('remarks').optional().isString(),
   ...governmentProgramsValidation('assistancePrograms'),
+];
+
+export const createHWBeneficiaryValidation: ValidationChain[] = [
+  body('residentId').isUUID().withMessage('Resident ID is required'),
+  body('occupation').isString().trim().notEmpty().withMessage('Occupation is required'),
+  body('workplace').optional().isString(),
+  body('remarks').optional().isString(),
+  ...governmentProgramsValidation('governmentPrograms'),
+];
+
+export const updateHWBeneficiaryValidation: ValidationChain[] = [
+  param('id').isUUID().withMessage(uuidMessage),
+  body('occupation').optional().isString().trim().notEmpty(),
+  body('workplace').optional().isString(),
+  body('status').optional().isIn(beneficiaryStatusValues),
+  body('remarks').optional().isString(),
+  ...governmentProgramsValidation('governmentPrograms'),
 ];
 
 export const beneficiaryIdValidation: ValidationChain[] = [

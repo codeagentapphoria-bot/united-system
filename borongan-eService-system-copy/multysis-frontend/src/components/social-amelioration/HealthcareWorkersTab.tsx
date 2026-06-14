@@ -11,9 +11,9 @@ import { Separator } from '@/components/ui/separator';
 
 // Custom Components
 import {
-  AddSoloParentModal,
-  DeleteSoloParentModal,
-  EditSoloParentModal,
+  AddHealthcareWorkerModal,
+  DeleteHealthcareWorkerModal,
+  EditHealthcareWorkerModal,
 } from '@/components/modals/social-amelioration';
 import {
   BeneficiaryCard,
@@ -32,10 +32,10 @@ import { calculateAge, cn, formatDateWithoutTimezone, formatIdType } from '@/lib
 import { getRegionName } from '@/constants/regions';
 
 // Icons
-import { FiCheck, FiDownload, FiEdit, FiEye, FiHeart, FiPlus, FiSearch, FiTrash2, FiUser } from 'react-icons/fi';
+import { FiCheck, FiDownload, FiEdit, FiEye, FiPlus, FiSearch, FiTrash2, FiUser, FiUserCheck } from 'react-icons/fi';
 
-// Solo Parent Card Component - Using shared BeneficiaryCard
-const SoloParentCard: React.FC<{
+// Healthcare Worker Card Component - Using shared BeneficiaryCard
+const HealthcareWorkerCard: React.FC<{
   beneficiary: any;
   isSelected: boolean;
   onClick: () => void;
@@ -69,7 +69,7 @@ const FullInformationModal: React.FC<{
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className={cn("max-w-4xl max-h-[90vh] overflow-y-auto")}>
         <DialogHeader>
-          <DialogTitle className={cn("text-2xl font-semibold text-primary-600")}>
+          <DialogTitle className={cn("text-2xl font-semibold text-teal-600")}>
             Full Information - {citizen.firstName} {citizen.lastName}
           </DialogTitle>
         </DialogHeader>
@@ -78,9 +78,9 @@ const FullInformationModal: React.FC<{
           {/* Profile Picture and Basic Info */}
           <div className="flex items-start gap-6 p-4 bg-gray-50 rounded-lg">
             <div className="flex-shrink-0">
-              <div className="w-28 h-28 rounded-full bg-white border-4 border-primary-200 overflow-hidden shadow-md">
-                <img 
-                  src={citizen.citizenPicture || beneficiary.profilePicture || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9Ijc1IiBjeT0iNjAiIHI9IjI1IiBmaWxsPSIjOUI5QkEwIi8+CjxwYXRoIGQ9Ik0zMCAxMjBDMzAgMTAwLjExOCA0NS4xMTggODUgNjUgODVIOThDMTE4Ljg4MiA4NSAxMzQgMTAwLjExOCAxMzQgMTIwVjE1MEgzMFYxMjBaIiBmaWxsPSIjOUI5QkEwIi8+Cjwvc3ZnPg=='} 
+              <div className="w-28 h-28 rounded-full bg-white border-4 border-teal-200 overflow-hidden shadow-md">
+                <img
+                  src={citizen.citizenPicture || beneficiary.profilePicture || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9Ijc1IiBjeT0iNjAiIHI9IjI1IiBmaWxsPSIjOUI5QkEwIi8+CjxwYXRoIGQ9Ik0zMCAxMjBDMzAgMTAwLjExOCA0NS4xMTggODUgNjUgODVIOThDMTE4Ljg4MiA4NSAxMzQgMTAwLjExOCAxMzQgMTIwVjE1MEgzMFYxMjBaIiBmaWxsPSIjOUI5QkEwIi8+Cjwvc3ZnPg=='}
                   alt={`${citizen.firstName} ${citizen.lastName}`}
                   className="w-full h-full object-cover"
                 />
@@ -92,8 +92,8 @@ const FullInformationModal: React.FC<{
               </h3>
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-gray-700 bg-gray-200 px-2 py-1 rounded">Solo Parent ID:</span>
-                  <span className="text-sm font-bold text-heading-800 font-mono bg-white px-2 py-1 rounded border">{beneficiary.soloParentId}</span>
+                  <span className="text-sm font-semibold text-gray-700 bg-gray-200 px-2 py-1 rounded">HW ID:</span>
+                  <span className="text-sm font-bold text-heading-800 font-mono bg-white px-2 py-1 rounded border">{beneficiary.healthcareWorkerId}</span>
                 </div>
                 <StatusBadge status={beneficiary.status} />
               </div>
@@ -102,18 +102,36 @@ const FullInformationModal: React.FC<{
 
           <Separator />
 
-          {/* Solo Parent Information */}
-          {(beneficiary.categoryName || beneficiary.category) && (
+          {/* Healthcare Worker Information */}
+          {(beneficiary.occupation || beneficiary.workplace) && (
             <>
               <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Solo Parent Information</h3>
+                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-teal-200">Healthcare Worker Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Category</label>
-                    <div className="min-h-[40px] flex items-center">
-                      <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.categoryName || beneficiary.category}</p>
+                  {beneficiary.occupation && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Occupation</label>
+                      <div className="min-h-[40px] flex items-center">
+                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.occupation}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
+                  {beneficiary.workplace && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Workplace</label>
+                      <div className="min-h-[40px] flex items-center">
+                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.workplace}</p>
+                      </div>
+                    </div>
+                  )}
+                  {beneficiary.remarks && (
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Remarks</label>
+                      <div className="min-h-[40px] flex items-center">
+                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.remarks}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <Separator />
@@ -126,13 +144,13 @@ const FullInformationModal: React.FC<{
             return (
               <>
                 <div className="bg-white p-6 rounded-lg border border-gray-200">
-                  <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Government Programs</h3>
+                  <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-teal-200">Government Programs</h3>
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Programs</label>
                     <div className="min-h-[40px] flex items-center flex-wrap gap-2">
                       {governmentProgramNames.length > 0 ? (
                         governmentProgramNames.map((programName, idx) => (
-                          <Badge key={idx} className="bg-primary-100 text-primary-700 px-3 py-1">
+                          <Badge key={idx} className="bg-teal-100 text-teal-700 px-3 py-1">
                             {programName}
                           </Badge>
                         ))
@@ -151,7 +169,7 @@ const FullInformationModal: React.FC<{
           {(citizen.lastName || citizen.firstName || citizen.middleName || citizen.extensionName || citizen.gender || birthDate || age) && (
             <>
               <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Personal Information</h3>
+                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-teal-200">Personal Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {citizen.lastName && (
                     <div className="space-y-2">
@@ -198,7 +216,7 @@ const FullInformationModal: React.FC<{
                       <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Date of Birth</label>
                       <div className="min-h-[40px] flex items-center">
                         <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">
-                          {birthDate.includes('T') 
+                          {birthDate.includes('T')
                             ? formatDateWithoutTimezone(birthDate, { month: 'long', day: 'numeric', year: 'numeric' })
                             : birthDate}
                         </p>
@@ -231,7 +249,7 @@ const FullInformationModal: React.FC<{
           {(citizen.addressRegion || citizen.addressProvince || citizen.addressMunicipality || citizen.addressBarangay || citizen.addressPostalCode || citizen.addressStreetAddress) && (
             <>
               <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Address</h3>
+                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-teal-200">Address</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {citizen.addressRegion && (
                     <div className="space-y-2">
@@ -287,220 +305,11 @@ const FullInformationModal: React.FC<{
             </>
           )}
 
-          {/* Place of Birth */}
-          {(citizen.placeOfBirth || birthDate) && (
-            <>
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Place of Birth</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {citizen.placeOfBirth && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Place of Birth</label>
-                      <div className="min-h-[40px] flex items-center">
-                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.placeOfBirth}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <Separator />
-            </>
-          )}
-
-          {/* Family Information */}
-          {(citizen.motherLastName || citizen.motherFirstName || citizen.motherMiddleName || citizen.fatherLastName || citizen.fatherFirstName || citizen.fatherMiddleName || citizen.spouseName || citizen.emergencyContactPerson) && (
-            <>
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Family Information</h3>
-                <div className="space-y-6">
-                  {(citizen.motherLastName || citizen.motherFirstName || citizen.motherMiddleName) && (
-                    <div>
-                      <h4 className="text-md font-semibold text-gray-800 mb-3">Mother's Maiden Name</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {citizen.motherLastName && (
-                          <div className="space-y-2">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Last Name</label>
-                            <div className="min-h-[40px] flex items-center">
-                              <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.motherLastName}</p>
-                            </div>
-                          </div>
-                        )}
-                        {citizen.motherFirstName && (
-                          <div className="space-y-2">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">First Name</label>
-                            <div className="min-h-[40px] flex items-center">
-                              <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.motherFirstName}</p>
-                            </div>
-                          </div>
-                        )}
-                        {citizen.motherMiddleName && (
-                          <div className="space-y-2">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Middle Name</label>
-                            <div className="min-h-[40px] flex items-center">
-                              <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.motherMiddleName}</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {(citizen.fatherLastName || citizen.fatherFirstName || citizen.fatherMiddleName) && (
-                    <div>
-                      <h4 className="text-md font-semibold text-gray-800 mb-3">Father's Name</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {citizen.fatherLastName && (
-                          <div className="space-y-2">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Last Name</label>
-                            <div className="min-h-[40px] flex items-center">
-                              <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.fatherLastName}</p>
-                            </div>
-                          </div>
-                        )}
-                        {citizen.fatherFirstName && (
-                          <div className="space-y-2">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">First Name</label>
-                            <div className="min-h-[40px] flex items-center">
-                              <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.fatherFirstName}</p>
-                            </div>
-                          </div>
-                        )}
-                        {citizen.fatherMiddleName && (
-                          <div className="space-y-2">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Middle Name</label>
-                            <div className="min-h-[40px] flex items-center">
-                              <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.fatherMiddleName}</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {(citizen.spouseName || citizen.emergencyContactPerson) && (
-                    <div>
-                      <h4 className="text-md font-semibold text-gray-800 mb-3">
-                        {citizen.civilStatus === 'Single' ? 'Emergency Contact' : 'Spouse and Emergency Contact'}
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {citizen.spouseName && citizen.civilStatus !== 'Single' && (
-                          <div className="space-y-2">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Spouse Name</label>
-                            <div className="min-h-[40px] flex items-center">
-                              <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.spouseName}</p>
-                            </div>
-                          </div>
-                        )}
-                        {citizen.emergencyContactPerson && (
-                          <div className="space-y-2">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Emergency Contact Person</label>
-                            <div className="min-h-[40px] flex items-center">
-                              <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.emergencyContactPerson}</p>
-                            </div>
-                          </div>
-                        )}
-                        {citizen.emergencyContactNumber && (
-                          <div className="space-y-2">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Emergency Contact Number</label>
-                            <div className="min-h-[40px] flex items-center">
-                              <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.emergencyContactNumber}</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <Separator />
-            </>
-          )}
-
-          {/* Identity Information */}
-          {(citizen.height || citizen.weight || citizen.complexion || citizen.citizenship) && (
-            <>
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Identity Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {citizen.height && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Height</label>
-                      <div className="min-h-[40px] flex items-center">
-                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.height}</p>
-                      </div>
-                    </div>
-                  )}
-                  {citizen.weight && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Weight</label>
-                      <div className="min-h-[40px] flex items-center">
-                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.weight}</p>
-                      </div>
-                    </div>
-                  )}
-                  {citizen.complexion && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Complexion</label>
-                      <div className="min-h-[40px] flex items-center">
-                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.complexion}</p>
-                      </div>
-                    </div>
-                  )}
-                  {citizen.citizenship && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Country of Citizenship</label>
-                      <div className="min-h-[40px] flex items-center">
-                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.citizenship}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <Separator />
-            </>
-          )}
-
-          {/* Educational Information */}
-          {(citizen.education || citizen.institution || citizen.gradeYear) && (
-            <>
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Educational Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {citizen.education && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Highest Educational Attainment</label>
-                      <div className="min-h-[40px] flex items-center">
-                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.education}</p>
-                      </div>
-                    </div>
-                  )}
-                  {citizen.institution && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Institution</label>
-                      <div className="min-h-[40px] flex items-center">
-                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.institution}</p>
-                      </div>
-                    </div>
-                  )}
-                  {citizen.gradeYear && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Grade / Year</label>
-                      <div className="min-h-[40px] flex items-center">
-                        <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{citizen.gradeYear}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <Separator />
-            </>
-          )}
-
           {/* Valid ID */}
           {(citizen.idType || citizen.proofOfIdentification) && (
             <>
               <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Valid ID</h3>
+                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-teal-200">Valid ID</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">ID Type</label>
@@ -535,8 +344,8 @@ const FullInformationModal: React.FC<{
   );
 };
 
-// Solo Parent Information Component
-const SoloParentInfo: React.FC<{
+// Healthcare Worker Information Component
+const HealthcareWorkerInfo: React.FC<{
   beneficiary: any;
   getProgramNames: (programIds: string[] | undefined) => string[];
 }> = ({ beneficiary, getProgramNames }) => {
@@ -545,12 +354,11 @@ const SoloParentInfo: React.FC<{
   if (!beneficiary) {
     return (
       <div className="text-center text-gray-500 py-12">
-        <FiUser className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-        <p className="text-lg">Select a solo parent to view details</p>
+        <FiUserCheck className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+        <p className="text-lg">Select a healthcare worker to view details</p>
       </div>
     );
   }
-
 
   const citizen = beneficiary.citizen || beneficiary;
   const birthDate = citizen.birthDate || beneficiary.dateOfBirth;
@@ -562,20 +370,15 @@ const SoloParentInfo: React.FC<{
         {/* Profile Picture and Basic Info */}
         <div className="flex items-start gap-6 p-4 bg-gray-50 rounded-lg">
           <div className="flex-shrink-0">
-            <div 
+            <div
               className={cn(
-                "w-28 h-28 rounded-full bg-white border-4 border-primary-200 overflow-hidden shadow-md transition-shadow",
+                "w-28 h-28 rounded-full bg-white border-4 border-teal-200 overflow-hidden shadow-md transition-shadow",
                 (citizen.citizenPicture || beneficiary.profilePicture) ? "cursor-pointer hover:shadow-lg" : ""
               )}
-              onClick={() => {
-                if (citizen.citizenPicture || beneficiary.profilePicture) {
-                  // Could add image modal here if needed
-                }
-              }}
             >
               {(citizen.citizenPicture || beneficiary.profilePicture) ? (
-                <img 
-                  src={citizen.citizenPicture || beneficiary.profilePicture || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9Ijc1IiBjeT0iNjAiIHI9IjI1IiBmaWxsPSIjOUI5QkEwIi8+CjxwYXRoIGQ9Ik0zMCAxMjBDMzAgMTAwLjExOCA0NS4xMTggODUgNjUgODVIOThDMTE4Ljg4MiA4NSAxMzQgMTAwLjExOCAxMzQgMTIwVjE1MEgzMFYxMjBaIiBmaWxsPSIjOUI5QkEwIi8+Cjwvc3ZnPg=='} 
+                <img
+                  src={citizen.citizenPicture || beneficiary.profilePicture || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9Ijc1IiBjeT0iNjAiIHI9IjI1IiBmaWxsPSIjOUI5QkEwIi8+CjxwYXRoIGQ9Ik0zMCAxMjBDMzAgMTAwLjExOCA0NS4xMTggODUgNjUgODVIOThDMTE4Ljg4MiA4NSAxMzQgMTAwLjExOCAxMzQgMTIwVjE1MEgzMFYxMjBaIiBmaWxsPSIjOUI5QkEwIi8+Cjwvc3ZnPg=='}
                   alt={`${citizen.firstName} ${citizen.lastName}`}
                   className="w-full h-full object-cover"
                 />
@@ -597,8 +400,8 @@ const SoloParentInfo: React.FC<{
             </div>
             <div className="flex items-center gap-6 flex-wrap">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-gray-700 bg-gray-200 px-2 py-1 rounded">Solo Parent ID:</span>
-                <span className="text-sm font-bold text-heading-800 font-mono bg-white px-2 py-1 rounded border">{beneficiary.soloParentId}</span>
+                <span className="text-sm font-semibold text-gray-700 bg-gray-200 px-2 py-1 rounded">HW ID:</span>
+                <span className="text-sm font-bold text-heading-800 font-mono bg-white px-2 py-1 rounded border">{beneficiary.healthcareWorkerId}</span>
               </div>
               {age !== null && age !== undefined && (
                 <div className="flex items-center gap-2">
@@ -613,39 +416,55 @@ const SoloParentInfo: React.FC<{
 
         <Separator />
 
-        {/* Solo Parent Information */}
-        {(beneficiary.categoryName || beneficiary.category) && (
-            <>
-              <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Solo Parent Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Healthcare Worker Information */}
+        {(beneficiary.occupation || beneficiary.workplace) && (
+          <>
+            <div className="bg-white p-6 rounded-lg border border-gray-200">
+              <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-teal-200">Healthcare Worker Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {beneficiary.occupation && (
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Category</label>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Occupation</label>
                     <div className="min-h-[40px] flex items-center">
-                      <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.categoryName || beneficiary.category}</p>
+                      <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.occupation}</p>
                     </div>
                   </div>
-                </div>
+                )}
+                {beneficiary.workplace && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Workplace</label>
+                    <div className="min-h-[40px] flex items-center">
+                      <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.workplace}</p>
+                    </div>
+                  </div>
+                )}
+                {beneficiary.remarks && (
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Remarks</label>
+                    <div className="min-h-[40px] flex items-center">
+                      <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">{beneficiary.remarks}</p>
+                    </div>
+                  </div>
+                )}
               </div>
-              <Separator />
-            </>
-          )}
-
-        <Separator />
+            </div>
+            <Separator />
+          </>
+        )}
 
         {/* Government Programs */}
         {(() => {
           const governmentProgramNames = getProgramNames(beneficiary.governmentPrograms || beneficiary.assistancePrograms || beneficiary.programs);
-          
+
           return (
             <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Government Programs</h3>
+              <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-teal-200">Government Programs</h3>
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Programs</label>
                 <div className="min-h-[40px] flex items-center flex-wrap gap-2">
                   {governmentProgramNames.length > 0 ? (
                     governmentProgramNames.map((programName, idx) => (
-                      <Badge key={idx} className="bg-primary-100 text-primary-700 px-3 py-1">
+                      <Badge key={idx} className="bg-teal-100 text-teal-700 px-3 py-1">
                         {programName}
                       </Badge>
                     ))
@@ -662,7 +481,7 @@ const SoloParentInfo: React.FC<{
 
         {/* Personal Information */}
         <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Personal Information</h3>
+          <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-teal-200">Personal Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {citizen.lastName && (
               <div className="space-y-2">
@@ -709,7 +528,7 @@ const SoloParentInfo: React.FC<{
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Date of Birth</label>
                 <div className="min-h-[40px] flex items-center">
                   <p className="text-sm font-medium text-heading-700 bg-gray-50 px-3 py-2 rounded border w-full">
-                    {birthDate.includes('T') 
+                    {birthDate.includes('T')
                       ? formatDateWithoutTimezone(birthDate, { month: 'long', day: 'numeric', year: 'numeric' })
                       : birthDate}
                   </p>
@@ -725,7 +544,7 @@ const SoloParentInfo: React.FC<{
         {(citizen.phoneNumber || citizen.email) && (
           <>
             <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-primary-200">Contact Information</h3>
+              <h3 className="text-lg font-bold text-heading-800 mb-6 pb-2 border-b-2 border-teal-200">Contact Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {citizen.phoneNumber && (
                   <div className="space-y-2">
@@ -754,7 +573,7 @@ const SoloParentInfo: React.FC<{
             type="button"
             variant="outline"
             onClick={() => setIsFullInfoModalOpen(true)}
-            className="text-primary-600 hover:text-primary-700 hover:bg-primary-50"
+            className="text-teal-600 hover:text-teal-700 hover:bg-teal-50"
           >
             <FiEye className="h-4 w-4 mr-2" />
             See Full Information
@@ -773,8 +592,8 @@ const SoloParentInfo: React.FC<{
   );
 };
 
-// Edit Solo Parent Modal Component
-export const SoloParentsTab: React.FC = () => {
+// Healthcare Workers Tab Export
+export const HealthcareWorkersTab: React.FC = () => {
   const {
     beneficiaries,
     selectedBeneficiary,
@@ -786,7 +605,7 @@ export const SoloParentsTab: React.FC = () => {
     handleActivateBeneficiary,
     handleDownloadList,
     isLoading,
-  } = useBeneficiaryManagement('solo-parents');
+  } = useBeneficiaryManagement('healthcare-workers');
 
   const { allGovernmentPrograms } = useGovernmentPrograms();
 
@@ -819,60 +638,60 @@ export const SoloParentsTab: React.FC = () => {
           <Button
             variant="outline"
             onClick={handleDownloadList}
-            className="text-primary-600 hover:text-primary-700 hover:bg-primary-50"
+            className="text-teal-600 hover:text-teal-700 hover:bg-teal-50"
           >
             <FiDownload className="h-4 w-4 mr-2" />
             Download
           </Button>
           <Button
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-primary-600 hover:bg-primary-700"
+            className="bg-teal-600 hover:bg-teal-700"
           >
             <FiPlus className="h-4 w-4 mr-2" />
-            Add Solo Parent
+            Add Healthcare Worker
           </Button>
         </div>
       </div>
 
       {/* Main Content: List + Details */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left: Solo Parents List */}
+        {/* Left: Healthcare Workers List */}
         <Card className="lg:col-span-1 overflow-visible">
           <CardHeader>
-            <CardTitle className="text-heading-700 text-lg">Solo Parents List</CardTitle>
-            
+            <CardTitle className="text-heading-700 text-lg">Healthcare Workers List</CardTitle>
+
             {/* Search */}
             <div className="relative mt-4">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 <FiSearch size={18} />
               </div>
               <Input
-                placeholder="Search solo parents..."
+                placeholder="Search healthcare workers..."
                 value={localSearchQuery}
                 onChange={(e) => setLocalSearchQuery(e.target.value)}
                 className="pl-10 h-10"
               />
             </div>
-            
+
             {/* Total count */}
             <div className="flex justify-between items-center mt-3 text-sm text-gray-600">
-              <span>Total: {beneficiaries.length} solo parents</span>
+              <span>Total: {beneficiaries.length} healthcare workers</span>
             </div>
           </CardHeader>
-          
+
           <CardContent className="flex flex-col">
             <div className="space-y-2 max-h-[500px] overflow-y-auto overflow-x-visible pr-4">
               {isLoading ? (
                 <div className="text-center py-8 text-gray-500">
-                  Loading solo parents...
+                  Loading healthcare workers...
                 </div>
               ) : beneficiaries.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  No solo parents found.
+                  No healthcare workers found.
                 </div>
               ) : (
                 beneficiaries.map((beneficiary) => (
-                  <SoloParentCard
+                  <HealthcareWorkerCard
                     key={beneficiary.id}
                     beneficiary={beneficiary}
                     isSelected={selectedBeneficiary?.id === beneficiary.id}
@@ -884,16 +703,16 @@ export const SoloParentsTab: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Right: Selected Solo Parent Information */}
+        {/* Right: Selected Healthcare Worker Information */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-heading-700 text-lg">Solo Parent Information</CardTitle>
+              <CardTitle className="text-heading-700 text-lg">Healthcare Worker Information</CardTitle>
               {selectedBeneficiary && (
                 <div className="flex gap-2">
                   <Button
                     size="sm"
-                    className="bg-primary-600 hover:bg-primary-700"
+                    className="bg-teal-600 hover:bg-teal-700"
                     onClick={() => {
                       setEditingBeneficiary(selectedBeneficiary);
                       setIsEditModalOpen(true);
@@ -926,14 +745,14 @@ export const SoloParentsTab: React.FC = () => {
           </CardHeader>
           <CardContent className="max-h-[600px] overflow-y-auto">
             {selectedBeneficiary ? (
-              <SoloParentInfo
+              <HealthcareWorkerInfo
                 beneficiary={selectedBeneficiary}
                 getProgramNames={getProgramNames}
               />
             ) : (
               <div className="text-center text-gray-500 py-12">
-                <FiHeart className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                <p className="text-lg">Select a solo parent to view details</p>
+                <FiUserCheck className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-lg">Select a healthcare worker to view details</p>
               </div>
             )}
           </CardContent>
@@ -941,7 +760,7 @@ export const SoloParentsTab: React.FC = () => {
       </div>
 
       {/* Add Modal */}
-      <AddSoloParentModal
+      <AddHealthcareWorkerModal
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={(data) => handleAddBeneficiary(data)}
@@ -958,7 +777,7 @@ export const SoloParentsTab: React.FC = () => {
       />
 
       {/* Edit Modal */}
-      <EditSoloParentModal
+      <EditHealthcareWorkerModal
         open={isEditModalOpen}
         onClose={() => {
           setIsEditModalOpen(false);
@@ -974,7 +793,7 @@ export const SoloParentsTab: React.FC = () => {
 
       {/* Delete Modal */}
       {selectedBeneficiary && (
-        <DeleteSoloParentModal
+        <DeleteHealthcareWorkerModal
           open={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
           onConfirm={async () => {

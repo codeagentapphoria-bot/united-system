@@ -100,6 +100,7 @@ const step1Schema = z.object({
   // Social amelioration flags
   hasDisability: z.boolean().optional(),
   hasChildren: z.boolean().optional(),
+  hasHealthcareWorker: z.boolean().optional(),
   // Social amelioration sub-fields (conditionally required — validated in handleStep1)
   pensionTypeIds: z.array(z.string()).optional(),
   disabilityTypeId: z.string().optional().or(z.literal('')),
@@ -108,6 +109,8 @@ const step1Schema = z.object({
   courseField: z.string().max(200).optional().or(z.literal('')),
   ncLevelId: z.string().optional().or(z.literal('')),
   soloParentCategoryId: z.string().optional().or(z.literal('')),
+  healthcareWorkerOccupation: z.string().max(200).optional().or(z.literal('')),
+  healthcareWorkerWorkplace: z.string().max(200).optional().or(z.literal('')),
   voterType: z.enum(['Regular', 'SK']).optional(),
   emergencyContactPerson: z
     .string()
@@ -376,6 +379,7 @@ export const Register: React.FC = () => {
   const watchedHasDisability = step1Form.watch('hasDisability');
   const watchedHasChildren = step1Form.watch('hasChildren');
   const watchedIsVoter = step1Form.watch('isVoter');
+  const watchedHasHealthcareWorker = step1Form.watch('hasHealthcareWorker');
 
   const isSeniorCitizen = watchedBirthdate
     ? (Date.now() - new Date(watchedBirthdate).getTime()) / 86400000 >= 60 * 365.25
@@ -384,6 +388,7 @@ export const Register: React.FC = () => {
   const isStudent = watchedEmploymentStatus === 'student';
   const isSoloParent =
     ['widowed', 'separated', 'divorced', 'annulled'].includes(watchedCivilStatus || '') && !!watchedHasChildren;
+  const isHealthcareWorker = !!watchedHasHealthcareWorker;
 
   // Is the student college-level (drives grade level filter)
   const isCollegeLevel = (() => {
@@ -493,6 +498,12 @@ export const Register: React.FC = () => {
     }
     if (data.isVoter && data.voterType) {
       ameliorationData.voter = { voterType: data.voterType };
+    }
+    if (isHealthcareWorker && data.healthcareWorkerOccupation) {
+      ameliorationData.healthcareWorker = {
+        occupation: data.healthcareWorkerOccupation,
+        workplace: data.healthcareWorkerWorkplace || undefined,
+      };
     }
 
     setFormData(prev => ({
@@ -1248,6 +1259,32 @@ export const Register: React.FC = () => {
                               </label>
                             )}
                           />
+                          <FormField
+                            control={step1Form.control}
+                            name="hasHealthcareWorker"
+                            render={({ field }) => (
+                              <label
+                                htmlFor="hasHealthcareWorker"
+                                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    id="hasHealthcareWorker"
+                                    checked={!!field.value}
+                                    onCheckedChange={field.onChange}
+                                    className="mt-0.5"
+                                  />
+                                </FormControl>
+                                <div>
+                                  <FormLabel className="cursor-pointer font-normal">Healthcare Worker</FormLabel>
+                                  <FormDescription>
+                                    Check if you work in a hospital, clinic, or other healthcare facility. Enables access
+                                    to Libre Sakay and other healthcare worker benefits.
+                                  </FormDescription>
+                                </div>
+                              </label>
+                            )}
+                          />
                         </div>
                       </CardContent>
                     </Card>
@@ -1524,6 +1561,46 @@ export const Register: React.FC = () => {
                                   ))}
                                 </SelectContent>
                               </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Social Amelioration: Healthcare Worker */}
+                  {isHealthcareWorker && (
+                    <Card className="border-teal-200 bg-teal-50">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-lg text-teal-800">Healthcare Worker Information</CardTitle>
+                        <p className="text-sm text-teal-700">
+                          Please provide your occupation and workplace to help process your benefits.
+                        </p>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <FormField
+                          control={step1Form.control}
+                          name="healthcareWorkerOccupation"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Occupation</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="e.g., Nurse, Doctor, Midwife, Medical Technologist" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={step1Form.control}
+                          name="healthcareWorkerWorkplace"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Workplace / Facility</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="e.g., Borongan District Hospital, Rural Health Unit" />
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}

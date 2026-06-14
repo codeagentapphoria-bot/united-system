@@ -23,6 +23,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   PWD: 'PWD',
   STUDENT: 'Student',
   SOLO_PARENT: 'Solo Parent',
+  HEALTHCARE_WORKER: 'Healthcare Worker',
 };
 
 const STATUS_STYLES: Record<string, string> = {
@@ -118,7 +119,7 @@ export function BeneficiaryDetailsModal({ id, open, onClose }: BeneficiaryDetail
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-base truncate">{b.fullName}</p>
+                  <p className="font-semibold text-base uppercase truncate">{b.fullName}</p>
                   <p className="text-xs font-mono text-primary-600 mt-0.5">{b.residentIdNumber}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{b.barangay}</p>
                 </div>
@@ -243,6 +244,12 @@ export function BeneficiaryDetailsModal({ id, open, onClose }: BeneficiaryDetail
                         : '—'}
                     </span>
                   </div>
+                  {b.reviewedByName && (
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <span className="text-gray-500">Reviewed By</span>
+                      <span className="font-medium uppercase">{b.reviewedByName}</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between px-4 py-3">
                     <span className="text-gray-500">Enrolled</span>
                     <span className="font-medium">

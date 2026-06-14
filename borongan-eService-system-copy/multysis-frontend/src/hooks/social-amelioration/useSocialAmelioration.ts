@@ -3,6 +3,7 @@ import { useBeneficiarySocket } from '@/hooks/useBeneficiarySocket';
 import {
   socialAmeliorationApi,
   type BeneficiaryStatus,
+  type HealthcareWorkerBeneficiary,
   type OverviewStats,
   type PWDBeneficiary,
   type SeniorBeneficiary,
@@ -13,6 +14,7 @@ import {
 import { governmentProgramService } from '@/services/api/government-program.service';
 import { socialAmeliorationSettingApi } from '@/services/api/social-amelioration-setting.service';
 import type {
+  HealthcareWorkerInput,
   PWDInput,
   SeniorCitizenInput,
   SoloParentInput,
@@ -20,13 +22,14 @@ import type {
 } from '@/validations/beneficiary.schema';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-type BeneficiaryType = 'senior-citizen' | 'pwd' | 'students' | 'solo-parents';
+type BeneficiaryType = 'senior-citizen' | 'pwd' | 'students' | 'solo-parents' | 'healthcare-workers';
 
 type BeneficiaryRecord =
   | SeniorBeneficiary
   | PWDBeneficiary
   | StudentBeneficiary
-  | SoloParentBeneficiary;
+  | SoloParentBeneficiary
+  | HealthcareWorkerBeneficiary;
 
 interface EnrichedBeneficiaryFields {
   firstName?: string;
@@ -54,6 +57,7 @@ const EMPTY_STATS: OverviewStats = {
   totalStudents: 0,
   totalSoloParents: 0,
   totalBeneficiaries: 0,
+  totalHealthcareWorkers: 0,
 };
 
 const getErrorMessage = (error: unknown) => {
@@ -187,6 +191,8 @@ export const useBeneficiaryManagement = (
         return 'STUDENT' as const;
       case 'solo-parents':
         return 'SOLO_PARENT' as const;
+      case 'healthcare-workers':
+        return 'HEALTHCARE_WORKER' as const;
       default:
         return undefined;
     }
@@ -201,7 +207,7 @@ export const useBeneficiaryManagement = (
     clearBeneficiaryUpdate,
     clearBeneficiaryDelete,
   } = useBeneficiarySocket({
-    type: socketType,
+    type: socketType as 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER',
     enabled: true,
   });
 
@@ -212,7 +218,8 @@ export const useBeneficiaryManagement = (
         | { data: SeniorBeneficiary[] }
         | { data: PWDBeneficiary[] }
         | { data: StudentBeneficiary[] }
-        | { data: SoloParentBeneficiary[] };
+        | { data: SoloParentBeneficiary[] }
+        | { data: HealthcareWorkerBeneficiary[] };
 
       switch (type) {
         case 'senior-citizen':
@@ -226,6 +233,9 @@ export const useBeneficiaryManagement = (
           break;
         case 'solo-parents':
           response = await socialAmeliorationApi.getSoloParentBeneficiaries({ search: searchQuery });
+          break;
+        case 'healthcare-workers':
+          response = await socialAmeliorationApi.getHealthcareWorkerBeneficiaries({ search: searchQuery });
           break;
       }
 
@@ -363,7 +373,7 @@ export const useBeneficiaryManagement = (
 
   const handleAddBeneficiary = useCallback(
     async (
-      data: SeniorCitizenInput | PWDInput | StudentInput | SoloParentInput
+      data: SeniorCitizenInput | PWDInput | StudentInput | SoloParentInput | HealthcareWorkerInput
     ): Promise<void> => {
       try {
         switch (type) {
@@ -378,6 +388,9 @@ export const useBeneficiaryManagement = (
             break;
           case 'solo-parents':
             await socialAmeliorationApi.createSoloParentBeneficiary(data as SoloParentInput);
+            break;
+          case 'healthcare-workers':
+            await socialAmeliorationApi.createHealthcareWorkerBeneficiary(data as HealthcareWorkerInput);
             break;
         }
         toast({
@@ -400,7 +413,7 @@ export const useBeneficiaryManagement = (
   const handleEditBeneficiary = useCallback(
     async (
       id: string,
-      data: SeniorCitizenInput | PWDInput | StudentInput | SoloParentInput
+      data: SeniorCitizenInput | PWDInput | StudentInput | SoloParentInput | HealthcareWorkerInput
     ): Promise<void> => {
       try {
         switch (type) {
@@ -415,6 +428,9 @@ export const useBeneficiaryManagement = (
             break;
           case 'solo-parents':
             await socialAmeliorationApi.updateSoloParentBeneficiary(id, data as SoloParentInput);
+            break;
+          case 'healthcare-workers':
+            await socialAmeliorationApi.updateHealthcareWorkerBeneficiary(id, data as HealthcareWorkerInput);
             break;
         }
         toast({
@@ -450,6 +466,9 @@ export const useBeneficiaryManagement = (
           case 'solo-parents':
             await socialAmeliorationApi.updateSoloParentBeneficiary(id, { status: 'ACTIVE' });
             break;
+          case 'healthcare-workers':
+            await socialAmeliorationApi.updateHealthcareWorkerBeneficiary(id, { status: 'ACTIVE' });
+            break;
         }
         toast({
           title: 'Success',
@@ -483,6 +502,9 @@ export const useBeneficiaryManagement = (
           case 'solo-parents':
             await socialAmeliorationApi.updateSoloParentBeneficiary(id, { status: 'INACTIVE' });
             break;
+          case 'healthcare-workers':
+            await socialAmeliorationApi.updateHealthcareWorkerBeneficiary(id, { status: 'INACTIVE' });
+            break;
         }
         toast({
           title: 'Success',
@@ -515,6 +537,9 @@ export const useBeneficiaryManagement = (
             break;
           case 'solo-parents':
             await socialAmeliorationApi.deleteSoloParentBeneficiary(id);
+            break;
+          case 'healthcare-workers':
+            await socialAmeliorationApi.deleteHealthcareWorkerBeneficiary(id);
             break;
         }
         toast({
@@ -581,6 +606,12 @@ export const useBeneficiaryManagement = (
         case 'solo-parents':
           response = await socialAmeliorationApi.getSoloParentBeneficiaries({ search: searchQuery });
           break;
+        case 'healthcare-workers':
+          toast({
+            title: 'Not Supported',
+            description: 'Healthcare worker list download is not yet available.',
+          });
+          return;
       }
 
       const normalizedBeneficiaries = response.data.map((record) => normalizeBeneficiary(record));

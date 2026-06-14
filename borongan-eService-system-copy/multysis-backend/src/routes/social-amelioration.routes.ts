@@ -1,19 +1,23 @@
 import { Router } from 'express';
 import {
+  createHWBeneficiaryController,
   createPWDBeneficiaryController,
   createSeniorBeneficiaryController,
   createSoloParentBeneficiaryController,
   createStudentBeneficiaryController,
+  deleteHWBeneficiaryController,
   deletePWDBeneficiaryController,
   deleteSeniorBeneficiaryController,
   deleteSoloParentBeneficiaryController,
   deleteStudentBeneficiaryController,
+  getHWBeneficiariesController,
   getOverviewStatsController,
   getPWDBeneficiariesController,
   getSeniorBeneficiariesController,
   getSoloParentBeneficiariesController,
   getStudentBeneficiariesController,
   getTrendStatsController,
+  updateHWBeneficiaryController,
   updatePWDBeneficiaryController,
   updateSeniorBeneficiaryController,
   updateSoloParentBeneficiaryController,
@@ -23,15 +27,18 @@ import { verifyAdmin } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 import {
   beneficiaryIdValidation,
+  createHWBeneficiaryValidation,
   createPWDBeneficiaryValidation,
   createSeniorBeneficiaryValidation,
   createSoloParentBeneficiaryValidation,
   createStudentBeneficiaryValidation,
+  listHWBeneficiariesValidation,
   listPWDBeneficiariesValidation,
   listSeniorBeneficiariesValidation,
   listSoloParentBeneficiariesValidation,
   listStudentBeneficiariesValidation,
   statsValidation,
+  updateHWBeneficiaryValidation,
   updatePWDBeneficiaryValidation,
   updateSeniorBeneficiaryValidation,
   updateSoloParentBeneficiaryValidation,
@@ -108,6 +115,28 @@ router.delete(
   '/solo-parents/:id',
   validate(beneficiaryIdValidation),
   deleteSoloParentBeneficiaryController
+);
+
+// Healthcare Workers
+router.get(
+  '/healthcare-workers',
+  validate(listHWBeneficiariesValidation),
+  getHWBeneficiariesController
+);
+router.post(
+  '/healthcare-workers',
+  validate(createHWBeneficiaryValidation),
+  createHWBeneficiaryController
+);
+router.put(
+  '/healthcare-workers/:id',
+  validate(updateHWBeneficiaryValidation),
+  updateHWBeneficiaryController
+);
+router.delete(
+  '/healthcare-workers/:id',
+  validate(beneficiaryIdValidation),
+  deleteHWBeneficiaryController
 );
 
 // Statistics

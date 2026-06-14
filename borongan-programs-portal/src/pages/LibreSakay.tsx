@@ -108,10 +108,16 @@ function StatusBanner({ program, isLoading, isCancelling, isLoadingDetails, onVi
   const key = status ?? 'none';
   const config = STATUS_CONFIG[key];
 
-  // For rejected status, show admin notes if available
-  const description = key === 'rejected' && adminNotes
-    ? `Reason: ${adminNotes}`
-    : config.description;
+  // For rejected status, show admin notes if available.
+  // For 'none', description is dynamic based on eligibility.
+  const description =
+    key === 'rejected' && adminNotes
+      ? `Reason: ${adminNotes}`
+      : key === 'none'
+        ? eligible
+          ? 'You are eligible. Submit your application to become a Libre Sakay beneficiary.'
+          : 'You are not eligible for Libre Sakay based on your current beneficiary status.'
+        : config.description;
 
   return (
     <Card className="border border-gray-100">

@@ -83,7 +83,7 @@ const FullInformationModal: React.FC<{
               </div>
             </div>
             <div className="flex-1">
-              <h3 className="text-2xl font-bold text-heading-800 mb-3">
+              <h3 className="text-2xl font-bold uppercase text-heading-800 mb-3">
                 {beneficiary.firstName} {beneficiary.middleName} {beneficiary.lastName} {beneficiary.extensionName}
               </h3>
               <div className="flex items-center gap-6">
@@ -695,9 +695,9 @@ const PWDInfo: React.FC<{
             )}
           </div>
           <div className="flex-1">
-            <h3 className="text-2xl font-bold text-heading-800 mb-3">
-              {beneficiary.firstName || beneficiary.citizen?.firstName} {beneficiary.middleName || beneficiary.citizen?.middleName} {beneficiary.lastName || beneficiary.citizen?.lastName} {beneficiary.extensionName || beneficiary.citizen?.extensionName}
-            </h3>
+              <h3 className="text-2xl font-bold uppercase text-heading-800 mb-3">
+                {beneficiary.firstName || beneficiary.citizen?.firstName} {beneficiary.middleName || beneficiary.citizen?.middleName} {beneficiary.lastName || beneficiary.citizen?.lastName} {beneficiary.extensionName || beneficiary.citizen?.extensionName}
+              </h3>
             <div className="flex items-center gap-6 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-gray-700 bg-gray-200 px-2 py-1 rounded">PWD ID:</span>

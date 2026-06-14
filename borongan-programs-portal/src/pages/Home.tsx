@@ -25,6 +25,7 @@ const TYPE_LABELS: Record<GovernmentProgramType, string> = {
   PWD: 'PWD',
   STUDENT: 'Student',
   SOLO_PARENT: 'Solo Parent',
+  HEALTHCARE_WORKER: 'Healthcare Worker',
   ALL: 'All Residents',
 };
 

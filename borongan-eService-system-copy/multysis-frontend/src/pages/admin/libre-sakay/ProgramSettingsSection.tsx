@@ -28,6 +28,7 @@ const TYPE_OPTIONS: { value: GovernmentProgramTypeEnum; label: string }[] = [
   { value: 'PWD', label: 'PWD' },
   { value: 'STUDENT', label: 'Student' },
   { value: 'SOLO_PARENT', label: 'Solo Parent' },
+  { value: 'HEALTHCARE_WORKER', label: 'Healthcare Worker' },
   { value: 'ALL', label: 'All Residents' },
 ];
 
@@ -51,6 +52,7 @@ const TYPE_LABEL: Record<GovernmentProgramTypeEnum, string> = {
   PWD: 'PWD',
   STUDENT: 'Student',
   SOLO_PARENT: 'Solo Parent',
+  HEALTHCARE_WORKER: 'Healthcare Worker',
   ALL: 'All Residents',
 };
 
@@ -59,6 +61,7 @@ const TYPE_COLOR: Record<GovernmentProgramTypeEnum, string> = {
   PWD: 'bg-violet-50 text-violet-700 border-violet-200',
   STUDENT: 'bg-blue-50 text-blue-700 border-blue-200',
   SOLO_PARENT: 'bg-pink-50 text-pink-700 border-pink-200',
+  HEALTHCARE_WORKER: 'bg-orange-50 text-orange-700 border-orange-200',
   ALL: 'bg-emerald-50 text-emerald-700 border-emerald-200',
 };
 

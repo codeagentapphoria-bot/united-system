@@ -85,9 +85,9 @@ const FullInformationModal: React.FC<{
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
-                <h3 className="text-2xl font-bold text-heading-800">
-                  {beneficiary.firstName} {beneficiary.middleName} {beneficiary.lastName} {beneficiary.extensionName}
-                </h3>
+                  <h3 className="text-2xl font-bold uppercase text-heading-800">
+                    {beneficiary.firstName} {beneficiary.middleName} {beneficiary.lastName} {beneficiary.extensionName}
+                  </h3>
                 {(() => {
                   const birthDate = beneficiary.dateOfBirth || beneficiary.citizen?.birthDate;
                   const age = birthDate ? calculateAge(birthDate) : (beneficiary.age || beneficiary.citizen?.age);
@@ -718,7 +718,7 @@ const SeniorCitizenInfo: React.FC<{
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">
-              <h3 className="text-2xl font-bold text-heading-800">
+              <h3 className="text-2xl font-bold uppercase text-heading-800">
                 {beneficiary.firstName} {beneficiary.middleName} {beneficiary.lastName} {beneficiary.extensionName}
               </h3>
               {(() => {
