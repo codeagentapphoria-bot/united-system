@@ -32,7 +32,7 @@ import { calculateAge, cn, formatDateWithoutTimezone, formatIdType } from '@/lib
 import { getRegionName } from '@/constants/regions';
 
 // Icons
-import { FiCheck, FiDownload, FiEdit, FiEye, FiHeart, FiPlus, FiSearch, FiTrash2, FiUser, FiUserCheck } from 'react-icons/fi';
+import { FiCheck, FiDownload, FiEdit, FiEye, FiPlus, FiSearch, FiTrash2, FiUser, FiUserCheck } from 'react-icons/fi';
 
 // Healthcare Worker Card Component - Using shared BeneficiaryCard
 const HealthcareWorkerCard: React.FC<{

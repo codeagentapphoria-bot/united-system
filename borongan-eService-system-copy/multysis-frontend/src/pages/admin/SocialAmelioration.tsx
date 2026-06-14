@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { cn } from '@/lib/utils';
 import React, { useEffect, useState } from 'react';
-import { FiBookOpen, FiHeart, FiPlus, FiSettings, FiUserCheck, FiUsers } from 'react-icons/fi';
+import { FiBookOpen, FiHeart, FiSettings, FiUserCheck, FiUsers } from 'react-icons/fi';
 import { useSearchParams } from 'react-router-dom';
 
 // Import tab components

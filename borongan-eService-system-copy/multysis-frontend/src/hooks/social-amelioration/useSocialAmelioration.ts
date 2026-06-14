@@ -57,6 +57,7 @@ const EMPTY_STATS: OverviewStats = {
   totalStudents: 0,
   totalSoloParents: 0,
   totalBeneficiaries: 0,
+  totalHealthcareWorkers: 0,
 };
 
 const getErrorMessage = (error: unknown) => {
@@ -206,7 +207,7 @@ export const useBeneficiaryManagement = (
     clearBeneficiaryUpdate,
     clearBeneficiaryDelete,
   } = useBeneficiarySocket({
-    type: socketType,
+    type: socketType as 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER',
     enabled: true,
   });
 
@@ -605,6 +606,12 @@ export const useBeneficiaryManagement = (
         case 'solo-parents':
           response = await socialAmeliorationApi.getSoloParentBeneficiaries({ search: searchQuery });
           break;
+        case 'healthcare-workers':
+          toast({
+            title: 'Not Supported',
+            description: 'Healthcare worker list download is not yet available.',
+          });
+          return;
       }
 
       const normalizedBeneficiaries = response.data.map((record) => normalizeBeneficiary(record));
