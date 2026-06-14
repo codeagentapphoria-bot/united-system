@@ -40,6 +40,7 @@ export interface BeneficiaryDetails extends BeneficiaryListItem {
   passExpiry: Date | null;
   totalRides: number;
   lastRideDate: Date | null;
+  reviewedByName: string | null;
 }
 
 export interface PaginatedBeneficiaries {
@@ -243,6 +244,7 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
           healthcareWorkerBeneficiary: { select: { healthcareWorkerId: true } },
         },
       },
+      reviewedByUser: { select: { name: true } },
     },
   });
   if (!row) return null;
@@ -324,6 +326,7 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
     applicationId: row.id,
     appliedAt: row.appliedAt,
     reviewedAt: row.reviewedAt,
+    reviewedByName: row.reviewedByUser?.name ?? null,
     picturePath: r.picturePath,
     middleName: r.middleName,
     extensionName: r.extensionName,
