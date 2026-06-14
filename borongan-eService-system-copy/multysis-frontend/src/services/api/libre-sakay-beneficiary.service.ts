@@ -37,6 +37,7 @@ export interface BeneficiaryDetails extends BeneficiaryListItem {
   passExpiry: string | null;
   totalRides: number;
   lastRideDate: string | null;
+  reviewedByName: string | null;
 }
 
 export interface PaginatedBeneficiaries {
