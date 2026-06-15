@@ -37,7 +37,7 @@ const APPLICATION_STATUS_CONFIG: Record<string, { label: string; className: stri
 };
 
 const BENEFICIARY_STATUS_CONFIG: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
-  ACTIVE: { label: 'Active', className: 'bg-green-100 text-green-700', icon: <FiCheck size={12} /> },
+  ACTIVE: { label: 'Beneficiary', className: 'bg-green-100 text-green-700', icon: <FiCheck size={12} /> },
   INACTIVE: { label: 'Suspended', className: 'bg-red-100 text-red-700', icon: <FiAlertCircle size={12} /> },
   PENDING: { label: 'Pending', className: 'bg-yellow-100 text-yellow-700', icon: <FiClock size={12} /> },
 };

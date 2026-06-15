@@ -574,7 +574,7 @@ export function ProgramDetail() {
 
     if (beneficiaryStatus === 'ACTIVE') {
       libreConfig = {
-        label: 'Active',
+        label: 'Beneficiary',
         description: 'Your Libre Sakay benefit is active. Enjoy your free rides!',
         badgeClass: 'bg-green-100 text-green-700',
         icon: <FiCheck size={14} />,
