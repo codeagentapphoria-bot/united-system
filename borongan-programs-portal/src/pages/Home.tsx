@@ -36,6 +36,12 @@ const APPLICATION_STATUS_CONFIG: Record<string, { label: string; className: stri
   cancelled: { label: 'Cancelled', className: 'bg-gray-100 text-gray-600', icon: <FiX size={12} /> },
 };
 
+const BENEFICIARY_STATUS_CONFIG: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
+  ACTIVE: { label: 'Active', className: 'bg-green-100 text-green-700', icon: <FiCheck size={12} /> },
+  INACTIVE: { label: 'Suspended', className: 'bg-red-100 text-red-700', icon: <FiAlertCircle size={12} /> },
+  PENDING: { label: 'Pending', className: 'bg-yellow-100 text-yellow-700', icon: <FiClock size={12} /> },
+};
+
 const OTHER_PROGRAMS_URL = import.meta.env.VITE_OTHER_PROGRAMS_URL || '';
 const USER_GUIDE_URL = '/user-guide/presentation.html';
 
@@ -50,10 +56,16 @@ interface ProgramCardProps {
 const ProgramCard: React.FC<ProgramCardProps> = ({ program }) => {
   const navigate = useNavigate();
   const appStatus = program.applicationStatus;
-  const statusConfig = appStatus ? APPLICATION_STATUS_CONFIG[appStatus] : null;
+  const isLibreSakay = program.name.toLowerCase().includes('libre sakay');
+
+  // Use beneficiaryStatus for Libre Sakay when set; fall back to applicationStatus
+  const libreSakayStatus = isLibreSakay && program.beneficiaryStatus
+    ? BENEFICIARY_STATUS_CONFIG[program.beneficiaryStatus] ?? null
+    : null;
+  const statusConfig = libreSakayStatus ?? (appStatus ? APPLICATION_STATUS_CONFIG[appStatus] : null);
 
   const handleOpen = () => {
-    if (program.name.toLowerCase().includes('libre sakay')) {
+    if (isLibreSakay) {
       navigate('/libre-sakay');
     } else {
       navigate(`/programs/${program.id}`);
