@@ -54,6 +54,12 @@ router.post(
 // Cancel a pending application
 router.delete('/programs/my/applications/:appId', verifyResident, cancelApplicationController);
 
+// Libre-Sakay beneficiary status (resident-facing)
+router.get('/libre-sakay/my-status', verifyResident, async (req, res) => {
+  const { getMyBeneficiaryStatusController } = await import('../controllers/libre-sakay.controller');
+  return getMyBeneficiaryStatusController(req, res);
+});
+
 // =============================================================================
 // ADMIN — program application management
 // =============================================================================

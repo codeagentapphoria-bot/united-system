@@ -1,6 +1,8 @@
 import api from './auth.service';
 import type { GovernmentProgramType } from './government-program.service';
 
+export type BeneficiaryEnrollmentStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING' | null;
+
 export interface PortalProgram {
   id: string;
   name: string;
@@ -11,6 +13,8 @@ export interface PortalProgram {
   eligible: boolean;
   applicationStatus: 'pending' | 'approved' | 'rejected' | 'cancelled' | null;
   adminNotes?: string | null;
+  beneficiaryStatus?: BeneficiaryEnrollmentStatus;
+  suspendedAt?: string | null;
 }
 
 export interface PortalProgramsListResponse {
@@ -196,5 +200,34 @@ export const portalProgramsService = {
 
   async reviewApplication(appId: string, action: 'approve' | 'reject', adminNotes?: string): Promise<void> {
     await api.post(`/portal/program-applications/${appId}/review`, { action, adminNotes });
+  },
+
+  // --- Libre Sakay beneficiary status ---
+  // Backend returns MyBeneficiaryStatus: { enrolled, status, category, suspendedAt, appliedAt, reviewedAt, passNumber, passExpiry, totalRides, lastRideDate }
+  // enrolled=false can mean: no classification, no approved application, or suspended/inactive.
+  // hasClassification = classification exists (category is present), regardless of enrollment status.
+
+  async getMyLibreSakayStatus(): Promise<{
+    enrolled: boolean;
+    status: BeneficiaryEnrollmentStatus;
+    suspendedAt: string | null;
+    hasClassification: boolean;
+    classificationType?: string;
+    passNumber?: string;
+    totalRides: number;
+  } | null> {
+    const response = await api.get('/portal/libre-sakay/my-status');
+    const data = response.data.data?.beneficiary ?? null;
+    if (!data) return null;
+    const hasClassification = Boolean(data.category);
+    return {
+      enrolled: data.enrolled,
+      status: data.status,
+      suspendedAt: data.suspendedAt,
+      hasClassification,
+      classificationType: data.category ?? undefined,
+      passNumber: data.passNumber ?? undefined,
+      totalRides: data.totalRides ?? 0,
+    };
   },
 };

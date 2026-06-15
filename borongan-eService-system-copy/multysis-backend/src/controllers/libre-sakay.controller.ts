@@ -682,3 +682,23 @@ export const exportBeneficiariesController = async (req: AuthRequest, res: Respo
     res.status(500).json({ status: 'error', message: error.message });
   }
 };
+
+// =============================================================================
+// RESIDENT — MY STATUS
+// =============================================================================
+
+export const getMyBeneficiaryStatusController = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const residentId = req.user?.id;
+    if (!residentId) {
+      res.status(401).json({ status: 'error', message: 'Unauthorized' });
+      return;
+    }
+
+    const { getBeneficiaryStatusByResident } = await import('../services/libre-sakay-beneficiary.service');
+    const status = await getBeneficiaryStatusByResident(residentId);
+    res.status(200).json({ status: 'success', data: { beneficiary: status } });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
