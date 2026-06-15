@@ -7,10 +7,10 @@ import { BusCard } from '@/components/libre-sakay/BusCard';
 import { ApplyModal } from '@/components/libre-sakay/ApplyModal';
 import { useBusLocations } from '@/hooks/useBusLocations';
 import { useRoutes } from '@/hooks/useRoutes';
-import { portalProgramsService, type PortalProgram, type ProgramApplication } from '@/services/api/portal-programs.service';
+import { portalProgramsService, type PortalProgram, type ProgramApplication, type BeneficiaryEnrollmentStatus } from '@/services/api/portal-programs.service';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { FiArrowLeft, FiCheck, FiClock, FiX, FiInfo, FiMap, FiNavigation } from 'react-icons/fi';
+import { FiArrowLeft, FiCheck, FiClock, FiX, FiInfo, FiMap, FiNavigation, FiAlertCircle } from 'react-icons/fi';
 import { Loader2, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -46,78 +46,75 @@ const LOCATION_STORAGE_KEY = 'libre_sakay_user_location';
 
 // ── Status config ──────────────────────────────────────────────────────────────
 
-type AppStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | null;
+// Beneficiary enrollment status (from /portal/libre-sakay/my-status endpoint)
+type BeneficiaryKey = 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'none';
 
 const STATUS_CONFIG: Record<
-  NonNullable<AppStatus> | 'none',
+  BeneficiaryKey,
   { label: string; description: string; badgeClass: string; icon: React.ReactNode }
 > = {
   none: {
-    label: 'Not Applied',
-    description: 'You have not applied for Libre Sakay.',
+    label: 'Not Enrolled',
+    description: 'You have not enrolled in Libre Sakay.',
     badgeClass: 'bg-gray-100 text-gray-600',
     icon: <FiInfo size={14} />,
   },
-  pending: {
-    label: 'Pending Review',
-    description: "Your application is being reviewed. We'll notify you once it's processed.",
+  PENDING: {
+    label: 'Pending',
+    description: 'Your application is being reviewed. We will notify you once it is processed.',
     badgeClass: 'bg-yellow-100 text-yellow-700',
     icon: <FiClock size={14} />,
   },
-  approved: {
-    label: 'Beneficiary',
-    description: 'You are an approved Libre Sakay beneficiary. Enjoy free rides!',
+  ACTIVE: {
+    label: 'Active',
+    description: 'You are an active Libre Sakay beneficiary. Enjoy free rides!',
     badgeClass: 'bg-green-100 text-green-700',
     icon: <FiCheck size={14} />,
   },
-  rejected: {
-    label: 'Not Approved',
-    description: 'Your application was not approved. Contact the LGU office for more information.',
+  INACTIVE: {
+    label: 'Suspended',
+    description: 'Your Libre Sakay benefit has been suspended. Contact the LGU office to reinstate your benefit.',
     badgeClass: 'bg-red-100 text-red-700',
-    icon: <FiX size={14} />,
-  },
-  cancelled: {
-    label: 'Cancelled',
-    description: 'Your application was cancelled.',
-    badgeClass: 'bg-gray-100 text-gray-600',
-    icon: <FiX size={14} />,
+    icon: <FiAlertCircle size={14} />,
   },
 };
 
 // ── Status banner ──────────────────────────────────────────────────────────────
 
 interface StatusBannerProps {
-  program: PortalProgram | null;
+  beneficiaryStatus: BeneficiaryEnrollmentStatus | null;
+  suspendedAt: string | null;
   isLoading: boolean;
   isCancelling: boolean;
   isLoadingDetails: boolean;
+  hasClassification: boolean;
+  eligible: boolean;
   onViewPrograms: () => void;
   onApply: () => void;
   onCancel: () => void;
   onViewDetails: () => void;
 }
 
-function StatusBanner({ program, isLoading, isCancelling, isLoadingDetails, onViewPrograms, onApply, onCancel, onViewDetails }: StatusBannerProps) {
+function StatusBanner({ beneficiaryStatus, suspendedAt, isLoading, isCancelling, isLoadingDetails, hasClassification, eligible, onViewPrograms, onApply, onCancel, onViewDetails }: StatusBannerProps) {
   if (isLoading) {
     return <div className="h-20 rounded-xl bg-gray-100 animate-pulse" />;
   }
 
-  const status = program?.applicationStatus ?? null;
-  const eligible = program?.eligible ?? false;
-  const adminNotes = program?.adminNotes ?? null;
-  const key = status ?? 'none';
+  const key = beneficiaryStatus ?? 'none';
   const config = STATUS_CONFIG[key];
 
-  // For rejected status, show admin notes if available.
-  // For 'none', description is dynamic based on eligibility.
-  const description =
-    key === 'rejected' && adminNotes
-      ? `Reason: ${adminNotes}`
-      : key === 'none'
-        ? eligible
-          ? 'You are eligible. Submit your application to become a Libre Sakay beneficiary.'
-          : 'You are not eligible for Libre Sakay based on your current beneficiary status.'
-        : config.description;
+  let description = config.description;
+
+  // Override description based on beneficiary state
+  if (key === 'none') {
+    description = hasClassification
+      ? eligible
+        ? 'You are eligible. Submit your application to become a Libre Sakay beneficiary.'
+        : 'You are not eligible for Libre Sakay based on your current beneficiary status.'
+      : 'You need a beneficiary classification (Senior Citizen, PWD, etc.) to apply for Libre Sakay.';
+  } else if (key === 'INACTIVE' && suspendedAt) {
+    description = `Your Libre Sakay benefit has been suspended since ${new Date(suspendedAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}. Contact the LGU office to reinstate your benefit.`;
+  }
 
   return (
     <Card className="border border-gray-100">
@@ -132,21 +129,21 @@ function StatusBanner({ program, isLoading, isCancelling, isLoadingDetails, onVi
           </div>
 
           <div className="flex items-center gap-2 ml-auto flex-shrink-0">
-            {key === 'none' && !eligible && (
+            {key === 'none' && !hasClassification && (
               <Button size="sm" variant="outline" onClick={onViewPrograms}>
                 View Programs
               </Button>
             )}
-            {key === 'none' && eligible && (
+            {key === 'none' && hasClassification && (
               <Button
                 size="sm"
                 className="bg-primary-600 hover:bg-primary-700"
-                onClick={onApply}
+                onClick={eligible ? onApply : onViewPrograms}
               >
-                Apply Now
+                {eligible ? 'Apply Now' : 'View Programs'}
               </Button>
             )}
-            {key === 'pending' && (
+            {key === 'PENDING' && (
               <Button
                 size="sm"
                 variant="outline"
@@ -161,16 +158,7 @@ function StatusBanner({ program, isLoading, isCancelling, isLoadingDetails, onVi
                 )}
               </Button>
             )}
-            {(key === 'rejected' || key === 'cancelled') && (
-              <Button
-                size="sm"
-                className="bg-primary-600 hover:bg-primary-700"
-                onClick={onApply}
-              >
-                Apply Again
-              </Button>
-            )}
-            {key === 'approved' && (
+            {key === 'ACTIVE' && (
               <Button size="sm" variant="outline" onClick={onViewDetails} disabled={isLoadingDetails}>
                 {isLoadingDetails ? (
                   <><Loader2 className="w-3 h-3 animate-spin mr-1" />Loading…</>
@@ -335,6 +323,9 @@ export function LibreSakay() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [libreSakayProgram, setLibreSakayProgram] = useState<PortalProgram | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
+  const [beneficiaryStatus, setBeneficiaryStatus] = useState<import('@/services/api/portal-programs.service').BeneficiaryEnrollmentStatus | null>(null);
+  const [suspendedAt, setSuspendedAt] = useState<string | null>(null);
+  const [hasClassification, setHasClassification] = useState(false);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
@@ -351,9 +342,19 @@ export function LibreSakay() {
     if (!isAuthenticated) return;
     setStatusLoading(true);
     try {
-      const { data } = await portalProgramsService.listPrograms({ name: 'Libre Sakay' });
-      const libreProgram = data[0] ?? null;
-      setLibreSakayProgram(libreProgram);
+      const [programRes, beneficiaryRes] = await Promise.allSettled([
+        portalProgramsService.listPrograms({ name: 'Libre Sakay' }),
+        portalProgramsService.getMyLibreSakayStatus(),
+      ]);
+
+      if (programRes.status === 'fulfilled') {
+        setLibreSakayProgram(programRes.value.data[0] ?? null);
+      }
+      if (beneficiaryRes.status === 'fulfilled' && beneficiaryRes.value) {
+        setBeneficiaryStatus(beneficiaryRes.value.status);
+        setSuspendedAt(beneficiaryRes.value.suspendedAt);
+        setHasClassification(beneficiaryRes.value.hasClassification);
+      }
     } catch {
       toast({ title: 'Failed to load', description: 'Could not verify your program status. Please try again.' });
       setLibreSakayProgram(null);
@@ -478,10 +479,13 @@ export function LibreSakay() {
       <div className="max-w-4xl mx-auto px-4 py-5 space-y-5">
         {/* Eligibility / application status */}
         <StatusBanner
-          program={libreSakayProgram}
+          beneficiaryStatus={beneficiaryStatus}
+          suspendedAt={suspendedAt}
           isLoading={statusLoading}
           isCancelling={isCancelling}
           isLoadingDetails={isLoadingDetails}
+          hasClassification={hasClassification}
+          eligible={libreSakayProgram?.eligible ?? false}
           onViewPrograms={() => navigate('/')}
           onApply={() => setApplyModalOpen(true)}
           onCancel={handleCancel}

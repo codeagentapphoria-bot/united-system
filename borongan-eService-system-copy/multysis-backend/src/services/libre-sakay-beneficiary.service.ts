@@ -530,3 +530,122 @@ export const getBeneficiariesForExport = async (
 
   return allData;
 };
+
+// =============================================================================
+// GET MY BENEFICIARY STATUS (resident-facing)
+// =============================================================================
+
+export interface MyBeneficiaryStatus {
+  enrolled: boolean;
+  status: 'ACTIVE' | 'INACTIVE' | 'PENDING' | null;
+  category: string | null;
+  suspendedAt: string | null;
+  appliedAt: string | null;
+  reviewedAt: string | null;
+  passNumber: string | null;
+  passExpiry: string | null;
+  totalRides: number;
+  lastRideDate: string | null;
+}
+
+export const getBeneficiaryStatusByResident = async (residentId: string): Promise<MyBeneficiaryStatus> => {
+  // Find the resident's classification to determine beneficiary type
+  const resident = await prisma.resident.findUnique({
+    where: { id: residentId },
+    include: {
+      seniorCitizenBeneficiary: { select: { seniorCitizenId: true } },
+      pwdBeneficiary: { select: { pwdId: true } },
+      studentBeneficiary: { select: { studentId: true } },
+      soloParentBeneficiary: { select: { soloParentId: true } },
+      healthcareWorkerBeneficiary: { select: { healthcareWorkerId: true } },
+    },
+  });
+
+  if (!resident) {
+    return { enrolled: false, status: null, category: null, suspendedAt: null, appliedAt: null, reviewedAt: null, passNumber: null, passExpiry: null, totalRides: 0, lastRideDate: null };
+  }
+
+  const cat = determineCategory(
+    resident.seniorCitizenBeneficiary,
+    resident.pwdBeneficiary,
+    resident.studentBeneficiary,
+    resident.soloParentBeneficiary,
+    resident.healthcareWorkerBeneficiary,
+  );
+
+  if (!cat) {
+    return { enrolled: false, status: null, category: null, suspendedAt: null, appliedAt: null, reviewedAt: null, passNumber: null, passExpiry: null, totalRides: 0, lastRideDate: null };
+  }
+
+  // Find the Libre-Sakay approved application for this resident
+  const application = await prisma.governmentProgramApplication.findFirst({
+    where: {
+      residentId,
+      programId: LIBRE_SAKAY_PROGRAM_ID,
+      status: 'approved',
+    },
+    orderBy: { reviewedAt: 'desc' },
+  });
+
+  if (!application) {
+    return { enrolled: false, status: null, category: null, suspendedAt: null, appliedAt: null, reviewedAt: null, passNumber: null, passExpiry: null, totalRides: 0, lastRideDate: null };
+  }
+
+  // Get pivot status for this beneficiary type
+  const pivot = await prisma.beneficiaryProgramPivot.findFirst({
+    where: {
+      programId: LIBRE_SAKAY_PROGRAM_ID,
+      beneficiaryType: cat.type as BeneficiaryType,
+      beneficiaryId: cat.id,
+    },
+    select: { status: true, suspendedAt: true },
+  });
+
+  const status = mapEnrollmentStatus(pivot?.status ?? null);
+  const suspendedAt = pivot?.suspendedAt ? pivot.suspendedAt.toISOString() : null;
+
+  // Libre-Sakay beneficiary record (pass number, expiry, rides)
+  let passNumber: string | null = null;
+  let passExpiry: string | null = null;
+  let totalRides = 0;
+  let lastRideDate: string | null = null;
+
+  try {
+    const { getLibreSakaySupabase } = await import('../config/libre-sakay-supabase');
+    const supabase = getLibreSakaySupabase();
+    const { data: libreData } = await supabase
+      .from('libre_sakay_beneficiary')
+      .select('id, pass_number, pass_expiry')
+      .eq('resident_uuid', residentId)
+      .maybeSingle();
+
+    if (libreData) {
+      passNumber = libreData.pass_number;
+      passExpiry = libreData.pass_expiry;
+    }
+
+    if (libreData?.id) {
+      const { data: rides } = await supabase
+        .from('ride_logs')
+        .select('id, ride_date')
+        .eq('beneficiary_id', libreData.id)
+        .order('ride_date', { ascending: false })
+        .limit(1);
+      totalRides = rides?.length || 0;
+      lastRideDate = rides?.[0]?.ride_date ?? null;
+    }
+  } catch { /* not available */ }
+
+  return {
+    enrolled: true,
+    status,
+    category: cat.type,
+    suspendedAt,
+    appliedAt: application.appliedAt.toISOString(),
+    reviewedAt: application.reviewedAt?.toISOString() ?? null,
+    passNumber,
+    passExpiry,
+    totalRides,
+    lastRideDate,
+  };
+};

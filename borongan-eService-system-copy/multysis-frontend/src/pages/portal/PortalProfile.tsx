@@ -21,6 +21,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { residentService, type Resident } from '@/services/api/resident.service';
 import { uploadService } from '@/services/api/upload.service';
+import { libreSakayBeneficiaryService } from '@/services/api/libre-sakay-beneficiary.service';
 import { formatDateWithoutTimezone } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useMyProfile } from '@/hooks/residents/useMyProfile';
@@ -214,6 +215,16 @@ export const PortalProfile: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [form, setForm] = useState<EditForm | null>(null);
+  const [libreSakayStatus, setLibreSakayStatus] = useState<any | null>(null);
+  const [libreSakayLoading, setLibreSakayLoading] = useState(true);
+
+  React.useEffect(() => {
+    libreSakayBeneficiaryService
+      .getMyLibreSakayStatus()
+      .then(setLibreSakayStatus)
+      .catch(() => setLibreSakayStatus(null))
+      .finally(() => setLibreSakayLoading(false));
+  }, []);
 
   const openEdit = () => {
     if (resident) {
@@ -527,6 +538,62 @@ export const PortalProfile: React.FC = () => {
                   ))}
                 </CardContent>
               </Card>
+            )}
+
+            {/* Libre Sakay Status Card */}
+            {(classifications?.length ?? 0) > 0 && (
+              libreSakayLoading ? (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FiHeart size={15} /> Libre Sakay
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-5 w-24 rounded bg-muted animate-pulse" />
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FiHeart size={15} /> Libre Sakay
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {libreSakayStatus ? (
+                      <>
+                        <Badge
+                          variant="outline"
+                          style={
+                            libreSakayStatus.status === 'ACTIVE'
+                              ? { backgroundColor: '#22c55e22', color: '#22c55e', borderColor: '#22c55e44' }
+                              : libreSakayStatus.status === 'PENDING'
+                              ? { backgroundColor: '#eab30822', color: '#eab308', borderColor: '#eab30844' }
+                              : { backgroundColor: '#ef444422', color: '#ef4444', borderColor: '#ef444444' }
+                          }
+                        >
+                          {libreSakayStatus.status === 'ACTIVE'
+                            ? 'Active'
+                            : libreSakayStatus.status === 'PENDING'
+                            ? 'Pending'
+                            : 'Suspended'}
+                        </Badge>
+                        {libreSakayStatus.status === 'INACTIVE' && libreSakayStatus.suspendedAt && (
+                          <p className="text-sm text-muted-foreground">
+                            Suspended on {fmt(new Date(libreSakayStatus.suspendedAt).toISOString().split('T')[0])}.{' '}
+                            Contact the LGU office to reinstate your benefit.
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <Badge variant="outline" style={{ backgroundColor: '#6b728022', color: '#6b7280', borderColor: '#6b728044' }}>
+                        Not Enrolled
+                      </Badge>
+                    )}
+                  </CardContent>
+                </Card>
+              )
             )}
           </TabsContent>
 

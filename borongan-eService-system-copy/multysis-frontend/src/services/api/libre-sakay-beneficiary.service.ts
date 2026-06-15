@@ -50,6 +50,16 @@ export interface PaginatedBeneficiaries {
   };
 }
 
+export interface LibreSakayBeneficiaryStatus {
+  status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
+  suspendedAt: string | null;
+  appliedAt: string | null;
+  lastRideAt: string | null;
+  totalRides: number;
+  passNumber: string | null;
+  programName: 'Libre Sakay';
+}
+
 // =============================================================================
 // SERVICE
 // =============================================================================
@@ -91,6 +101,11 @@ export const libreSakayBeneficiaryService = {
   async remove(id: string): Promise<void> {
     const res = await api.delete(`/admin/libre-sakay/beneficiaries/${id}`);
     return res.data;
+  },
+
+  async getMyLibreSakayStatus(): Promise<LibreSakayBeneficiaryStatus | null> {
+    const res = await api.get('/portal/libre-sakay/my-status');
+    return res.data ?? null;
   },
 
   getExportUrl(_filter: 'all' | 'active' | 'suspended' = 'all'): string {
