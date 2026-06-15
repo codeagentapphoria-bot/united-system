@@ -12,6 +12,7 @@ import helmet from 'helmet';
 import { createServer } from 'http';
 import morgan from 'morgan';
 import type { AuthRequest } from './middleware/auth';
+import { maintenanceMiddleware } from './middleware/maintenance';
 import { addDevLog, startDevDashboardUpdates } from './services/dev.service';
 import { setSocketInstance } from './services/socket.service';
 import { initializeSocket } from './socket/socket';
@@ -394,6 +395,10 @@ import classificationRoutes from './routes/classification.routes';
 
 // Register routes with appropriate rate limiters
 // Note: Auth routes apply their own rate limiters (defined in auth.routes.ts)
+
+// Maintenance mode — must be first to catch all routes
+app.use(maintenanceMiddleware);
+
 app.use('/api/auth', authRoutes);
 
 // Dev routes (apply their own rate limiters, defined in dev.routes.ts)

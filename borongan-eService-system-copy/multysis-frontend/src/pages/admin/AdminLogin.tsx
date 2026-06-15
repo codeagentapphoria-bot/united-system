@@ -53,11 +53,17 @@ export const AdminLogin: React.FC = () => {
         title: 'Success',
         description: 'Welcome back, Admin!',
       });
-      // Use redirectPath from role settings, fallback to role-based default
-      const redirectTo = user?.redirectPath
-        || (user?.role === 'libre_medisina_admin' ? '/admin/libre-medisina'
-          : user?.role === 'libre_sakay_admin' ? '/admin/libre-sakay'
-          : '/admin/dashboard');
+      // Use redirectPath from role settings
+      const redirectTo = user?.redirectPath;
+      if (!redirectTo) {
+        toast({
+          variant: 'destructive',
+          title: 'Login Error',
+          description: 'No redirect page configured for your role. Please contact an administrator.',
+        });
+        navigate('/portal');
+        return;
+      }
       navigate(redirectTo);
     } catch (err: any) {
       toast({

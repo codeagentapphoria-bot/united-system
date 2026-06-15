@@ -384,12 +384,42 @@ export const getCurrentUser = async (
   if (type === 'admin') {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, role: true, createdAt: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                redirectPage: {
+                  select: {
+                    path: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
     if (!user) throw new Error('User not found');
-    
-    await cacheService.set(cacheKey, user, 300); // 5 min TTL
-    return user;
+
+    const redirectPath = user.userRoles[0]?.role?.redirectPage?.path;
+
+    const result = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      createdAt: user.createdAt,
+      redirectPath,
+    };
+
+    await cacheService.set(cacheKey, result, 300); // 5 min TTL
+    return result;
   }
 
   // resident

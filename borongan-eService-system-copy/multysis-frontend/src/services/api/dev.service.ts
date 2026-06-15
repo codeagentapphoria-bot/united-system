@@ -96,16 +96,17 @@ export const devService = {
         throw new Error('Invalid response from server');
       }
       
-      return {
+        return {
           user: {
             id: result.user.id,
             name: result.user.name,
             email: result.user.email,
             role: result.user.role,
             createdAt: result.user.createdAt || new Date().toISOString(),
+            redirectPath: result.user.redirectPath,
           },
-        token: 'stored-in-cookie', // Tokens are in HTTP-only cookies
-      };
+          token: 'stored-in-cookie', // Tokens are in HTTP-only cookies
+        };
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Login failed';
       throw new Error(errorMessage);
