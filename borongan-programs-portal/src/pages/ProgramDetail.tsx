@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FiArrowLeft, FiCheck, FiClock, FiInfo, FiX } from 'react-icons/fi';
+import { FiAlertCircle, FiArrowLeft, FiCheck, FiClock, FiInfo, FiX } from 'react-icons/fi';
 import { Loader2, CheckCircle, FileText, Upload, ZoomIn, X } from 'lucide-react';
 import {
   portalProgramsService,
@@ -561,6 +561,43 @@ export function ProgramDetail() {
   const config = STATUS_CONFIG[key];
   const requirements = parseRequirements(program?.requirements);
 
+  // Libre Sakay beneficiary status (overrides applicationStatus for this program)
+  const isLibreSakay = program?.name?.includes('Libre Sakay');
+  const beneficiaryStatus = program?.beneficiaryStatus;
+  const libreSakayActive = isLibreSakay && beneficiaryStatus != null;
+
+  let libreConfig: { label: string; description: string; badgeClass: string; icon: React.ReactNode } | null = null;
+  if (libreSakayActive) {
+    const suspendedDate = program?.suspendedAt
+      ? new Date(program.suspendedAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })
+      : null;
+
+    if (beneficiaryStatus === 'ACTIVE') {
+      libreConfig = {
+        label: 'Active',
+        description: 'Your Libre Sakay benefit is active. Enjoy your free rides!',
+        badgeClass: 'bg-green-100 text-green-700',
+        icon: <FiCheck size={14} />,
+      };
+    } else if (beneficiaryStatus === 'INACTIVE') {
+      libreConfig = {
+        label: 'Suspended',
+        description: suspendedDate
+          ? `Your Libre Sakay benefit has been suspended since ${suspendedDate}. Contact the LGU office to reinstate your benefit.`
+          : 'Your Libre Sakay benefit has been suspended. Contact the LGU office to reinstate your benefit.',
+        badgeClass: 'bg-red-100 text-red-700',
+        icon: <FiAlertCircle size={14} />,
+      };
+    } else if (beneficiaryStatus === 'PENDING') {
+      libreConfig = {
+        label: 'Pending',
+        description: "Your Libre Sakay benefit is pending activation. We'll notify you once it's confirmed.",
+        badgeClass: 'bg-yellow-100 text-yellow-700',
+        icon: <FiClock size={14} />,
+      };
+    }
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Nav */}
@@ -620,11 +657,11 @@ export function ProgramDetail() {
               <CardContent className="p-4">
                 <div className="flex flex-col-reverse items-start justify-between gap-3 flex-wrap">
                   <div className="flex items-start gap-3 flex-1 min-w-0 -mt-[8px]">
-                    <div className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold flex-shrink-0 mt-0.5', config.badgeClass)}>
-                      {config.icon}
-                      {config.label}
+                    <div className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold flex-shrink-0 mt-0.5', (libreConfig ?? config).badgeClass)}>
+                      {(libreConfig ?? config).icon}
+                      {(libreConfig ?? config).label}
                     </div>
-                    <p className="text-sm text-gray-500 mt-0.5">{config.description}</p>
+                    <p className="text-sm text-gray-500 mt-0.5">{(libreConfig ?? config).description}</p>
                   </div>
 
                   <div className="flex items-center gap-2 ml-auto flex-shrink-0">
