@@ -3,7 +3,34 @@ import prisma from '../config/database';
 import { emitProgramApplicationNew, emitProgramApplicationReview } from './socket.service';
 import { getLibreSakaySupabase } from '../config/libre-sakay-supabase';
 
+const LIBRE_SAKAY_PROGRAM_ID = 'gp-all-libre-sakay';
+
 type ProgramTypeValue = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER' | 'ALL';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function determineCategory(
+  senior: { seniorCitizenId: string | null } | null,
+  pwd: { pwdId: string | null } | null,
+  student: { studentId: string | null } | null,
+  soloParent: { soloParentId: string | null } | null,
+  healthcareWorker: { healthcareWorkerId: string | null } | null,
+): { type: string; id: string } | null {
+  if (senior?.seniorCitizenId) return { type: 'SENIOR_CITIZEN', id: senior.seniorCitizenId };
+  if (pwd?.pwdId) return { type: 'PWD', id: pwd.pwdId };
+  if (student?.studentId) return { type: 'STUDENT', id: student.studentId };
+  if (soloParent?.soloParentId) return { type: 'SOLO_PARENT', id: soloParent.soloParentId };
+  if (healthcareWorker?.healthcareWorkerId) return { type: 'HEALTHCARE_WORKER', id: healthcareWorker.healthcareWorkerId };
+  return null;
+}
+
+function mapEnrollmentStatus(status: string | null | undefined): 'ACTIVE' | 'INACTIVE' | 'PENDING' {
+  if (status === 'active') return 'ACTIVE';
+  if (status === 'suspended') return 'INACTIVE';
+  return 'PENDING';
+}
 
 // ---------------------------------------------------------------------------
 // Eligibility check
@@ -88,10 +115,21 @@ export const listProgramsForResident = async (
           select: { programId: true, status: true, adminNotes: true },
         }),
         getResidentEligibleTypes(residentId),
+        // Fetch classification records to determine beneficiaryType
+        prisma.resident.findUnique({
+          where: { id: residentId },
+          select: {
+            seniorCitizenBeneficiary: { select: { seniorCitizenId: true } },
+            pwdBeneficiary: { select: { pwdId: true } },
+            studentBeneficiary: { select: { studentId: true } },
+            soloParentBeneficiary: { select: { soloParentId: true } },
+            healthcareWorkerBeneficiary: { select: { healthcareWorkerId: true } },
+          },
+        }),
       ])
-    : Promise.resolve([[], new Set<ProgramTypeValue>()] as const);
+    : Promise.resolve([[], new Set<ProgramTypeValue>(), null] as const);
 
-  const [programs, total, [applications, eligibleTypes]] = await Promise.all([
+  const [programs, total, [applications, eligibleTypes, classifications]] = await Promise.all([
     prisma.governmentProgram.findMany({
       where,
       orderBy: [{ name: 'asc' }],
@@ -109,12 +147,53 @@ export const listProgramsForResident = async (
     ])
   );
 
+  // Determine the resident's beneficiaryType from their classification records
+  const categoryEntry = classifications
+    ? determineCategory(
+        classifications.seniorCitizenBeneficiary,
+        classifications.pwdBeneficiary,
+        classifications.studentBeneficiary,
+        classifications.soloParentBeneficiary,
+        classifications.healthcareWorkerBeneficiary,
+      )
+    : null;
+
+  // Batch-fetch pivot rows for all approved Libre Sakay applications
+  const libreSakayApprovedAppEntries = (
+    applications as { programId: string; status: string; adminNotes: string | null }[]
+  ).filter((a) => a.programId === LIBRE_SAKAY_PROGRAM_ID && a.status === 'approved');
+  let pivotStatusMap: Map<string, { status: string | null; suspendedAt: Date | null }> = new Map();
+  if (libreSakayApprovedAppEntries.length > 0 && categoryEntry) {
+    const pivotRows = await prisma.beneficiaryProgramPivot.findMany({
+      where: {
+        programId: LIBRE_SAKAY_PROGRAM_ID,
+        beneficiaryType: categoryEntry.type as any,
+        beneficiaryId: categoryEntry.id,
+      },
+      select: { status: true, suspendedAt: true },
+    });
+    for (const p of pivotRows) {
+      pivotStatusMap.set(LIBRE_SAKAY_PROGRAM_ID, { status: p.status, suspendedAt: p.suspendedAt });
+    }
+  }
+
   const data = programs.map((program) => {
     const appInfo = appMap.get(program.id) ?? null;
     const applicationStatus = appInfo?.status ?? null;
     const adminNotes = appInfo?.adminNotes ?? null;
     // Unauthenticated visitors get eligible: false — no apply action shown
     const eligible = residentId ? isEligible(program.types, eligibleTypes) : false;
+
+    // Determine beneficiaryStatus and suspendedAt for Libre Sakay approved applications
+    let beneficiaryStatus: 'ACTIVE' | 'INACTIVE' | 'PENDING' | null = null;
+    let suspendedAt: string | null = null;
+    if (program.id === LIBRE_SAKAY_PROGRAM_ID && applicationStatus === 'approved') {
+      const pivot = pivotStatusMap.get(LIBRE_SAKAY_PROGRAM_ID);
+      if (pivot) {
+        beneficiaryStatus = mapEnrollmentStatus(pivot.status);
+        suspendedAt = pivot.suspendedAt ? pivot.suspendedAt.toISOString() : null;
+      }
+    }
 
     return {
       id: program.id,
@@ -131,6 +210,8 @@ export const listProgramsForResident = async (
         | 'cancelled'
         | null,
       adminNotes,
+      beneficiaryStatus,
+      suspendedAt,
     };
   });
 
