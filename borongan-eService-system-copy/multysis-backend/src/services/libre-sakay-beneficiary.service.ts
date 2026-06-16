@@ -588,7 +588,9 @@ export const getBeneficiaryStatusByResident = async (residentId: string): Promis
   });
 
   if (!application) {
-    return { enrolled: false, status: null, category: null, suspendedAt: null, appliedAt: null, reviewedAt: null, passNumber: null, passExpiry: null, totalRides: 0, lastRideDate: null };
+    // Has classification but hasn't applied for Libre Sakay yet — still return category
+    // so the frontend knows the resident can apply.
+    return { enrolled: false, status: null, category: cat.type, suspendedAt: null, appliedAt: null, reviewedAt: null, passNumber: null, passExpiry: null, totalRides: 0, lastRideDate: null };
   }
 
   // Get pivot status for this beneficiary type
