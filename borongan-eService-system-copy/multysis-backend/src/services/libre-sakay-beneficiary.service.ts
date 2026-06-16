@@ -97,9 +97,21 @@ export const listBeneficiaries = async (
 ): Promise<PaginatedBeneficiaries> => {
   const skip = (page - 1) * limit;
 
+  // Look up Libre-Sakay program dynamically from DB
+  const program = await prisma.governmentProgram.findFirst({
+    where: { name: { mode: 'insensitive', contains: 'Libre Sakay' }, isActive: true },
+    select: { id: true },
+  });
+
+  if (!program) {
+    return { data: [], total: 0, page, limit, totalPages: 0 };
+  }
+
+  const programId = program.id;
+
   // Base filter: approved applications for Libre-Sakay
   const baseWhere: any = {
-    programId: LIBRE_SAKAY_PROGRAM_ID,
+    programId,
     status: 'approved',
   };
 
@@ -160,7 +172,7 @@ export const listBeneficiaries = async (
   if (categoryEntries.length > 0) {
     const pivotRows = await prisma.beneficiaryProgramPivot.findMany({
       where: {
-        programId: LIBRE_SAKAY_PROGRAM_ID,
+        programId,
         OR: categoryEntries.map((e) => ({
           beneficiaryType: e.cat.type as BeneficiaryType,
           beneficiaryId: e.cat.id,
@@ -264,7 +276,7 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
   if (cat) {
     const pivot = await prisma.beneficiaryProgramPivot.findFirst({
       where: {
-        programId: LIBRE_SAKAY_PROGRAM_ID,
+        programId: row.programId,
         beneficiaryType: cat.type as BeneficiaryType,
         beneficiaryId: cat.id,
       },
@@ -383,7 +395,7 @@ export const suspendBeneficiary = async (id: string): Promise<void> => {
 
   const pivot = await prisma.beneficiaryProgramPivot.findFirst({
     where: {
-      programId: LIBRE_SAKAY_PROGRAM_ID,
+      programId: application.programId,
       beneficiaryType: cat.type as any,
       beneficiaryId: cat.id,
     },
@@ -438,7 +450,7 @@ export const activateBeneficiary = async (id: string): Promise<void> => {
 
   const pivot = await prisma.beneficiaryProgramPivot.findFirst({
     where: {
-      programId: LIBRE_SAKAY_PROGRAM_ID,
+      programId: application.programId,
       beneficiaryType: cat.type as any,
       beneficiaryId: cat.id,
     },
@@ -487,7 +499,7 @@ export const removeBeneficiary = async (id: string): Promise<void> => {
 
   const pivot = await prisma.beneficiaryProgramPivot.findFirst({
     where: {
-      programId: LIBRE_SAKAY_PROGRAM_ID,
+      programId: application.programId,
       beneficiaryType: cat.type as any,
       beneficiaryId: cat.id,
     },
