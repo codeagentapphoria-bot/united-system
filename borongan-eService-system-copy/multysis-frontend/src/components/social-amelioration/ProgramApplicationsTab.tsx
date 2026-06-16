@@ -361,9 +361,10 @@ const ResidentPreviewDialog: React.FC<ResidentPreviewDialogProps> = ({ appId, ap
 // ProgramApplicationsTab
 // ---------------------------------------------------------------------------
 
-export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatus?: string }> = ({
+export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatus?: string; excludeApproved?: boolean }> = ({
   programId,
   initialStatus = 'pending',
+  excludeApproved = false,
 }) => {
   const { toast } = useToast();
 
@@ -371,7 +372,7 @@ export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatu
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
-  const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
+  const [statusFilter, setStatusFilter] = useState<string>(excludeApproved ? 'pending' : initialStatus);
   const [localSearch, setLocalSearch] = useState('');
   const debouncedSearch = useDebounce(localSearch, 300);
 
@@ -444,7 +445,9 @@ export const ProgramApplicationsTab: React.FC<{ programId?: string; initialStatu
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         {/* Status tabs */}
         <div className="flex gap-2 flex-wrap">
-          {(['pending', 'approved', 'rejected', 'cancelled', ''] as const).map(s => (
+          {(excludeApproved
+            ? (['pending', 'rejected', 'cancelled'] as const)
+            : (['pending', 'approved', 'rejected', 'cancelled', ''] as const)).map(s => (
             <Button
               key={s || 'all'}
               size="sm"

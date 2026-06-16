@@ -97,9 +97,21 @@ export const listBeneficiaries = async (
 ): Promise<PaginatedBeneficiaries> => {
   const skip = (page - 1) * limit;
 
+  // Look up Libre-Sakay program dynamically from DB
+  const program = await prisma.governmentProgram.findFirst({
+    where: { name: { mode: 'insensitive', contains: 'Libre Sakay' }, isActive: true },
+    select: { id: true },
+  });
+
+  if (!program) {
+    return { data: [], total: 0, page, limit, totalPages: 0 };
+  }
+
+  const programId = program.id;
+
   // Base filter: approved applications for Libre-Sakay
   const baseWhere: any = {
-    programId: LIBRE_SAKAY_PROGRAM_ID,
+    programId,
     status: 'approved',
   };
 
@@ -160,7 +172,7 @@ export const listBeneficiaries = async (
   if (categoryEntries.length > 0) {
     const pivotRows = await prisma.beneficiaryProgramPivot.findMany({
       where: {
-        programId: LIBRE_SAKAY_PROGRAM_ID,
+        programId,
         OR: categoryEntries.map((e) => ({
           beneficiaryType: e.cat.type as BeneficiaryType,
           beneficiaryId: e.cat.id,
@@ -264,7 +276,7 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
   if (cat) {
     const pivot = await prisma.beneficiaryProgramPivot.findFirst({
       where: {
-        programId: LIBRE_SAKAY_PROGRAM_ID,
+        programId: row.programId,
         beneficiaryType: cat.type as BeneficiaryType,
         beneficiaryId: cat.id,
       },
@@ -383,7 +395,7 @@ export const suspendBeneficiary = async (id: string): Promise<void> => {
 
   const pivot = await prisma.beneficiaryProgramPivot.findFirst({
     where: {
-      programId: LIBRE_SAKAY_PROGRAM_ID,
+      programId: application.programId,
       beneficiaryType: cat.type as any,
       beneficiaryId: cat.id,
     },
@@ -438,7 +450,7 @@ export const activateBeneficiary = async (id: string): Promise<void> => {
 
   const pivot = await prisma.beneficiaryProgramPivot.findFirst({
     where: {
-      programId: LIBRE_SAKAY_PROGRAM_ID,
+      programId: application.programId,
       beneficiaryType: cat.type as any,
       beneficiaryId: cat.id,
     },
@@ -487,7 +499,7 @@ export const removeBeneficiary = async (id: string): Promise<void> => {
 
   const pivot = await prisma.beneficiaryProgramPivot.findFirst({
     where: {
-      programId: LIBRE_SAKAY_PROGRAM_ID,
+      programId: application.programId,
       beneficiaryType: cat.type as any,
       beneficiaryId: cat.id,
     },
@@ -549,55 +561,70 @@ export interface MyBeneficiaryStatus {
 }
 
 export const getBeneficiaryStatusByResident = async (residentId: string): Promise<MyBeneficiaryStatus> => {
-  // Find the resident's classification to determine beneficiary type
+  const defaultResult = { enrolled: false, status: null, category: null, suspendedAt: null, appliedAt: null, reviewedAt: null, passNumber: null, passExpiry: null, totalRides: 0, lastRideDate: null };
+
+  // Look up Libre-Sakay program dynamically from DB (not hardcoded)
+  const program = await prisma.governmentProgram.findFirst({
+    where: { name: { mode: 'insensitive', contains: 'Libre Sakay' }, isActive: true },
+    select: { id: true, types: true },
+  });
+
+  if (!program) return defaultResult;
+
+  const programTypes = (program.types as string[]) ?? [];
+  const programId = program.id;
+
+  // Fetch resident's classifications with status — only ACTIVE classifications are eligible
   const resident = await prisma.resident.findUnique({
     where: { id: residentId },
     include: {
-      seniorCitizenBeneficiary: { select: { seniorCitizenId: true } },
-      pwdBeneficiary: { select: { pwdId: true } },
-      studentBeneficiary: { select: { studentId: true } },
-      soloParentBeneficiary: { select: { soloParentId: true } },
-      healthcareWorkerBeneficiary: { select: { healthcareWorkerId: true } },
+      seniorCitizenBeneficiary: { select: { seniorCitizenId: true, status: true } },
+      pwdBeneficiary: { select: { pwdId: true, status: true } },
+      studentBeneficiary: { select: { studentId: true, status: true } },
+      soloParentBeneficiary: { select: { soloParentId: true, status: true } },
+      healthcareWorkerBeneficiary: { select: { healthcareWorkerId: true, status: true } },
     },
   });
 
-  if (!resident) {
-    return { enrolled: false, status: null, category: null, suspendedAt: null, appliedAt: null, reviewedAt: null, passNumber: null, passExpiry: null, totalRides: 0, lastRideDate: null };
+  if (!resident) return defaultResult;
+
+  // Find the first ACTIVE classification whose type is in the program's allowed types
+  const candidates: Array<{ type: BeneficiaryType; id: string }> = [];
+  if (resident.seniorCitizenBeneficiary?.seniorCitizenId && resident.seniorCitizenBeneficiary.status === 'ACTIVE') {
+    candidates.push({ type: 'SENIOR_CITIZEN', id: resident.seniorCitizenBeneficiary.seniorCitizenId });
+  }
+  if (resident.pwdBeneficiary?.pwdId && resident.pwdBeneficiary.status === 'ACTIVE') {
+    candidates.push({ type: 'PWD', id: resident.pwdBeneficiary.pwdId });
+  }
+  if (resident.studentBeneficiary?.studentId && resident.studentBeneficiary.status === 'ACTIVE') {
+    candidates.push({ type: 'STUDENT', id: resident.studentBeneficiary.studentId });
+  }
+  if (resident.soloParentBeneficiary?.soloParentId && resident.soloParentBeneficiary.status === 'ACTIVE') {
+    candidates.push({ type: 'SOLO_PARENT', id: resident.soloParentBeneficiary.soloParentId });
+  }
+  if (resident.healthcareWorkerBeneficiary?.healthcareWorkerId && resident.healthcareWorkerBeneficiary.status === 'ACTIVE') {
+    candidates.push({ type: 'HEALTHCARE_WORKER', id: resident.healthcareWorkerBeneficiary.healthcareWorkerId });
   }
 
-  const cat = determineCategory(
-    resident.seniorCitizenBeneficiary,
-    resident.pwdBeneficiary,
-    resident.studentBeneficiary,
-    resident.soloParentBeneficiary,
-    resident.healthcareWorkerBeneficiary,
-  );
+  const cat = candidates.find(c => programTypes.includes(c.type)) ?? null;
 
-  if (!cat) {
-    return { enrolled: false, status: null, category: null, suspendedAt: null, appliedAt: null, reviewedAt: null, passNumber: null, passExpiry: null, totalRides: 0, lastRideDate: null };
-  }
+  if (!cat) return defaultResult;
 
   // Find the Libre-Sakay approved application for this resident
   const application = await prisma.governmentProgramApplication.findFirst({
-    where: {
-      residentId,
-      programId: LIBRE_SAKAY_PROGRAM_ID,
-      status: 'approved',
-    },
+    where: { residentId, programId, status: 'approved' },
     orderBy: { reviewedAt: 'desc' },
   });
 
   if (!application) {
-    return { enrolled: false, status: null, category: null, suspendedAt: null, appliedAt: null, reviewedAt: null, passNumber: null, passExpiry: null, totalRides: 0, lastRideDate: null };
+    // Has ACTIVE classification eligible for this program but hasn't applied yet.
+    // Return category so frontend knows the resident can apply.
+    return { ...defaultResult, category: cat.type };
   }
 
   // Get pivot status for this beneficiary type
   const pivot = await prisma.beneficiaryProgramPivot.findFirst({
-    where: {
-      programId: LIBRE_SAKAY_PROGRAM_ID,
-      beneficiaryType: cat.type as BeneficiaryType,
-      beneficiaryId: cat.id,
-    },
+    where: { programId, beneficiaryType: cat.type, beneficiaryId: cat.id },
     select: { status: true, suspendedAt: true },
   });
 
