@@ -6,7 +6,7 @@ export function ApplicationsSection() {
     <div className="space-y-6">
       <Card>
         <CardContent className="p-6">
-          <ProgramApplicationsTab programId="gp-all-libre-sakay" initialStatus="" />
+          <ProgramApplicationsTab programId="gp-all-libre-sakay" initialStatus="" excludeApproved />
         </CardContent>
       </Card>
     </div>

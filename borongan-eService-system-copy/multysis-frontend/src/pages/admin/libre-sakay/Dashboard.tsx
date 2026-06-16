@@ -112,6 +112,7 @@ export function DashboardSection() {
       portalProgramsService.listApplicationsAdmin({
         programId: 'gp-all-libre-sakay',
         limit: 5,
+        status: 'pending', // only pending — approved moves to Beneficiaries tab
       }),
     retry: false,
   });
