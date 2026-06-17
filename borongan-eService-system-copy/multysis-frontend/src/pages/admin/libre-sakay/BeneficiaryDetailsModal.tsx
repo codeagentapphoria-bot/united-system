@@ -10,6 +10,12 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { libreSakayBeneficiaryService } from '@/services/api/libre-sakay-beneficiary.service';
+// Inline type — mirrors RequirementItem from government-program.schema
+interface RequirementItem {
+  type: string;
+  label: string;
+  required: boolean;
+}
 import queryKeys from '@/lib/query-keys';
 
 interface BeneficiaryDetailsModalProps {
@@ -66,9 +72,21 @@ function renderValue(value: unknown): string {
   }
 }
 
+// Parses the requirements JSON stored in GovernmentProgram.requirements
+const parseRequirements = (raw?: string | null | RequirementItem[]): RequirementItem[] => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  try {
+    const parsed = JSON.parse(raw as string);
+    if (Array.isArray(parsed)) return parsed.map(item => ({ required: false, ...item }));
+  } catch {}
+  return [{ type: 'text', label: raw as string, required: false }];
+};
+
 export function BeneficiaryDetailsModal({ id, open, onClose }: BeneficiaryDetailsModalProps) {
   const { toast } = useToast();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: queryKeys.libreSakay.beneficiaries.detail(id!),
@@ -104,7 +122,7 @@ export function BeneficiaryDetailsModal({ id, open, onClose }: BeneficiaryDetail
               <TabsTrigger value="info">Info</TabsTrigger>
               <TabsTrigger value="application">Application</TabsTrigger>
               <TabsTrigger value="rides">Rides</TabsTrigger>
-              <TabsTrigger value="attachments">Attachments</TabsTrigger>
+              <TabsTrigger value="attachments">Requirements</TabsTrigger>
             </TabsList>
 
             {/* ── INFO TAB ─────────────────────────────────────────── */}
@@ -129,7 +147,7 @@ export function BeneficiaryDetailsModal({ id, open, onClose }: BeneficiaryDetail
                       STATUS_STYLES[b.status] ?? 'bg-gray-100 text-gray-500'
                     }`}
                   >
-                    {b.status === 'INACTIVE' ? 'Inactive' : b.status === 'ACTIVE' ? 'Active' : 'Pending'}
+                    {b.status === 'INACTIVE' ? 'Suspended' : b.status === 'ACTIVE' ? 'Beneficiary' : 'Pending'}
                   </span>
                   {b.suspendedAt && (
                     <span className="text-xs text-gray-400">
@@ -143,16 +161,37 @@ export function BeneficiaryDetailsModal({ id, open, onClose }: BeneficiaryDetail
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Personal Information</p>
                 <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100 text-sm">
+                  {/* Row 1: Name parts */}
+                  <div className="grid grid-cols-2 md:grid-cols-4">
+                    <div className="flex flex-col px-4 py-3 border-r border-gray-100">
+                      <span className="text-xs text-gray-500">First Name</span>
+                      <span className="font-medium mt-0.5">{b.firstName}</span>
+                    </div>
+                    <div className="flex flex-col px-4 py-3 border-r border-gray-100">
+                      <span className="text-xs text-gray-500">Middle Name</span>
+                      <span className="font-medium mt-0.5">{b.middleName || '—'}</span>
+                    </div>
+                    <div className="flex flex-col px-4 py-3 border-r border-gray-100">
+                      <span className="text-xs text-gray-500">Last Name</span>
+                      <span className="font-medium mt-0.5">{b.lastName}</span>
+                    </div>
+                    <div className="flex flex-col px-4 py-3">
+                      <span className="text-xs text-gray-500">Extension</span>
+                      <span className="font-medium mt-0.5">{b.extensionName || '—'}</span>
+                    </div>
+                  </div>
+                  {/* Row 2: Email, Sex */}
                   <div className="grid grid-cols-2">
                     <div className="flex flex-col px-4 py-3 border-r border-gray-100">
-                      <span className="text-xs text-gray-500">Category</span>
-                      <span className="font-medium mt-0.5">{CATEGORY_LABELS[b.category] ?? b.category}</span>
+                      <span className="text-xs text-gray-500">Email Address</span>
+                      <span className="font-medium mt-0.5">{b.email || '—'}</span>
                     </div>
                     <div className="flex flex-col px-4 py-3">
                       <span className="text-xs text-gray-500">Sex</span>
                       <span className="font-medium mt-0.5">{fmt(b.sex)}</span>
                     </div>
                   </div>
+                  {/* Row 3: DOB, Age */}
                   <div className="grid grid-cols-2">
                     <div className="flex flex-col px-4 py-3 border-r border-gray-100">
                       <span className="text-xs text-gray-500">Date of Birth</span>
@@ -165,16 +204,47 @@ export function BeneficiaryDetailsModal({ id, open, onClose }: BeneficiaryDetail
                       </span>
                     </div>
                     <div className="flex flex-col px-4 py-3">
+                      <span className="text-xs text-gray-500">Age</span>
+                      <span className="font-medium mt-0.5">{b.age !== null ? `${b.age} years old` : '—'}</span>
+                    </div>
+                  </div>
+                  {/* Row 4: Category */}
+                  <div className="grid grid-cols-2">
+                    <div className="flex flex-col px-4 py-3 border-r border-gray-100">
+                      <span className="text-xs text-gray-500">Beneficiary Type</span>
+                      <span className="font-medium mt-0.5">{CATEGORY_LABELS[b.category] ?? b.category}</span>
+                    </div>
+                    <div className="flex flex-col px-4 py-3">
                       <span className="text-xs text-gray-500">Contact Number</span>
                       <span className="font-medium mt-0.5">{fmt(b.contactNumber)}</span>
                     </div>
                   </div>
+                  {/* Row 5: Address */}
                   <div className="flex flex-col px-4 py-3">
-                    <span className="text-xs text-gray-500">Address</span>
+                    <span className="text-xs text-gray-500">Permanent Address</span>
                     <span className="font-medium mt-0.5">{renderValue(b.address)}</span>
                   </div>
                 </div>
               </div>
+
+              {/* Classification Details — conditional (PWD only) */}
+              {(b.disabilityType || b.disabilityLevel) && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Classification Details</p>
+                  <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100 text-sm">
+                    <div className="grid grid-cols-2">
+                      <div className="flex flex-col px-4 py-3 border-r border-gray-100">
+                        <span className="text-xs text-gray-500">Disability Type</span>
+                        <span className="font-medium mt-0.5">{b.disabilityType || '—'}</span>
+                      </div>
+                      <div className="flex flex-col px-4 py-3">
+                        <span className="text-xs text-gray-500">Disability Level</span>
+                        <span className="font-medium mt-0.5">{b.disabilityLevel || '—'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Pass info */}
               {b.passNumber && (
@@ -263,7 +333,7 @@ export function BeneficiaryDetailsModal({ id, open, onClose }: BeneficiaryDetail
 
               {b.adminNotes && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Admin Notes</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Application Remarks</p>
                   <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 text-sm text-gray-700">
                     {b.adminNotes}
                   </div>
@@ -318,47 +388,152 @@ export function BeneficiaryDetailsModal({ id, open, onClose }: BeneficiaryDetail
 
             {/* ── ATTACHMENTS TAB ────────────────────────────────── */}
             <TabsContent value="attachments" className="mt-4 space-y-4">
-              {Array.isArray(b.attachments) && b.attachments.length > 0 ? (
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Submitted Documents</p>
-                  {b.attachments.map((att, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setPreviewUrl(att.url)}
-                      className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors text-sm text-left"
-                    >
-                      <FiCreditCard className="text-gray-400 flex-shrink-0" />
-                      <span className="text-gray-700">{att.label ?? 'Document'}</span>
-                      <span className="ml-auto text-xs text-gray-400">View</span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-gray-400 gap-2">
-                  <FiAlertCircle className="text-3xl" />
-                  <p className="text-sm font-medium">No attachments</p>
-                  <p className="text-xs">No documents were submitted with this application.</p>
-                </div>
-              )}
+              {/* Requirements Checklist — shows all requirements with Submitted/Missing status */}
+              {(() => {
+                const reqs = parseRequirements(b.requirements);
+                if (reqs.length === 0) return null;
 
-              {/* ── INLINE FILE PREVIEW ──────────────────────────────── */}
+                return (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      Requirements Checklist
+                    </p>
+                    <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100">
+                      {reqs.map((req, i) => {
+                        const isFile = req.type === 'file';
+                        const attachment = isFile
+                          ? b.attachments.find(att => att.label === req.label)
+                          : null;
+                        const textValue = !isFile
+                          ? (b.submittedData as Record<string, unknown>)?.[req.label]
+                          : null;
+                        const isSubmitted = isFile
+                          ? !!attachment
+                          : textValue !== undefined && textValue !== null && textValue !== '';
+
+                        return (
+                          <div key={i} className="flex items-center gap-3 px-4 py-3">
+                            {/* Status dot */}
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${isSubmitted ? 'bg-green-500' : 'bg-red-400'}`} />
+
+                            {/* Type badge */}
+                            <span className={`text-xs px-1.5 py-0.5 rounded border font-medium shrink-0 ${
+                              req.type === 'file'
+                                ? 'bg-blue-50 text-blue-600 border-blue-100'
+                                : 'bg-gray-50 text-gray-600 border-gray-100'
+                            }`}>
+                              {req.type === 'file' ? 'File' : req.type}
+                            </span>
+
+                            {/* Label */}
+                            <span className="text-sm text-gray-800 flex-1 min-w-0">
+                              {req.label || <span className="italic text-gray-400">Untitled</span>}
+                              {req.required && !isSubmitted && (
+                                <span className="ml-1 text-xs text-red-400">Required</span>
+                              )}
+                            </span>
+
+                            {/* Value / Action */}
+                            {isFile && attachment ? (
+                              <button
+                                onClick={() => { setPreviewLoading(true); setPreviewUrl(attachment.url); }}
+                                className="text-xs text-primary-600 hover:underline shrink-0"
+                              >
+                                View
+                              </button>
+                            ) : isFile && !attachment ? (
+                              <span className="text-xs text-red-400 shrink-0">Missing</span>
+                            ) : !isFile && isSubmitted ? (
+                              <span className="text-xs text-gray-600 max-w-[200px] truncate shrink-0">
+                                {String(textValue)}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-red-400 shrink-0">Missing</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Extra Documents — attachments submitted beyond the listed requirements */}
+              {(() => {
+                const reqs = parseRequirements(b.requirements);
+                const requiredLabels = new Set(
+                  reqs.filter(r => r.type === 'file').map(r => r.label)
+                );
+                const extraAttachments = b.attachments.filter(att => !requiredLabels.has(att.label));
+                if (extraAttachments.length === 0) return null;
+
+                return (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      Other Submitted Documents
+                    </p>
+                    <div className="space-y-2">
+                      {extraAttachments.map((att, i) => (
+                        <button
+                          key={i}
+                          onClick={() => { setPreviewLoading(true); setPreviewUrl(att.url); }}
+                          className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors text-sm text-left"
+                        >
+                          <FiCreditCard className="text-gray-400 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-gray-700">{att.label ?? 'Document'}</div>
+                            <div className="text-xs text-gray-400">{att.filename}</div>
+                          </div>
+                          <span className="text-xs text-gray-400 shrink-0">View</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Empty state — only when no requirements AND no attachments */}
+              {(() => {
+                const reqs = parseRequirements(b.requirements);
+                if (reqs.length > 0 || b.attachments.length > 0) return null;
+                return (
+                  <div className="flex flex-col items-center justify-center py-8 text-gray-400 gap-2">
+                    <FiAlertCircle className="text-3xl" />
+                    <p className="text-sm font-medium">No attachments</p>
+                    <p className="text-xs">No documents were submitted with this application.</p>
+                  </div>
+                );
+              })()}
+
+              {/* Inline File Preview */}
               {previewUrl && (
                 <div className="relative rounded-lg border border-gray-200 overflow-hidden bg-gray-50">
                   <div className="flex items-center justify-between px-4 py-2 bg-gray-100 border-b border-gray-200">
                     <span className="text-xs font-medium text-gray-600">Preview</span>
-                    <button
-                      onClick={() => setPreviewUrl(null)}
-                      className="p-1 rounded hover:bg-gray-200 transition-colors"
-                    >
+                    <button onClick={() => { setPreviewUrl(null); setPreviewLoading(false); }} className="p-1 rounded hover:bg-gray-200 transition-colors">
                       <FiX size={14} className="text-gray-500" />
                     </button>
                   </div>
+
+                  {/* Loading overlay */}
+                  {previewLoading && (
+                    <div className="flex items-center justify-center h-48 gap-2 text-gray-400">
+                      <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      <span className="text-xs">Loading…</span>
+                    </div>
+                  )}
+
                   {/\.(jpg|jpeg|png|gif|webp)$/i.test(previewUrl) ? (
                     <div className="flex justify-center p-4 bg-gray-50">
                       <img
                         src={previewUrl}
                         alt="Attachment preview"
                         className="max-h-96 rounded object-contain"
+                        onLoad={() => setPreviewLoading(false)}
+                        style={{ display: previewLoading ? 'none' : undefined }}
                       />
                     </div>
                   ) : /\.(pdf)$/i.test(previewUrl) ? (
@@ -366,19 +541,15 @@ export function BeneficiaryDetailsModal({ id, open, onClose }: BeneficiaryDetail
                       src={previewUrl}
                       className="w-full h-96"
                       title="Attachment preview"
+                      onLoad={() => setPreviewLoading(false)}
+                      style={{ display: previewLoading ? 'none' : undefined }}
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center gap-2 py-8 text-gray-400">
                       <FiFile size={32} />
                       <p className="text-sm">Preview not available for this file type</p>
-                      <a
-                        href={previewUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary-600 hover:underline"
-                      >
-                        Open in new tab →
-                      </a>
+                      <a href={previewUrl} target="_blank" rel="noopener noreferrer"
+                        className="text-xs text-primary-600 hover:underline">Open in new tab →</a>
                     </div>
                   )}
                 </div>

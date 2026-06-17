@@ -41,6 +41,14 @@ export interface BeneficiaryDetails extends BeneficiaryListItem {
   totalRides: number;
   lastRideDate: Date | null;
   reviewedByName: string | null;
+  // --- NEW FIELDS ---
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  age: number | null;
+  disabilityType: string | null;
+  disabilityLevel: string | null;
+  requirements: unknown;
 }
 
 export interface PaginatedBeneficiaries {
@@ -61,6 +69,15 @@ function buildFullName(first: string, middle: string | null, last: string, exten
   parts.push(last);
   if (extension) parts.push(extension);
   return parts.join(' ');
+}
+
+function computeAge(birthdate: Date | null): number | null {
+  if (!birthdate) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birthdate.getFullYear();
+  const m = today.getMonth() - birthdate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthdate.getDate())) age--;
+  return age;
 }
 
 function determineCategory(
@@ -247,16 +264,31 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
     where: { id },
     include: {
       resident: {
-        include: {
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          middleName: true,
+          extensionName: true,
+          streetAddress: true,
+          birthdate: true,
+          sex: true,
+          contactNumber: true,
+          emergencyContactPerson: true,
+          emergencyContactNumber: true,
+          picturePath: true,
+          residentId: true,
           barangay: { select: { barangayName: true, municipality: true } },
-          seniorCitizenBeneficiary: { select: { seniorCitizenId: true } },
-          pwdBeneficiary: { select: { pwdId: true } },
-          studentBeneficiary: { select: { studentId: true } },
-          soloParentBeneficiary: { select: { soloParentId: true } },
-          healthcareWorkerBeneficiary: { select: { healthcareWorkerId: true } },
+          seniorCitizenBeneficiary: { select: { seniorCitizenId: true, remarks: true } },
+          pwdBeneficiary: { select: { pwdId: true, remarks: true } },
+          studentBeneficiary: { select: { studentId: true, remarks: true } },
+          soloParentBeneficiary: { select: { soloParentId: true, remarks: true } },
+          healthcareWorkerBeneficiary: { select: { healthcareWorkerId: true, remarks: true } },
         },
       },
       reviewedByUser: { select: { name: true } },
+      program: { select: { id: true, name: true, requirements: true } },
     },
   });
   if (!row) return null;
@@ -269,6 +301,35 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
     r.soloParentBeneficiary,
     r.healthcareWorkerBeneficiary,
   );
+
+  // Fetch classification details from resident_classifications (JSONB — requires raw SQL)
+  let disabilityType: string | null = null;
+  let disabilityLevel: string | null = null;
+
+  if (r.id && cat) {
+    const classificationTypeMap: Record<string, string> = {
+      SENIOR_CITIZEN: 'Senior Citizen',
+      PWD: 'Person with Disability',
+      STUDENT: 'Student',
+      SOLO_PARENT: 'Solo Parent',
+      HEALTHCARE_WORKER: 'Healthcare Worker',
+    };
+    const dbType = classificationTypeMap[cat.type];
+    if (dbType) {
+      const rows = await prisma.$queryRaw<Array<{ classification_details: any }>>`
+        SELECT classification_details
+        FROM resident_classifications
+        WHERE resident_id = ${r.id}
+          AND classification_type = ${dbType}
+        LIMIT 1
+      `;
+      const details = rows[0]?.classification_details;
+      if (details) {
+        disabilityType = details.disabilityType ?? null;
+        disabilityLevel = details.disabilityLevel ?? null;
+      }
+    }
+  }
 
   // Fetch pivot for this specific category + Libre-Sakay
   let pivotStatus: string | null = null;
@@ -351,13 +412,21 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
     emergencyContactName: r.emergencyContactPerson,
     emergencyContactPhone: r.emergencyContactNumber,
     submittedData: (row.submittedData as Record<string, any>) || {},
-    attachments: (row.attachments as Record<string, any>) || {},
+    attachments: (row.attachments as any) || [],
+    requirements: row.program?.requirements ?? null,
     adminNotes: row.adminNotes || null,
     libreBeneficiaryId,
     passNumber,
     passExpiry,
     totalRides,
     lastRideDate,
+    // --- NEW FIELDS ---
+    firstName: r.firstName,
+    lastName: r.lastName,
+    email: r.email ?? null,
+    age: computeAge(r.birthdate),
+    disabilityType,
+    disabilityLevel,
   };
 };
 

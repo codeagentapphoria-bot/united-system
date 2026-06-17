@@ -30,7 +30,14 @@ export interface BeneficiaryDetails extends BeneficiaryListItem {
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
   submittedData: Record<string, any>;
-  attachments: Record<string, any>;
+  attachments: Array<{
+    label: string;
+    filename: string;
+    url: string;
+    mimetype: string;
+    size: number;
+  }>;
+  requirements: string | null;
   adminNotes: string | null;
   libreBeneficiaryId: string | null;
   passNumber: string | null;
@@ -38,6 +45,13 @@ export interface BeneficiaryDetails extends BeneficiaryListItem {
   totalRides: number;
   lastRideDate: string | null;
   reviewedByName: string | null;
+  // --- NEW FIELDS ---
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  age: number | null;
+  disabilityType: string | null;
+  disabilityLevel: string | null;
 }
 
 export interface PaginatedBeneficiaries {
