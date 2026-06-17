@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 // Types
 import type { PortalProgram } from '@/services/api/portal-programs.service';
-import type { RequirementItem, RequirementsConfig } from '@/validations/government-program.schema';
+import { REQUIREMENT_ITEM_STUB, type RequirementsConfig } from '@/validations/government-program.schema';
 
 // Services
 import { portalProgramsService } from '@/services/api/portal-programs.service';
@@ -39,7 +39,7 @@ function parseConfig(raw?: string | null): RequirementsConfig {
   return DEFAULT_CONFIG;
 }
 
-function getRequirements(config: RequirementsConfig, applicantType?: string, subType?: string): RequirementItem[] {
+function getRequirements(config: RequirementsConfig, applicantType?: string, subType?: string) {
   if (config.mode === 'shared') return config.shared;
   if (!applicantType) return [];
   const entry = config.by_type?.[applicantType];

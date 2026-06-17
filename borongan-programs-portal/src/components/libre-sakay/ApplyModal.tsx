@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Loader2, FileText, Upload, CheckCircle, ZoomIn } from 'lucide-react';
 import { portalProgramsService, type PortalProgram } from '@/services/api/portal-programs.service';
-import type { RequirementsConfig, RequirementItem } from '@/validations/government-program.schema';
+import { REQUIREMENT_ITEM_STUB, type RequirementsConfig } from '@/validations/government-program.schema';
 
 const DEFAULT_CONFIG: RequirementsConfig = {
   mode: 'shared',
@@ -24,7 +24,7 @@ function parseConfig(raw?: string): RequirementsConfig {
   return DEFAULT_CONFIG;
 }
 
-function getRequirements(config: RequirementsConfig, applicantType?: string, subType?: string): RequirementItem[] {
+function getRequirements(config: RequirementsConfig, applicantType?: string, subType?: string) {
   if (config.mode === 'shared') return config.shared;
   if (!applicantType) return [];
   const entry = config.by_type?.[applicantType];

@@ -6,6 +6,12 @@ export interface RequirementItem {
   required: boolean;
 }
 
+export const REQUIREMENT_ITEM_STUB: RequirementItem = {
+  type: '',
+  label: '',
+  required: false,
+};
+
 // ── RequirementsConfig (mirrors multysis-frontend schema) ────────────────────────
 
 const requirementItemListSchema = z.array(

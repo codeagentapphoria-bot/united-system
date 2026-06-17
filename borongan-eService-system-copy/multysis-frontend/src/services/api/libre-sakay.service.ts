@@ -140,7 +140,7 @@ export interface ResidentVerification {
 
 export type GovernmentProgramTypeEnum = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER' | 'ALL';
 
-import { RequirementItem, RequirementsConfig } from '@/validations/government-program.schema';
+import type { RequirementsConfig } from '@/validations/government-program.schema';
 
 export interface LibreSakayProgramSettings {
   id: string;

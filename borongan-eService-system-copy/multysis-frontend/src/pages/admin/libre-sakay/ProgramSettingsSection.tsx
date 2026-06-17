@@ -102,13 +102,22 @@ function buildInitialConfig(raw?: string | null | RequirementItem[]): Requiremen
 interface RequirementsEditorProps {
   value: RequirementsConfig;
   onChange: (config: RequirementsConfig) => void;
+  programTypes: GovernmentProgramTypeEnum[];
 }
 
-function RequirementsEditor({ value, onChange }: RequirementsEditorProps) {
-  const [activeType, setActiveType] = useState<GovernmentProgramTypeEnum>('STUDENT');
+function RequirementsEditor({ value, onChange, programTypes }: RequirementsEditorProps) {
+  const [activeType, setActiveType] = useState<GovernmentProgramTypeEnum>(() => programTypes[0] ?? 'STUDENT');
   const isShared = value.mode === 'shared';
   const byType = value.mode === 'per_type' ? value.by_type : {};
   const currentEntry = byType[activeType];
+  const availableTypes = TYPE_REQUIRED_KEYS.filter(t => programTypes.includes(t));
+
+  // Keep activeType in sync when program types change
+  useEffect(() => {
+    if (availableTypes.length > 0 && !availableTypes.includes(activeType)) {
+      setActiveType(availableTypes[0]);
+    }
+  }, [availableTypes, activeType]);
 
   return (
     <div className="space-y-4">
@@ -135,7 +144,7 @@ function RequirementsEditor({ value, onChange }: RequirementsEditorProps) {
                 const existing = value.mode === 'per_type' ? value.by_type : {};
                 const init: RequirementsConfig = {
                   mode: 'per_type',
-                  by_type: TYPE_REQUIRED_KEYS.reduce((acc, t) => ({
+                  by_type: availableTypes.reduce((acc, t) => ({
                     ...acc,
                     [t]: existing[t] ?? { sub_types_enabled: false, sub_types: [], default: [], requirements: {} },
                   }), {}),
@@ -161,8 +170,14 @@ function RequirementsEditor({ value, onChange }: RequirementsEditorProps) {
       {/* Per-Type Mode */}
       {!isShared && (
         <div className="space-y-3">
+          {availableTypes.length === 0 ? (
+            <p className="text-sm text-gray-400 py-4 text-center">
+              No beneficiary types selected. Go to Eligibility above to add types.
+            </p>
+          ) : (
+            <>
           <div className="flex flex-wrap gap-1 border-b border-gray-200 pb-0">
-            {TYPE_REQUIRED_KEYS.map(t => (
+            {availableTypes.map(t => (
               <button
                 key={t}
                 type="button"
@@ -186,6 +201,8 @@ function RequirementsEditor({ value, onChange }: RequirementsEditorProps) {
               onChange({ mode: 'per_type', by_type: { ...existing, [activeType]: entry } });
             }}
           />
+            </>
+          )}
         </div>
       )}
     </div>
@@ -750,6 +767,7 @@ const EditMode: React.FC<EditModeProps> = ({ form, saving, error, onSave, onCanc
                   <RequirementsEditor
                     value={field.value ?? DEFAULT_CONFIG}
                     onChange={field.onChange}
+                    programTypes={form.watch('types') ?? []}
                   />
                 </FormControl>
                 <FormMessage />
