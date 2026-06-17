@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 // Types
 import type { PortalProgram } from '@/services/api/portal-programs.service';
-import type { RequirementItem } from '@/validations/government-program.schema';
+import type { RequirementItem, RequirementsConfig } from '@/validations/government-program.schema';
 
 // Services
 import { portalProgramsService } from '@/services/api/portal-programs.service';
@@ -20,14 +20,35 @@ import { useToast } from '@/hooks/use-toast';
 // Utils
 import { cn } from '@/lib/utils';
 
-const parseRequirements = (raw?: string | null): RequirementItem[] => {
-  if (!raw) return [];
+const DEFAULT_CONFIG: RequirementsConfig = {
+  mode: 'shared',
+  shared: [],
+};
+
+function parseConfig(raw?: string | null): RequirementsConfig {
+  if (!raw) return DEFAULT_CONFIG;
   try {
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.map(item => ({ required: false, ...item }));
+    if (parsed && typeof parsed === 'object' && 'mode' in parsed) {
+      return parsed as RequirementsConfig;
+    }
+    if (Array.isArray(parsed)) {
+      return { mode: 'shared', shared: parsed.map(item => ({ required: false, ...item })) };
+    }
   } catch {}
-  return [{ type: 'text', label: raw, required: false }];
-};
+  return DEFAULT_CONFIG;
+}
+
+function getRequirements(config: RequirementsConfig, applicantType?: string, subType?: string): RequirementItem[] {
+  if (config.mode === 'shared') return config.shared;
+  if (!applicantType) return [];
+  const entry = config.by_type?.[applicantType];
+  if (!entry) return [];
+  if (entry.sub_types_enabled && subType) {
+    return entry.requirements?.[subType] ?? entry.default ?? [];
+  }
+  return entry.default ?? [];
+}
 
 interface ApplyForProgramModalProps {
   open: boolean;
@@ -42,11 +63,13 @@ export const ApplyForProgramModal: React.FC<ApplyForProgramModalProps> = ({ open
   const [files, setFiles] = useState<Record<string, File>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [subType, setSubType] = useState<string>('');
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   if (!program) return null;
 
-  const requirements = parseRequirements(program.requirements);
+  const config = parseConfig(program.requirements);
+  const requirements = getRequirements(config, program.types?.[0], subType);
 
   const handleClose = () => {
     setValues({});
@@ -118,6 +141,29 @@ export const ApplyForProgramModal: React.FC<ApplyForProgramModalProps> = ({ open
             <p className="font-semibold text-heading-700">{program.name}</p>
             {program.description && <p className="text-sm text-gray-500 mt-1">{program.description}</p>}
           </div>
+
+          {/* Sub-type selector (only shown when per_type mode has sub_types) */}
+          {config.mode === 'per_type' && (() => {
+            const entry = config.by_type?.[program.types?.[0] ?? ''];
+            if (!entry?.sub_types_enabled || !entry.sub_types.length) return null;
+            return (
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700">
+                  Classification Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={subType}
+                  onChange={e => setSubType(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+                >
+                  <option value="">— Select type —</option>
+                  {entry.sub_types.map(st => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+              </div>
+            );
+          })()}
 
           {/* Dynamic requirement fields */}
           {requirements.length > 0 && (
