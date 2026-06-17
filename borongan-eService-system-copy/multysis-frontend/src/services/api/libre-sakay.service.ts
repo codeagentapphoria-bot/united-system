@@ -140,17 +140,13 @@ export interface ResidentVerification {
 
 export type GovernmentProgramTypeEnum = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER' | 'ALL';
 
-export interface RequirementItem {
-  type: string;
-  label: string;
-  required: boolean;
-}
+import { RequirementItem, RequirementsConfig } from '@/validations/government-program.schema';
 
 export interface LibreSakayProgramSettings {
   id: string;
   name: string;
   description: string | null;
-  requirements: RequirementItem[];
+  requirements: RequirementsConfig;
   types: GovernmentProgramTypeEnum[];
   isActive: boolean;
   createdAt: string;
@@ -379,7 +375,7 @@ export const libreSakayService = {
   async updateProgramSettings(data: {
     name?: string;
     description?: string;
-    requirements?: RequirementItem[];
+    requirements?: RequirementsConfig;
     types?: GovernmentProgramTypeEnum[];
     isActive?: boolean;
   }): Promise<LibreSakayProgramSettings> {
