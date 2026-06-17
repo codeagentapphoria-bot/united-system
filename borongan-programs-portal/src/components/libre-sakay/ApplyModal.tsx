@@ -2,20 +2,37 @@ import { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Loader2, FileText, Upload, CheckCircle, ZoomIn } from 'lucide-react';
 import { portalProgramsService, type PortalProgram } from '@/services/api/portal-programs.service';
+import type { RequirementsConfig, RequirementItem } from '@/validations/government-program.schema';
 
-interface RequirementItem {
-  type: 'text' | 'file';
-  label: string;
-  required: boolean;
-}
+const DEFAULT_CONFIG: RequirementsConfig = {
+  mode: 'shared',
+  shared: [],
+};
 
-function parseRequirements(raw?: string): RequirementItem[] {
-  if (!raw) return [];
+function parseConfig(raw?: string): RequirementsConfig {
+  if (!raw) return DEFAULT_CONFIG;
   try {
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed as RequirementItem[];
-  } catch { /* ignore */ }
-  return [];
+    if (parsed && typeof parsed === 'object' && 'mode' in parsed) {
+      return parsed as RequirementsConfig;
+    }
+    // Legacy flat array
+    if (Array.isArray(parsed)) {
+      return { mode: 'shared', shared: parsed };
+    }
+  } catch {}
+  return DEFAULT_CONFIG;
+}
+
+function getRequirements(config: RequirementsConfig, applicantType?: string, subType?: string): RequirementItem[] {
+  if (config.mode === 'shared') return config.shared;
+  if (!applicantType) return [];
+  const entry = config.by_type?.[applicantType];
+  if (!entry) return [];
+  if (entry.sub_types_enabled && subType) {
+    return entry.requirements?.[subType] ?? entry.default ?? [];
+  }
+  return entry.default ?? [];
 }
 
 // ── Lightbox ───────────────────────────────────────────────────────────────────
@@ -144,7 +161,9 @@ interface ApplyModalProps {
 }
 
 export function ApplyModal({ program, onClose, onSuccess }: ApplyModalProps) {
-  const requirements = parseRequirements(program.requirements);
+  const config = parseConfig(program.requirements);
+  const [subType, setSubType] = useState<string>('');
+  const requirements = getRequirements(config, program.types?.[0], subType);
 
   const [textValues, setTextValues] = useState<Record<string, string>>({});
   const [fileValues, setFileValues] = useState<Record<string, File | null>>({});
@@ -265,6 +284,28 @@ export function ApplyModal({ program, onClose, onSuccess }: ApplyModalProps) {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Sub-type selector (only shown when per_type mode has sub_types) */}
+              {config.mode === 'per_type' && (() => {
+                const entry = config.by_type?.[program.types?.[0] ?? ''];
+                if (!entry?.sub_types_enabled || !entry.sub_types.length) return null;
+                return (
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-heading-700">
+                      Classification Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={subType}
+                      onChange={e => setSubType(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+                    >
+                      <option value="">— Select type —</option>
+                      {entry.sub_types.map(st => (
+                        <option key={st} value={st}>{st}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })()}
               {requirements.length === 0 ? (
                 <div className="bg-primary-50 rounded-lg p-4 text-center">
                   <FileText className="w-8 h-8 text-primary-500 mx-auto mb-2" />
