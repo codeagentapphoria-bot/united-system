@@ -60,6 +60,36 @@ export interface PaginatedBeneficiaries {
 }
 
 // =============================================================================
+// EXPORT TYPES
+// =============================================================================
+
+export interface BeneficiaryExportItem {
+  residentId: string;
+  fullName: string;
+  residentIdNumber: string;
+  category: string;
+  beneficiaryTypeLabel: string;
+  disabilityType: string | null;
+  email: string | null;
+  address: string;
+  birthdate: string | null;
+  age: number | null;
+  sex: string | null;
+  remarks: string | null;
+  appliedAt: string;
+  status: string;
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  SENIOR_CITIZEN: 'Senior Citizen',
+  PWD: 'Person with Disability',
+  STUDENT: 'Student',
+  SOLO_PARENT: 'Solo Parent',
+  HEALTHCARE_WORKER: 'Healthcare Worker',
+  'N/A': 'N/A',
+};
+
+// =============================================================================
 // HELPERS
 // =============================================================================
 
@@ -591,9 +621,181 @@ export const removeBeneficiary = async (id: string): Promise<void> => {
 };
 
 // =============================================================================
-// EXPORT
+// EXPORT BENEFICIARIES
 // =============================================================================
 
+export const exportBeneficiaries = async (
+  filter: 'all' | 'active' | 'suspended' = 'all'
+): Promise<BeneficiaryExportItem[]> => {
+  const BATCH_SIZE = 10000;
+  const allData: BeneficiaryExportItem[] = [];
+  let page = 1;
+  let hasMore = true;
+
+  // Resolve Libre-Sakay program ID once
+  const program = await prisma.governmentProgram.findFirst({
+    where: { name: { mode: 'insensitive', contains: 'Libre Sakay' }, isActive: true },
+    select: { id: true },
+  });
+  if (!program) return [];
+  const programId = program.id;
+
+  while (hasMore) {
+    const rows = await prisma.governmentProgramApplication.findMany({
+      where: { programId, status: 'approved' },
+      include: {
+        resident: {
+          select: {
+            id: true,
+            residentId: true,
+            firstName: true,
+            middleName: true,
+            lastName: true,
+            extensionName: true,
+            email: true,
+            birthdate: true,
+            sex: true,
+            streetAddress: true,
+            barangay: {
+              select: {
+                barangayName: true,
+                municipality: { select: { municipalityName: true } },
+              },
+            },
+            seniorCitizenBeneficiary: { select: { seniorCitizenId: true } },
+            pwdBeneficiary: { select: { pwdId: true } },
+            studentBeneficiary: { select: { studentId: true } },
+            soloParentBeneficiary: { select: { soloParentId: true } },
+            healthcareWorkerBeneficiary: { select: { healthcareWorkerId: true } },
+          },
+        },
+      },
+      orderBy: { reviewedAt: { sort: 'desc', nulls: 'last' } },
+      skip: (page - 1) * BATCH_SIZE,
+      take: BATCH_SIZE,
+    });
+
+    if (rows.length === 0) break;
+    hasMore = rows.length === BATCH_SIZE;
+    page++;
+
+    if (rows.length === 0) continue;
+
+    // Collect PWD resident IDs for bulk disability type fetch
+    const pwdIds = rows
+      .filter(r => r.resident.pwdBeneficiary?.pwdId)
+      .map(r => r.resident.id);
+
+    // Bulk-fetch disability types via raw SQL (one query for entire batch)
+    const disabilityMap = new Map<string, string>();
+    if (pwdIds.length > 0) {
+      const discRows = await prisma.$queryRaw<Array<{ resident_id: string; classification_details: any }>>`
+        SELECT resident_id, classification_details
+        FROM resident_classifications
+        WHERE resident_id IN (${Prisma.join(pwdIds)})
+          AND classification_type = 'Person with Disability'
+      `;
+      for (const row of discRows) {
+        const details = row.classification_details;
+        if (details?.disabilityType) {
+          disabilityMap.set(row.resident_id, details.disabilityType);
+        }
+      }
+    }
+
+    // Batch-fetch pivot statuses
+    const categoryEntries = rows
+      .map(row => {
+        const r = row.resident;
+        const cat = determineCategory(
+          r.seniorCitizenBeneficiary,
+          r.pwdBeneficiary,
+          r.studentBeneficiary,
+          r.soloParentBeneficiary,
+          r.healthcareWorkerBeneficiary,
+        );
+        return { applicationId: row.id, cat, residentId: r.id };
+      })
+      .filter(e => e.cat !== null);
+
+    const pivotMap = new Map<string, { status: string | null; suspendedAt: Date | null }>();
+    if (categoryEntries.length > 0) {
+      const pivotRows = await prisma.beneficiaryProgramPivot.findMany({
+        where: {
+          programId,
+          OR: categoryEntries.map(e => ({
+            beneficiaryType: e.cat!.type as BeneficiaryType,
+            beneficiaryId: e.cat!.id,
+          })),
+        },
+        select: { beneficiaryType: true, beneficiaryId: true, status: true, suspendedAt: true },
+      });
+      for (const p of pivotRows) {
+        pivotMap.set(`${p.beneficiaryType}:${p.beneficiaryId}`, {
+          status: p.status,
+          suspendedAt: p.suspendedAt,
+        });
+      }
+    }
+
+    // Build export items
+    for (const row of rows) {
+      const r = row.resident;
+      const cat = determineCategory(
+        r.seniorCitizenBeneficiary,
+        r.pwdBeneficiary,
+        r.studentBeneficiary,
+        r.soloParentBeneficiary,
+        r.healthcareWorkerBeneficiary,
+      );
+
+      const catType = cat?.type ?? 'N/A';
+      const pivotKey = `${cat?.type}:${cat?.id}`;
+      const pivotInfo = pivotMap.get(pivotKey) ?? { status: null, suspendedAt: null };
+      const mappedStatus = mapEnrollmentStatus(pivotInfo.status);
+
+      // Apply filter
+      if (filter === 'active' && mappedStatus !== 'ACTIVE') continue;
+      if (filter === 'suspended' && mappedStatus !== 'INACTIVE') continue;
+
+      const fullName = buildFullName(r.firstName, r.middleName, r.lastName, r.extensionName);
+      const barangay = r.barangay?.barangayName || '';
+      const municipality = r.barangay?.municipality?.municipalityName || '';
+      const address = r.streetAddress
+        ? `${r.streetAddress}, ${barangay}, ${municipality}`
+        : `${barangay}, ${municipality}`;
+
+      const statusLabel = pivotInfo.suspendedAt
+        ? 'Suspended'
+        : mappedStatus === 'ACTIVE'
+          ? 'Active'
+          : mappedStatus === 'INACTIVE'
+            ? 'Inactive'
+            : 'Pending';
+
+      allData.push({
+        residentId: r.residentId ?? r.id,
+        fullName,
+        residentIdNumber: r.residentId ?? r.id,
+        category: catType,
+        beneficiaryTypeLabel: CATEGORY_LABELS[catType] ?? catType,
+        disabilityType: disabilityMap.get(r.id) ?? null,
+        email: r.email ?? null,
+        address,
+        birthdate: r.birthdate ? new Date(r.birthdate).toISOString().split('T')[0] : null,
+        age: computeAge(r.birthdate),
+        sex: r.sex ?? null,
+        remarks: row.adminNotes ?? null,
+        appliedAt: new Date(row.appliedAt).toISOString().split('T')[0],
+        status: statusLabel,
+      });
+    }
+  }
+
+  return allData;
+};
+
+// Backward-compatible wrapper — used by exportBeneficiariesController
 export const getBeneficiariesForExport = async (
   filter: 'all' | 'active' | 'suspended' = 'all'
 ): Promise<BeneficiaryListItem[]> => {
