@@ -18,7 +18,7 @@ import {
   suspendBeneficiary,
   activateBeneficiary,
   removeBeneficiary,
-  getBeneficiariesForExport,
+  exportBeneficiaries,
 } from '../services/libre-sakay-beneficiary.service';
 import prisma from '../config/database';
 
@@ -655,27 +655,54 @@ export const removeBeneficiaryController = async (req: AuthRequest, res: Respons
 export const exportBeneficiariesController = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const filter = (req.query.filter as 'all' | 'active' | 'suspended') || 'all';
-    const beneficiaries = await getBeneficiariesForExport(filter);
+    const beneficiaries = await exportBeneficiaries(filter);
 
-    const headers = ['Name', 'Resident ID', 'Category', 'Status', 'Enrolled Date', 'Barangay'];
-    const rows = beneficiaries.map((b) => {
-      const statusLabel = b.suspendedAt ? 'Suspended' : b.status.charAt(0) + b.status.slice(1).toLowerCase();
-      return [
-        b.fullName,
-        b.residentIdNumber,
-        b.category,
-        statusLabel,
-        b.enrolledAt ? new Date(b.enrolledAt).toISOString().split('T')[0] : '',
-        b.barangay,
-      ];
-    });
+    const headers = [
+      'Resident ID',
+      'Full Name',
+      'Beneficiary Type',
+      'Type Of Disability',
+      'Email Address',
+      'Permanent Address',
+      'Date Of Birth',
+      'Age',
+      'Sex',
+      'Remarks',
+      'Date of Registration',
+      'Status',
+    ];
 
-    const csv = [headers.join(','), ...rows.map((r) => r.map((c) => `"${c}"`).join(','))].join('\n');
+    // RFC 4180-compliant CSV escaping
+    const escape = (val: string | null): string => {
+      if (val === null || val === undefined) return '';
+      const str = String(val);
+      if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const rows = beneficiaries.map((b) => [
+      escape(b.residentId),
+      escape(b.fullName.toUpperCase()),
+      escape(b.beneficiaryTypeLabel),
+      escape(b.disabilityType),
+      escape(b.email),
+      escape(b.address),
+      escape(b.birthdate),
+      b.age !== null ? String(b.age) : '',
+      escape(b.sex),
+      escape(b.remarks),
+      escape(b.appliedAt),
+      escape(b.status),
+    ]);
+
+    const csv = [headers.map(escape).join(','), ...rows.map(r => r.join(','))].join('\r\n');
 
     const date = new Date().toISOString().split('T')[0];
     const filename = `libre-sakay-beneficiaries-${filter}-${date}.csv`;
 
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.status(200).send(csv);
   } catch (error: any) {
