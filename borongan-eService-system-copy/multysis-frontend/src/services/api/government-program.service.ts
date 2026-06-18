@@ -1,6 +1,7 @@
 import api from './auth.service';
+import type { RequirementItem, RequirementsConfig } from '@/validations/government-program.schema';
 
-export type { RequirementItem } from '@/validations/government-program.schema';
+export type { RequirementItem, RequirementsConfig };
 
 export type GovernmentProgramType = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER' | 'ALL';
 
@@ -18,12 +19,18 @@ export interface GovernmentProgram {
 export interface CreateGovernmentProgramInput {
   name: string;
   description?: string;
-  requirements?: string;
+  requirements?: RequirementsConfig;
   types: GovernmentProgramType[];
   isActive?: boolean;
 }
 
-export interface UpdateGovernmentProgramInput extends Partial<CreateGovernmentProgramInput> {}
+export interface UpdateGovernmentProgramInput {
+  name?: string;
+  description?: string;
+  requirements?: RequirementsConfig;
+  types?: GovernmentProgramType[];
+  isActive?: boolean;
+}
 
 export const governmentProgramService = {
   async getAllGovernmentPrograms(
@@ -49,12 +56,20 @@ export const governmentProgramService = {
   },
 
   async createGovernmentProgram(data: CreateGovernmentProgramInput): Promise<GovernmentProgram> {
-    const response = await api.post('/government-programs', data);
+    const payload = {
+      ...data,
+      requirements: data.requirements ? JSON.stringify(data.requirements) : undefined,
+    };
+    const response = await api.post('/government-programs', payload);
     return response.data.data;
   },
 
   async updateGovernmentProgram(id: string, data: UpdateGovernmentProgramInput): Promise<GovernmentProgram> {
-    const response = await api.put(`/government-programs/${id}`, data);
+    const payload = {
+      ...data,
+      requirements: data.requirements ? JSON.stringify(data.requirements) : undefined,
+    };
+    const response = await api.put(`/government-programs/${id}`, payload);
     return response.data.data;
   },
 

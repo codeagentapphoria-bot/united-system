@@ -82,9 +82,13 @@ export const TYPE_REQUIRED_KEYS: GovernmentProgramTypeEnum[] = [
   'HEALTHCARE_WORKER',
 ];
 
-function buildInitialConfig(raw?: string | null | RequirementItem[]): RequirementsConfig {
+function buildInitialConfig(raw?: string | null | RequirementsConfig): RequirementsConfig {
   if (!raw) return DEFAULT_CONFIG;
-  if (typeof raw === 'object' && !Array.isArray(raw)) return raw as RequirementsConfig;
+  // Already the right shape — validate it
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    const result = requirementsConfigSchema.safeParse(raw);
+    if (result.success) return result.data;
+  }
   try {
     const parsed = JSON.parse(raw as string);
     const result = requirementsConfigSchema.safeParse(parsed);
