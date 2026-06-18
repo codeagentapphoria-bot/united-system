@@ -48,7 +48,7 @@ export interface BeneficiaryDetails extends BeneficiaryListItem {
   age: number | null;
   disabilityType: string | null;
   disabilityLevel: string | null;
-  requirements: unknown;
+
 }
 
 export interface PaginatedBeneficiaries {
@@ -318,7 +318,7 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
         },
       },
       reviewedByUser: { select: { name: true } },
-      program: { select: { id: true, name: true, requirements: true } },
+      program: { select: { id: true, name: true } },
     },
   });
   if (!row) return null;
@@ -443,7 +443,6 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
     emergencyContactPhone: r.emergencyContactNumber,
     submittedData: (row.submittedData as Record<string, any>) || {},
     attachments: (row.attachments as any) || [],
-    requirements: row.program?.requirements ?? null,
     adminNotes: row.adminNotes || null,
     libreBeneficiaryId,
     passNumber,
