@@ -700,9 +700,9 @@ export const reviewRegistrationRequest = async (requestId: string, data: ReviewD
       }
     }
 
-    // Send approval email (non-blocking)
+    // Send approval email
+    let emailSent = true; // default true — changed to false only on actual failure
     if (resident.email) {
-      let emailSent = false;
       try {
         const { subject, html, text } = getResidentApprovalEmail({
           residentName: `${resident.firstName} ${resident.lastName}`,
@@ -712,16 +712,15 @@ export const reviewRegistrationRequest = async (requestId: string, data: ReviewD
             ? `${process.env.PORTAL_URL}/portal/login`
             : '/portal/login',
         });
-        await sendEmailSafely(resident.email, subject, html, text);
-        emailSent = true;
+        const sent = await sendEmailSafely(resident.email, subject, html, text);
+        emailSent = sent; // capture the actual result
       } catch (err: any) {
         console.error('Failed to send approval email:', err.message);
+        emailSent = false;
       }
-
-      return { residentId, status: 'approved', emailSent };
     }
 
-    return { residentId, status: 'approved', emailSent: true };
+    return { residentId, status: 'approved', emailSent };
   } else {
     // reject
     await prisma.$transaction([
