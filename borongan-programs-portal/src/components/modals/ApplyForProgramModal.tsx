@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 // Types
 import type { PortalProgram } from '@/services/api/portal-programs.service';
 import { REQUIREMENT_ITEM_STUB, type RequirementsConfig } from '@/validations/government-program.schema';
+import type { GovernmentProgramTypeValue } from '@/types/auth';
 
 // Services
 import { portalProgramsService } from '@/services/api/portal-programs.service';
@@ -19,6 +20,14 @@ import { useToast } from '@/hooks/use-toast';
 
 // Utils
 import { cn } from '@/lib/utils';
+
+const TYPE_LABEL: Record<GovernmentProgramTypeValue, string> = {
+  SENIOR_CITIZEN: 'Senior Citizen',
+  PWD: 'PWD',
+  STUDENT: 'Student',
+  SOLO_PARENT: 'Solo Parent',
+  HEALTHCARE_WORKER: 'Healthcare Worker',
+};
 
 const DEFAULT_CONFIG: RequirementsConfig = {
   mode: 'shared',
@@ -54,22 +63,26 @@ interface ApplyForProgramModalProps {
   open: boolean;
   onClose: () => void;
   program: PortalProgram | null;
+  beneficiaryTypes: GovernmentProgramTypeValue[];
   onSuccess: () => void;
 }
 
-export const ApplyForProgramModal: React.FC<ApplyForProgramModalProps> = ({ open, onClose, program, onSuccess }) => {
+export const ApplyForProgramModal: React.FC<ApplyForProgramModalProps> = ({ open, onClose, program, beneficiaryTypes, onSuccess }) => {
   const { toast } = useToast();
   const [values, setValues] = useState<Record<string, string>>({});
   const [files, setFiles] = useState<Record<string, File>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedType, setSelectedType] = useState<GovernmentProgramTypeValue | ''>(
+    beneficiaryTypes[0] ?? ''
+  );
   const [subType, setSubType] = useState<string>('');
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   if (!program) return null;
 
   const config = parseConfig(program.requirements);
-  const requirements = getRequirements(config, program.types?.[0], subType);
+  const requirements = getRequirements(config, selectedType || undefined, subType);
 
   const handleClose = () => {
     setValues({});
@@ -99,6 +112,12 @@ export const ApplyForProgramModal: React.FC<ApplyForProgramModalProps> = ({ open
 
     // Collect non-file field values
     const textValues: Record<string, string> = {};
+    // Always store the beneficiary type applied as
+    textValues['Beneficiary Type'] = TYPE_LABEL[selectedType as GovernmentProgramTypeValue] ?? selectedType;
+    // Store sub-type if selected
+    if (subType) {
+      textValues['Classification Type'] = subType;
+    }
     for (const req of requirements) {
       if (req.type !== 'file') {
         textValues[req.label] = values[req.label] || '';
@@ -142,9 +161,31 @@ export const ApplyForProgramModal: React.FC<ApplyForProgramModalProps> = ({ open
             {program.description && <p className="text-sm text-gray-500 mt-1">{program.description}</p>}
           </div>
 
+          {/* Beneficiary type selector */}
+          {beneficiaryTypes.length > 1 && (
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-gray-700">
+                Applying as <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedType}
+                onChange={e => {
+                  setSelectedType(e.target.value as GovernmentProgramTypeValue);
+                  setSubType('');
+                }}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+              >
+                <option value="">— Select type —</option>
+                {beneficiaryTypes.map(t => (
+                  <option key={t} value={t}>{TYPE_LABEL[t]}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Sub-type selector (only shown when per_type mode has sub_types) */}
-          {config.mode === 'per_type' && (() => {
-            const entry = config.by_type?.[program.types?.[0] ?? ''];
+          {config.mode === 'per_type' && selectedType && (() => {
+            const entry = config.by_type?.[selectedType];
             if (!entry?.sub_types_enabled || !entry.sub_types.length) return null;
             return (
               <div className="space-y-1.5">

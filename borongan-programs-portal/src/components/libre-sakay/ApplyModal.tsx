@@ -3,6 +3,15 @@ import { Button } from '@/components/ui/button';
 import { X, Loader2, FileText, Upload, CheckCircle, ZoomIn } from 'lucide-react';
 import { portalProgramsService, type PortalProgram } from '@/services/api/portal-programs.service';
 import { REQUIREMENT_ITEM_STUB, type RequirementsConfig } from '@/validations/government-program.schema';
+import type { GovernmentProgramTypeValue } from '@/types/auth';
+
+const TYPE_LABEL: Record<GovernmentProgramTypeValue, string> = {
+  SENIOR_CITIZEN: 'Senior Citizen',
+  PWD: 'PWD',
+  STUDENT: 'Student',
+  SOLO_PARENT: 'Solo Parent',
+  HEALTHCARE_WORKER: 'Healthcare Worker',
+};
 
 const DEFAULT_CONFIG: RequirementsConfig = {
   mode: 'shared',
@@ -156,14 +165,18 @@ function FilePreviewTile({
 
 interface ApplyModalProps {
   program: PortalProgram;
+  beneficiaryTypes: GovernmentProgramTypeValue[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export function ApplyModal({ program, onClose, onSuccess }: ApplyModalProps) {
+export function ApplyModal({ program, beneficiaryTypes, onClose, onSuccess }: ApplyModalProps) {
   const config = parseConfig(program.requirements);
+  const [selectedType, setSelectedType] = useState<GovernmentProgramTypeValue | ''>(
+    beneficiaryTypes[0] ?? ''
+  );
   const [subType, setSubType] = useState<string>('');
-  const requirements = getRequirements(config, program.types?.[0], subType);
+  const requirements = getRequirements(config, selectedType || undefined, subType);
 
   const [textValues, setTextValues] = useState<Record<string, string>>({});
   const [fileValues, setFileValues] = useState<Record<string, File | null>>({});
@@ -225,15 +238,21 @@ export function ApplyModal({ program, onClose, onSuccess }: ApplyModalProps) {
       if (hasFiles || hasText) {
         formData = new FormData();
 
+        const submittedData: Record<string, string> = {};
+        // Always store the beneficiary type applied as
+        submittedData['Beneficiary Type'] = TYPE_LABEL[selectedType] ?? selectedType;
+        // Store sub-type if selected
+        if (subType) {
+          submittedData['Classification Type'] = subType;
+        }
         if (hasText) {
-          const submittedData: Record<string, string> = {};
           for (const req of requirements) {
             if (req.type === 'text' && textValues[req.label] !== undefined) {
               submittedData[req.label] = textValues[req.label] ?? '';
             }
           }
-          formData.append('submittedData', JSON.stringify(submittedData));
         }
+        formData.append('submittedData', JSON.stringify(submittedData));
 
         for (const req of requirements) {
           if (req.type === 'file') {
@@ -284,9 +303,30 @@ export function ApplyModal({ program, onClose, onSuccess }: ApplyModalProps) {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Beneficiary type selector */}
+              {beneficiaryTypes.length > 1 && (
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-heading-700">
+                    Applying as <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedType}
+                    onChange={e => {
+                      setSelectedType(e.target.value as GovernmentProgramTypeValue);
+                      setSubType('');
+                    }}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+                  >
+                    <option value="">— Select type —</option>
+                    {beneficiaryTypes.map(t => (
+                      <option key={t} value={t}>{TYPE_LABEL[t]}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {/* Sub-type selector (only shown when per_type mode has sub_types) */}
-              {config.mode === 'per_type' && (() => {
-                const entry = config.by_type?.[program.types?.[0] ?? ''];
+              {config.mode === 'per_type' && selectedType && (() => {
+                const entry = config.by_type?.[selectedType];
                 if (!entry?.sub_types_enabled || !entry.sub_types.length) return null;
                 return (
                   <div className="space-y-1.5">

@@ -144,17 +144,11 @@ function StatusBanner({ beneficiaryStatus, suspendedAt, isLoading, isCancelling,
               </Button>
             )}
             {key === 'PENDING' && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-red-200 text-red-600 hover:bg-red-50"
-                onClick={onCancel}
-                disabled={isCancelling}
-              >
-                {isCancelling ? (
-                  <><Loader2 className="w-3 h-3 animate-spin mr-1" />Cancelling…</>
+              <Button size="sm" variant="outline" onClick={onViewDetails} disabled={isLoadingDetails}>
+                {isLoadingDetails ? (
+                  <><Loader2 className="w-3 h-3 animate-spin mr-1" />Loading…</>
                 ) : (
-                  'Cancel Application'
+                  'View Application'
                 )}
               </Button>
             )}
@@ -179,7 +173,10 @@ function StatusBanner({ beneficiaryStatus, suspendedAt, isLoading, isCancelling,
 interface ApplicationDetailsModalProps {
   application: ProgramApplication | null;
   isLoading: boolean;
+  isCancelling: boolean;
+  beneficiaryStatus: BeneficiaryEnrollmentStatus | null;
   onClose: () => void;
+  onCancel: () => void;
 }
 
 function formatDate(dateStr: string | undefined) {
@@ -191,7 +188,7 @@ function formatDate(dateStr: string | undefined) {
   });
 }
 
-const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = ({ application, isLoading, onClose }) => {
+const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = ({ application, isLoading, isCancelling, beneficiaryStatus, onClose, onCancel }) => {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [lightboxLabel, setLightboxLabel] = useState('');
 
@@ -230,6 +227,22 @@ const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = ({ appli
                   </span>
                 </div>
 
+                {/* Beneficiary Type */}
+                {application.submittedData?.['Beneficiary Type'] && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Beneficiary Type</span>
+                    <span className="font-medium text-heading-700">{application.submittedData['Beneficiary Type']}</span>
+                  </div>
+                )}
+
+                {/* Classification Type */}
+                {application.submittedData?.['Classification Type'] && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Classification Type</span>
+                    <span className="font-medium text-heading-700">{application.submittedData['Classification Type']}</span>
+                  </div>
+                )}
+
                 {/* Dates */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
@@ -253,19 +266,28 @@ const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = ({ appli
                 )}
 
                 {/* Submitted data */}
-                {application.submittedData && Object.keys(application.submittedData).length > 0 && (
-                  <div>
-                    <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">Submitted Information</p>
-                    <div className="space-y-2">
-                      {Object.entries(application.submittedData).map(([k, value]) => (
-                        <div key={k} className="flex flex-col gap-0.5">
-                          <span className="text-xs text-gray-400">{k}</span>
-                          <span className="text-sm text-heading-700">{value || '—'}</span>
-                        </div>
-                      ))}
+                {(() => {
+                  const submittedData = application.submittedData;
+                  if (!submittedData) return null;
+                  // Filter out the dedicated display fields (Beneficiary Type, Classification Type)
+                  const otherEntries = Object.entries(submittedData).filter(
+                    ([k]) => k !== 'Beneficiary Type' && k !== 'Classification Type'
+                  );
+                  if (otherEntries.length === 0) return null;
+                  return (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">Submitted Information</p>
+                      <div className="space-y-2">
+                        {otherEntries.map(([k, value]) => (
+                          <div key={k} className="flex flex-col gap-0.5">
+                            <span className="text-xs text-gray-400">{k}</span>
+                            <span className="text-sm text-heading-700">{value || '—'}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Attachments */}
                 {application.attachments && application.attachments.length > 0 && (
@@ -290,7 +312,22 @@ const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = ({ appli
                   <p className="text-sm text-gray-400 text-center py-2">No additional details available.</p>
                 )}
 
-                <div className="flex justify-end pt-2 border-t">
+                <div className="flex justify-between pt-2 border-t">
+                  {beneficiaryStatus === 'PENDING' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 border-red-200 hover:bg-red-50"
+                      onClick={onCancel}
+                      disabled={isCancelling}
+                    >
+                      {isCancelling ? (
+                        <><Loader2 className="w-3 h-3 animate-spin mr-1" />Cancelling…</>
+                      ) : (
+                        'Cancel Application'
+                      )}
+                    </Button>
+                  )}
                   <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
                 </div>
               </>
@@ -317,7 +354,7 @@ const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = ({ appli
 
 export function LibreSakay() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
 
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
@@ -556,6 +593,7 @@ export function LibreSakay() {
       {applyModalOpen && libreSakayProgram && (
         <ApplyModal
           program={libreSakayProgram}
+          beneficiaryTypes={user?.beneficiaryTypes ?? []}
           onClose={() => setApplyModalOpen(false)}
           onSuccess={fetchLibreSakayProgram}
         />
@@ -565,7 +603,10 @@ export function LibreSakay() {
         <ApplicationDetailsModal
           application={myApplication}
           isLoading={isLoadingDetails}
+          isCancelling={isCancelling}
+          beneficiaryStatus={beneficiaryStatus}
           onClose={() => setDetailsModalOpen(false)}
+          onCancel={handleCancel}
         />
       )}
     </div>
