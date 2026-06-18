@@ -14,8 +14,10 @@ import { createReactSelectStyles } from '@/components/social-amelioration/shared
 import { cn } from '@/lib/utils';
 import {
   governmentProgramSchema,
+  requirementsConfigSchema,
   type GovernmentProgramInput,
   type RequirementItem,
+  type RequirementsConfig,
 } from '@/validations/government-program.schema';
 import type {
   GovernmentProgramTypeEnum,
@@ -65,15 +67,413 @@ const TYPE_COLOR: Record<GovernmentProgramTypeEnum, string> = {
   ALL: 'bg-emerald-50 text-emerald-700 border-emerald-200',
 };
 
-const parseRequirements = (raw?: string | null | RequirementItem[]): RequirementItem[] => {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw;
+// ── Requirements Config Helpers ───────────────────────────────────────────────
+
+export const DEFAULT_CONFIG: RequirementsConfig = {
+  mode: 'shared',
+  shared: [],
+};
+
+export const TYPE_REQUIRED_KEYS: GovernmentProgramTypeEnum[] = [
+  'SENIOR_CITIZEN',
+  'PWD',
+  'STUDENT',
+  'SOLO_PARENT',
+  'HEALTHCARE_WORKER',
+];
+
+function buildInitialConfig(raw?: string | null | RequirementsConfig): RequirementsConfig {
+  if (!raw) return DEFAULT_CONFIG;
+  // Already the right shape — validate it
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    const result = requirementsConfigSchema.safeParse(raw);
+    if (result.success) return result.data;
+  }
   try {
     const parsed = JSON.parse(raw as string);
-    if (Array.isArray(parsed)) return parsed.map(item => ({ required: false, ...item }));
+    const result = requirementsConfigSchema.safeParse(parsed);
+    if (result.success) return result.data;
+    // Legacy flat array
+    if (Array.isArray(parsed)) {
+      return { mode: 'shared', shared: parsed.map(item => ({ required: false, ...item })) };
+    }
   } catch {}
-  return [{ type: 'text', label: raw as string, required: false }];
-};
+  return DEFAULT_CONFIG;
+}
+
+// ── Requirements Editor ──────────────────────────────────────────────────────
+
+interface RequirementsEditorProps {
+  value: RequirementsConfig;
+  onChange: (config: RequirementsConfig) => void;
+  programTypes: GovernmentProgramTypeEnum[];
+}
+
+function RequirementsEditor({ value, onChange, programTypes }: RequirementsEditorProps) {
+  const [activeType, setActiveType] = useState<GovernmentProgramTypeEnum>(() => programTypes[0] ?? 'STUDENT');
+  const isShared = value.mode === 'shared';
+  const byType = value.mode === 'per_type' ? value.by_type : {};
+  const currentEntry = byType[activeType];
+  const availableTypes = TYPE_REQUIRED_KEYS.filter(t => programTypes.includes(t));
+
+  // Keep activeType in sync when program types change
+  useEffect(() => {
+    if (availableTypes.length > 0 && !availableTypes.includes(activeType)) {
+      setActiveType(availableTypes[0]);
+    }
+  }, [availableTypes, activeType]);
+
+  return (
+    <div className="space-y-4">
+      {/* Mode toggle */}
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="req-mode"
+              checked={isShared}
+              onChange={() => onChange({ mode: 'shared', shared: value.mode === 'shared' ? value.shared : [] })}
+              className="text-primary-600"
+            />
+            <span className="text-sm font-medium text-gray-700">Shared requirements</span>
+            <span className="text-xs text-gray-400">— all types use the same list</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="req-mode"
+              checked={!isShared}
+              onChange={() => {
+                const existing = value.mode === 'per_type' ? value.by_type : {};
+                const init: RequirementsConfig = {
+                  mode: 'per_type',
+                  by_type: availableTypes.reduce((acc, t) => ({
+                    ...acc,
+                    [t]: existing[t] ?? { sub_types_enabled: false, sub_types: [], default: [], requirements: {} },
+                  }), {}),
+                };
+                onChange(init);
+              }}
+              className="text-primary-600"
+            />
+            <span className="text-sm font-medium text-gray-700">Per-type requirements</span>
+            <span className="text-xs text-gray-400">— different list per beneficiary type</span>
+          </label>
+        </div>
+      </div>
+
+      {/* Shared Mode */}
+      {isShared && (
+        <SharedRequirementsEditor
+          items={value.shared}
+          onChange={items => onChange({ mode: 'shared', shared: items })}
+        />
+      )}
+
+      {/* Per-Type Mode */}
+      {!isShared && (
+        <div className="space-y-3">
+          {availableTypes.length === 0 ? (
+            <p className="text-sm text-gray-400 py-4 text-center">
+              No beneficiary types selected. Go to Eligibility above to add types.
+            </p>
+          ) : (
+            <>
+          <div className="flex flex-wrap gap-1 border-b border-gray-200 pb-0">
+            {availableTypes.map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setActiveType(t)}
+                className={cn(
+                  'px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors',
+                  activeType === t
+                    ? 'border-primary-600 text-primary-700'
+                    : 'border-transparent text-gray-400 hover:text-gray-600'
+                )}
+              >
+                {TYPE_LABEL[t]}
+              </button>
+            ))}
+          </div>
+          <PerTypeRequirementsEditor
+            type={activeType}
+            entry={currentEntry}
+            onChange={entry => {
+              const existing = value.mode === 'per_type' ? value.by_type : {};
+              onChange({ mode: 'per_type', by_type: { ...existing, [activeType]: entry } });
+            }}
+          />
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Shared Requirements Editor ──────────────────────────────────────────────
+
+interface SharedRequirementsEditorProps {
+  items: RequirementItem[];
+  onChange: (items: RequirementItem[]) => void;
+}
+
+function SharedRequirementsEditor({ items, onChange }: SharedRequirementsEditorProps) {
+  return (
+    <RequirementsListBuilder
+      items={items}
+      onChange={onChange}
+      label="All Beneficiaries"
+    />
+  );
+}
+
+// ── Per-Type Requirements Editor ──────────────────────────────────────────
+
+interface PerTypeRequirementsEditorProps {
+  type: GovernmentProgramTypeEnum;
+  entry?: {
+    sub_types_enabled: boolean;
+    sub_types: string[];
+    default: RequirementItem[];
+    requirements: Record<string, RequirementItem[]>;
+  };
+  onChange: (entry: NonNullable<PerTypeRequirementsEditorProps['entry']>) => void;
+}
+
+function PerTypeRequirementsEditor({ type, entry, onChange }: PerTypeRequirementsEditorProps) {
+  const subEnabled = entry?.sub_types_enabled ?? false;
+  const subTypes = entry?.sub_types ?? [];
+  const defaultItems = entry?.default ?? [];
+  const subRequirements = entry?.requirements ?? {};
+  const [activeSubType, setActiveSubType] = useState<string | null>(null);
+
+  const currentItems = subEnabled && activeSubType
+    ? (subRequirements[activeSubType] ?? [])
+    : defaultItems;
+
+  const setCurrentItems = (items: RequirementItem[]) => {
+    if (subEnabled && activeSubType) {
+      onChange({ ...entry!, requirements: { ...subRequirements, [activeSubType]: items } });
+    } else {
+      onChange({ ...entry!, default: items });
+    }
+  };
+
+  return (
+    <div className="space-y-3 rounded-lg border border-gray-200 bg-white p-4">
+      {/* Sub-type toggle */}
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium text-gray-700">Sub-types:</span>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveSubType(null);
+              onChange({ ...entry!, sub_types_enabled: false, sub_types: [], requirements: {} });
+            }}
+            className={cn(
+              'text-xs px-2.5 py-1 rounded-full border font-medium transition-colors',
+              !subEnabled
+                ? 'bg-primary-50 text-primary-700 border-primary-200'
+                : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+            )}
+          >
+            Off
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ ...entry!, sub_types_enabled: true, sub_types: subTypes.length ? subTypes : [''] })}
+            className={cn(
+              'text-xs px-2.5 py-1 rounded-full border font-medium transition-colors',
+              subEnabled
+                ? 'bg-primary-50 text-primary-700 border-primary-200'
+                : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+            )}
+          >
+            On
+          </button>
+        </div>
+      </div>
+
+      {/* Sub-type options editor */}
+      {subEnabled && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-500">Options:</span>
+            <div className="flex flex-wrap gap-1.5">
+              {subTypes.map((st, i) => (
+                <span key={i} className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={st}
+                    onChange={e => {
+                      const updated = [...subTypes];
+                      updated[i] = e.target.value;
+                      const filtered = updated.filter(s => s.trim());
+                      onChange({ ...entry!, sub_types: filtered });
+                      if (activeSubType === st) setActiveSubType(e.target.value);
+                    }}
+                    className="w-32 h-7 rounded border border-gray-200 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary-200"
+                    placeholder="e.g. College"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const filtered = subTypes.filter((_, idx) => idx !== i);
+                      onChange({ ...entry!, sub_types: filtered });
+                      if (activeSubType === st) setActiveSubType(null);
+                    }}
+                    className="text-gray-400 hover:text-red-500"
+                  >
+                    <FiX size={12} />
+                  </button>
+                </span>
+              ))}
+              <button
+                type="button"
+                onClick={() => onChange({ ...entry!, sub_types: [...subTypes, ''] })}
+                className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+              >
+                + Add option
+              </button>
+            </div>
+          </div>
+
+          {/* Sub-type tabs */}
+          {subTypes.filter(s => s.trim()).length > 0 && (
+            <div className="flex gap-1 border-b border-gray-100 pb-0">
+              <button
+                type="button"
+                onClick={() => setActiveSubType(null)}
+                className={cn(
+                  'px-3 py-1.5 text-xs border-b-2 -mb-px transition-colors',
+                  !activeSubType
+                    ? 'border-primary-400 text-primary-700 font-medium'
+                    : 'border-transparent text-gray-400'
+                )}
+              >
+                Default (fallback)
+              </button>
+              {subTypes.filter(s => s.trim()).map(st => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setActiveSubType(st)}
+                  className={cn(
+                    'px-3 py-1.5 text-xs border-b-2 -mb-px transition-colors',
+                    activeSubType === st
+                      ? 'border-primary-400 text-primary-700 font-medium'
+                      : 'border-transparent text-gray-400'
+                  )}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Current list label */}
+      {subEnabled && activeSubType && (
+        <p className="text-xs text-gray-500 italic">
+          Requirements for: <span className="font-medium">{activeSubType}</span>
+        </p>
+      )}
+      {subEnabled && !activeSubType && (
+        <p className="text-xs text-gray-500 italic">
+          Default list — used when no sub-type is selected
+        </p>
+      )}
+      {!subEnabled && (
+        <p className="text-xs text-gray-500 italic">
+          Requirements for all {TYPE_LABEL[type]} applicants
+        </p>
+      )}
+
+      <RequirementsListBuilder items={currentItems} onChange={setCurrentItems} />
+    </div>
+  );
+}
+
+// ── Requirements List Builder ────────────────────────────────────────────────
+
+interface RequirementsListBuilderProps {
+  items: RequirementItem[];
+  onChange: (items: RequirementItem[]) => void;
+  label?: string;
+}
+
+function RequirementsListBuilder({ items, onChange, label }: RequirementsListBuilderProps) {
+  const addItem = () => onChange([...items, { type: 'text', label: '', required: false }]);
+  const removeItem = (idx: number) => onChange(items.filter((_, i) => i !== idx));
+  const updateItem = (idx: number, patch: Partial<RequirementItem>) => {
+    onChange(items.map((item, i) => (i === idx ? { ...item, ...patch } : item)));
+  };
+
+  return (
+    <div className="space-y-2">
+      {label && <p className="text-xs font-medium text-gray-500">{label}</p>}
+      {items.map((item, idx) => (
+        <div key={idx} className="flex items-center gap-2">
+          <select
+            value={item.type}
+            onChange={e => updateItem(idx, { type: e.target.value })}
+            className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-300"
+          >
+            {INPUT_TYPE_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <Input
+            value={item.label}
+            onChange={e => updateItem(idx, { label: e.target.value })}
+            placeholder="Requirement description..."
+            className="flex-1 h-9"
+          />
+          <button
+            type="button"
+            onClick={() => updateItem(idx, { required: !item.required })}
+            className={cn(
+              'shrink-0 flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border h-9 font-medium transition-colors',
+              item.required
+                ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100 hover:text-gray-600'
+            )}
+          >
+            {item.required ? <FiClock size={10} /> : null}
+            {item.required ? 'Required' : 'Optional'}
+          </button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => removeItem(idx)}
+            className="shrink-0 h-9 w-9 text-gray-400 hover:text-red-500 hover:bg-red-50"
+          >
+            <FiTrash2 size={14} />
+          </Button>
+        </div>
+      ))}
+      {items.length === 0 && (
+        <p className="text-sm text-gray-400 italic py-2">No requirements added yet.</p>
+      )}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={addItem}
+        className="mt-1 gap-1.5 text-primary-600 border-primary-200 hover:bg-primary-50"
+      >
+        <FiPlus size={13} />
+        Add Requirement
+      </Button>
+    </div>
+  );
+}
 
 // ── View Mode ────────────────────────────────────────────────────────────────
 
@@ -107,7 +507,8 @@ interface ViewModeProps {
 }
 
 const ViewMode: React.FC<ViewModeProps> = ({ settings, onEdit }) => {
-  const reqs = parseRequirements(settings.requirements);
+  const cfg = buildInitialConfig(settings.requirements as any);
+  const reqs = cfg.mode === 'shared' ? cfg.shared : [];
 
   return (
     <div className="space-y-4">
@@ -184,23 +585,35 @@ const ViewMode: React.FC<ViewModeProps> = ({ settings, onEdit }) => {
       </div>
 
       {/* Requirements list */}
-      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Application Requirements</h3>
-          <span className="text-xs text-gray-400">{reqs.length} item{reqs.length !== 1 ? 's' : ''}</span>
-        </div>
-        {reqs.length > 0 ? (
-          <ul className="divide-y divide-gray-100 px-4">
-            {reqs.map((req, idx) => (
-              <RequirementRow key={idx} req={req} idx={idx} />
-            ))}
-          </ul>
-        ) : (
-          <div className="px-4 py-6 text-center">
-            <p className="text-sm text-gray-400">No requirements have been set for this program.</p>
+      {(() => {
+        const cfg = buildInitialConfig(settings.requirements as any);
+        const reqs = cfg.mode === 'shared' ? cfg.shared : [];
+        return (
+          <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                {cfg.mode === 'per_type' ? 'Requirements (varies by type — edit to configure)' : 'Application Requirements'}
+              </h3>
+              <span className="text-xs text-gray-400">{reqs.length} item{reqs.length !== 1 ? 's' : ''}</span>
+            </div>
+            {reqs.length > 0 ? (
+              <ul className="divide-y divide-gray-100 px-4">
+                {reqs.map((req, idx) => (
+                  <RequirementRow key={idx} req={req} idx={idx} />
+                ))}
+              </ul>
+            ) : (
+              <div className="px-4 py-6 text-center">
+                <p className="text-sm text-gray-400">
+                  {cfg.mode === 'per_type'
+                    ? 'Requirements are configured per beneficiary type. Click Edit to configure.'
+                    : 'No requirements have been set for this program.'}
+                </p>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
     </div>
   );
 };
@@ -349,91 +762,21 @@ const EditMode: React.FC<EditModeProps> = ({ form, saving, error, onSave, onCanc
           <FormField
             control={form.control}
             name="requirements"
-            render={({ field }) => {
-              const items: RequirementItem[] = field.value || [];
-              return (
-                <FormItem>
-                  <div className="space-y-2">
-                    {items.map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        {/* Input type selector */}
-                        <select
-                          value={item.type}
-                          onChange={e => {
-                            const updated = [...items];
-                            updated[idx] = { ...item, type: e.target.value };
-                            field.onChange(updated);
-                          }}
-                          className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-300"
-                        >
-                          {INPUT_TYPE_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
-
-                        {/* Label */}
-                        <Input
-                          value={item.label}
-                          onChange={e => {
-                            const updated = [...items];
-                            updated[idx] = { ...item, label: e.target.value };
-                            field.onChange(updated);
-                          }}
-                          placeholder="Requirement description..."
-                          className="flex-1 h-9"
-                        />
-
-                        {/* Required toggle */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updated = [...items];
-                            updated[idx] = { ...item, required: !item.required };
-                            field.onChange(updated);
-                          }}
-                          className={cn(
-                            'shrink-0 flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border h-9 font-medium transition-colors',
-                            item.required
-                              ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                              : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100 hover:text-gray-600'
-                          )}
-                        >
-                          {item.required ? <FiClock size={10} /> : null}
-                          {item.required ? 'Required' : 'Optional'}
-                        </button>
-
-                        {/* Delete */}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => field.onChange(items.filter((_, i) => i !== idx))}
-                          className="shrink-0 h-9 w-9 text-gray-400 hover:text-red-500 hover:bg-red-50"
-                        >
-                          <FiTrash2 size={14} />
-                        </Button>
-                      </div>
-                    ))}
-
-                    {items.length === 0 && (
-                      <p className="text-sm text-gray-400 italic py-2">No requirements added yet.</p>
-                    )}
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => field.onChange([...items, { type: 'text', label: '', required: false }])}
-                      className="mt-1 gap-1.5 text-primary-600 border-primary-200 hover:bg-primary-50"
-                    >
-                      <FiPlus size={13} />
-                      Add Requirement
-                    </Button>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              );
-            }}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-700">
+                  Application Requirements
+                </FormLabel>
+                <FormControl>
+                  <RequirementsEditor
+                    value={field.value ?? DEFAULT_CONFIG}
+                    onChange={field.onChange}
+                    programTypes={form.watch('types') ?? []}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
       </div>
@@ -477,7 +820,7 @@ export const ProgramSettingsSection: React.FC = () => {
     defaultValues: {
       name: '',
       description: '',
-      requirements: [],
+      requirements: DEFAULT_CONFIG,
       types: ['ALL'],
       isActive: true,
     },
@@ -493,7 +836,7 @@ export const ProgramSettingsSection: React.FC = () => {
         form.reset({
           name: data.name,
           description: data.description || '',
-          requirements: parseRequirements(data.requirements),
+          requirements: buildInitialConfig(data.requirements),
           types: data.types,
           isActive: data.isActive,
         });
@@ -531,7 +874,7 @@ export const ProgramSettingsSection: React.FC = () => {
       form.reset({
         name: settings.name,
         description: settings.description || '',
-        requirements: parseRequirements(settings.requirements),
+          requirements: buildInitialConfig(settings.requirements),
         types: settings.types,
         isActive: settings.isActive,
       });

@@ -1,5 +1,13 @@
 import axios from 'axios';
-import type { User } from '../../types/auth';
+import type { User, GovernmentProgramTypeValue } from '../../types/auth';
+
+const BENEFICIARY_TYPE_MAP: Record<string, GovernmentProgramTypeValue> = {
+  seniorCitizen: 'SENIOR_CITIZEN',
+  pwd: 'PWD',
+  student: 'STUDENT',
+  soloParent: 'SOLO_PARENT',
+  healthcareWorker: 'HEALTHCARE_WORKER',
+};
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
@@ -28,6 +36,15 @@ function buildResidentUser(resident: Record<string, unknown>): User {
   const lastName = (resident.lastName as string) || '';
   const middleName = (resident.middleName as string) || '';
   const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ').trim();
+
+  // Collect the resident's beneficiary types from the backend response
+  const beneficiaryTypes: GovernmentProgramTypeValue[] = [];
+  for (const [key, type] of Object.entries(BENEFICIARY_TYPE_MAP)) {
+    if (resident[key] != null) {
+      beneficiaryTypes.push(type);
+    }
+  }
+
   return {
     id: resident.id as string,
     name: fullName || (resident.username as string) || 'Resident',
@@ -39,6 +56,7 @@ function buildResidentUser(resident: Record<string, unknown>): User {
     barangay: resident.barangay as User['barangay'],
     picturePath: (resident.picturePath as string) || null,
     createdAt: (resident.createdAt as string) || new Date().toISOString(),
+    beneficiaryTypes,
     firstName,
     middleName,
     lastName,

@@ -881,6 +881,22 @@ export const getBeneficiaryStatusByResident = async (residentId: string): Promis
 
   if (!cat) return defaultResult;
 
+  // Check for a pending application first
+  const pendingApp = await prisma.governmentProgramApplication.findFirst({
+    where: { residentId, programId, status: 'pending' },
+    orderBy: { appliedAt: 'desc' },
+  });
+
+  if (pendingApp) {
+    return {
+      ...defaultResult,
+      enrolled: false,
+      status: 'PENDING',
+      category: cat.type,
+      appliedAt: pendingApp.appliedAt.toISOString(),
+    };
+  }
+
   // Find the Libre-Sakay approved application for this resident
   const application = await prisma.governmentProgramApplication.findFirst({
     where: { residentId, programId, status: 'approved' },

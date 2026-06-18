@@ -1,3 +1,5 @@
+export type GovernmentProgramTypeValue = 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | 'SOLO_PARENT' | 'HEALTHCARE_WORKER';
+
 export interface User {
   id: string;
   name: string;
@@ -8,6 +10,7 @@ export interface User {
   status?: string;
   createdAt: string;
   // Resident-specific fields
+  beneficiaryTypes?: GovernmentProgramTypeValue[];
   firstName?: string;
   middleName?: string;
   lastName?: string;

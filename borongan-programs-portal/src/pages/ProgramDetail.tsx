@@ -11,6 +11,8 @@ import {
   type ProgramApplication,
 } from '@/services/api/portal-programs.service';
 import type { GovernmentProgramType } from '@/services/api/government-program.service';
+import type { RequirementsConfig } from '@/validations/government-program.schema';
+import type { GovernmentProgramTypeValue } from '@/types/auth';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +26,41 @@ const TYPE_LABELS: Record<GovernmentProgramType, string> = {
   HEALTHCARE_WORKER: 'Healthcare Worker',
   ALL: 'All Residents',
 };
+
+const BENEFICIARY_TYPE_LABEL: Record<GovernmentProgramTypeValue, string> = {
+  SENIOR_CITIZEN: 'Senior Citizen',
+  PWD: 'PWD',
+  STUDENT: 'Student',
+  SOLO_PARENT: 'Solo Parent',
+  HEALTHCARE_WORKER: 'Healthcare Worker',
+};
+
+const DEFAULT_CONFIG: RequirementsConfig = { mode: 'shared', shared: [] };
+
+function parseConfig(raw?: string | null): RequirementsConfig {
+  if (!raw) return DEFAULT_CONFIG;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && 'mode' in parsed) {
+      return parsed as RequirementsConfig;
+    }
+    if (Array.isArray(parsed)) {
+      return { mode: 'shared', shared: parsed };
+    }
+  } catch {}
+  return DEFAULT_CONFIG;
+}
+
+function getRequirements(config: RequirementsConfig, applicantType?: string, subType?: string) {
+  if (config.mode === 'shared') return config.shared;
+  if (!applicantType) return [];
+  const entry = config.by_type?.[applicantType];
+  if (!entry) return [];
+  if (entry.sub_types_enabled && subType) {
+    return entry.requirements?.[subType] ?? entry.default ?? [];
+  }
+  return entry.default ?? [];
+}
 
 type AppStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | null;
 
@@ -83,6 +120,8 @@ function parseRequirements(raw?: string): RequirementItem[] {
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 
 function Lightbox({ url, label, onClose }: { url: string; label: string; onClose: () => void }) {
+  const [isLoading, setIsLoading] = useState(true);
+
   return (
     <div
       className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/80 p-4"
@@ -98,10 +137,16 @@ function Lightbox({ url, label, onClose }: { url: string; label: string; onClose
             <X size={20} />
           </button>
         </div>
+        {isLoading && (
+          <div className="flex items-center justify-center h-64 rounded-b-lg bg-black/60">
+            <Loader2 className="w-8 h-8 animate-spin text-white/60" />
+          </div>
+        )}
         <img
           src={url}
           alt={label}
-          className="w-full max-h-[80vh] object-contain rounded-b-lg bg-black"
+          className={isLoading ? 'hidden' : 'w-full max-h-[80vh] object-contain rounded-b-lg bg-black'}
+          onLoad={() => setIsLoading(false)}
         />
       </div>
     </div>
@@ -178,12 +223,20 @@ function FilePreviewTile({ file, label, onReplace }: { file: File; label: string
 
 interface ApplyModalProps {
   program: PortalProgram;
+  beneficiaryTypes: GovernmentProgramTypeValue[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
-function ApplyModal({ program, onClose, onSuccess }: ApplyModalProps) {
-  const requirements = parseRequirements(program.requirements);
+function ApplyModal({ program, beneficiaryTypes, onClose, onSuccess }: ApplyModalProps) {
+  const config = parseConfig(program.requirements ?? null);
+  // Only show beneficiary types that this program allows
+  const eligibleTypes = beneficiaryTypes.filter(t => (program.types ?? []).includes(t));
+  const [selectedType, setSelectedType] = useState<GovernmentProgramTypeValue | ''>(
+    eligibleTypes[0] ?? ''
+  );
+  const [subType, setSubType] = useState<string>('');
+  const requirements = getRequirements(config, selectedType || undefined, subType);
 
   const [textValues, setTextValues] = useState<Record<string, string>>({});
   const [fileValues, setFileValues] = useState<Record<string, File | null>>({});
@@ -217,15 +270,21 @@ function ApplyModal({ program, onClose, onSuccess }: ApplyModalProps) {
 
       if (hasFiles || hasText) {
         formData = new FormData();
+        const submittedData: Record<string, string> = {};
+        // Always store the beneficiary type applied as
+        submittedData['Beneficiary Type'] = BENEFICIARY_TYPE_LABEL[selectedType as GovernmentProgramTypeValue] ?? selectedType;
+        // Store sub-type if selected
+        if (subType) {
+          submittedData['Classification Type'] = subType;
+        }
         if (hasText) {
-          const submittedData: Record<string, string> = {};
           for (const req of requirements) {
             if (req.type === 'text' && textValues[req.label] !== undefined) {
               submittedData[req.label] = textValues[req.label] ?? '';
             }
           }
-          formData.append('submittedData', JSON.stringify(submittedData));
         }
+        formData.append('submittedData', JSON.stringify(submittedData));
         for (const req of requirements) {
           if (req.type === 'file') {
             const file = fileValues[req.label];
@@ -270,6 +329,51 @@ function ApplyModal({ program, onClose, onSuccess }: ApplyModalProps) {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Beneficiary type selector */}
+              {beneficiaryTypes.length > 1 && (
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-heading-700">
+                    Applying as <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedType}
+                    onChange={e => {
+                      setSelectedType(e.target.value as GovernmentProgramTypeValue);
+                      setSubType('');
+                    }}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+                  >
+                    <option value="">— Select type —</option>
+                    {beneficiaryTypes.map(t => (
+                      <option key={t} value={t}>{BENEFICIARY_TYPE_LABEL[t]}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Sub-type selector */}
+              {config.mode === 'per_type' && selectedType && (() => {
+                const entry = config.by_type?.[selectedType];
+                if (!entry?.sub_types_enabled || !entry.sub_types.length) return null;
+                return (
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-heading-700">
+                      Classification Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={subType}
+                      onChange={e => setSubType(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+                    >
+                      <option value="">— Select type —</option>
+                      {entry.sub_types.map(st => (
+                        <option key={st} value={st}>{st}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })()}
+
               {requirements.length === 0 ? (
                 <div className="bg-primary-50 rounded-lg p-4 text-center">
                   <FileText className="w-8 h-8 text-primary-500 mx-auto mb-2" />
@@ -407,6 +511,22 @@ const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = ({ appli
                   </span>
                 </div>
 
+                {/* Beneficiary Type */}
+                {application.submittedData?.['Beneficiary Type'] && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Beneficiary Type</span>
+                    <span className="font-medium text-heading-700">{application.submittedData['Beneficiary Type']}</span>
+                  </div>
+                )}
+
+                {/* Classification Type */}
+                {application.submittedData?.['Classification Type'] && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Classification Type</span>
+                    <span className="font-medium text-heading-700">{application.submittedData['Classification Type']}</span>
+                  </div>
+                )}
+
                 {/* Dates */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
@@ -430,19 +550,28 @@ const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = ({ appli
                 )}
 
                 {/* Submitted data */}
-                {application.submittedData && Object.keys(application.submittedData).length > 0 && (
-                  <div>
-                    <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">Submitted Information</p>
-                    <div className="space-y-2">
-                      {Object.entries(application.submittedData).map(([key, value]) => (
-                        <div key={key} className="flex flex-col gap-0.5">
-                          <span className="text-xs text-gray-400">{key}</span>
-                          <span className="text-sm text-heading-700">{value || '—'}</span>
-                        </div>
-                      ))}
+                {(() => {
+                  const submittedData = application.submittedData;
+                  if (!submittedData) return null;
+                  // Filter out the dedicated display fields (Beneficiary Type, Classification Type)
+                  const otherEntries = Object.entries(submittedData).filter(
+                    ([k]) => k !== 'Beneficiary Type' && k !== 'Classification Type'
+                  );
+                  if (otherEntries.length === 0) return null;
+                  return (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">Submitted Information</p>
+                      <div className="space-y-2">
+                        {otherEntries.map(([k, value]) => (
+                          <div key={k} className="flex flex-col gap-0.5">
+                            <span className="text-xs text-gray-400">{k}</span>
+                            <span className="text-sm text-heading-700">{value || '—'}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Attachments */}
                 {application.attachments && application.attachments.length > 0 && (
@@ -495,7 +624,7 @@ const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = ({ appli
 export function ProgramDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const [program, setProgram] = useState<PortalProgram | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -734,6 +863,7 @@ export function ProgramDetail() {
       {applyModalOpen && program && (
         <ApplyModal
           program={program}
+          beneficiaryTypes={user?.beneficiaryTypes ?? []}
           onClose={() => setApplyModalOpen(false)}
           onSuccess={fetchProgram}
         />
