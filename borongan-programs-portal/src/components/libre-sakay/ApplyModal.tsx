@@ -172,8 +172,10 @@ interface ApplyModalProps {
 
 export function ApplyModal({ program, beneficiaryTypes, onClose, onSuccess }: ApplyModalProps) {
   const config = parseConfig(program.requirements);
+  // Only show beneficiary types that this program allows
+  const eligibleTypes = (beneficiaryTypes ?? []).filter(t => (program.types ?? []).includes(t));
   const [selectedType, setSelectedType] = useState<GovernmentProgramTypeValue | ''>(
-    beneficiaryTypes[0] ?? ''
+    eligibleTypes[0] ?? ''
   );
   const [subType, setSubType] = useState<string>('');
   const requirements = getRequirements(config, selectedType || undefined, subType);
@@ -304,7 +306,7 @@ export function ApplyModal({ program, beneficiaryTypes, onClose, onSuccess }: Ap
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Beneficiary type selector */}
-              {beneficiaryTypes.length > 1 && (
+              {eligibleTypes.length > 1 && (
                 <div className="space-y-1.5">
                   <label className="block text-sm font-medium text-heading-700">
                     Applying as <span className="text-red-500">*</span>
@@ -318,7 +320,7 @@ export function ApplyModal({ program, beneficiaryTypes, onClose, onSuccess }: Ap
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
                   >
                     <option value="">— Select type —</option>
-                    {beneficiaryTypes.map(t => (
+                    {eligibleTypes.map(t => (
                       <option key={t} value={t}>{TYPE_LABEL[t]}</option>
                     ))}
                   </select>
