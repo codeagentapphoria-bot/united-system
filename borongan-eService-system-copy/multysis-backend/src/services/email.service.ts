@@ -37,6 +37,8 @@ if (isEmailConfigured()) {
         user: SMTP_USER,
         pass: SMTP_PASS,
       },
+      connectionTimeout: 10_000,  // 10s — fail fast instead of hanging for 30s
+      socketTimeout: 10_000,
     });
     console.log('✅ Email transporter initialized successfully');
   } catch (error: any) {

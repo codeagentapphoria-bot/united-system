@@ -37,7 +37,6 @@ export interface BeneficiaryDetails extends BeneficiaryListItem {
     mimetype: string;
     size: number;
   }>;
-  requirements: string | null;
   adminNotes: string | null;
   libreBeneficiaryId: string | null;
   passNumber: string | null;

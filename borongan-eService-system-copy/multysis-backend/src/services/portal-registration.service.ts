@@ -21,7 +21,7 @@ import {
   getResidentRejectionEmail,
   getResidentResubmissionEmail,
 } from './email-templates/resident-notifications';
-import { syncBeneficiaryOnInsert } from './classification.service';
+import { syncBeneficiaryOnInsert, syncBeneficiaryOnInsertAsync } from './classification.service';
 
 // =============================================================================
 // TYPES
@@ -594,8 +594,9 @@ export async function autoClassifyResident(
     });
   }
 
-  for (const { type, details } of toInsert) {
-    try {
+  // Phase 1: Insert all classifications in PARALLEL
+  const classificationResults = await Promise.allSettled(
+    toInsert.map(async ({ type, details }) => {
       // Verify type exists for this municipality
       const typeRows = await prisma.$queryRaw<{ id: number }[]>`
         SELECT id FROM classification_types
@@ -606,7 +607,7 @@ export async function autoClassifyResident(
         console.warn(
           `[auto-classify] Type "${type}" not found for municipality ${municipalityId} — skipping`
         );
-        continue;
+        return { type, status: 'skipped' as const };
       }
 
       await prisma.$executeRaw`
@@ -616,20 +617,22 @@ export async function autoClassifyResident(
       `;
       // eslint-disable-next-line no-console
       console.info(`[auto-classify] Inserted "${type}" for resident ${residentUUID}`);
+      return { type, status: 'inserted' as const };
+    })
+  );
 
-      // Sync to beneficiary tables (Senior Citizen, PWD, Student, Solo Parent)
-      try {
-        await syncBeneficiaryOnInsert(residentUUID, type, details);
-      } catch (syncErr: any) {
-        console.warn(
-          `[auto-classify] Beneficiary sync failed for resident ${residentUUID} ` +
-          `(${type}): ${syncErr.message}. Classification was saved.`
-        );
-      }
-    } catch (err: any) {
-      console.error(
-        `[auto-classify] Failed to insert "${type}" for ${residentUUID}: ${(err as Error).message}`
-      );
+  // Fetch resident status ONCE (needed for initialStatus of all async syncs)
+  const residentRecord = await prisma.resident.findUnique({
+    where: { id: residentUUID },
+    select: { status: true },
+  });
+  const initialStatus = residentRecord?.status === 'active' ? 'ACTIVE' : 'PENDING';
+
+  // Phase 2: Fire-and-forget beneficiary sync (non-blocking)
+  // Detached from response — errors caught inside syncBeneficiaryOnInsertAsync
+  for (const result of classificationResults) {
+    if (result.status === 'fulfilled' && result.value.status === 'inserted') {
+      syncBeneficiaryOnInsertAsync(residentUUID, result.value.type, {}, initialStatus);
     }
   }
 }
@@ -700,25 +703,27 @@ export const reviewRegistrationRequest = async (requestId: string, data: ReviewD
       }
     }
 
-    // Send approval email (non-blocking)
+    // Send approval email — fire and forget (non-blocking)
+    // Errors are caught and logged inside sendEmailSafely; never propagates
     if (resident.email) {
-      let emailSent = false;
-      try {
-        const { subject, html, text } = getResidentApprovalEmail({
-          residentName: `${resident.firstName} ${resident.lastName}`,
-          residentId,
-          email: resident.email,
-          loginUrl: process.env.PORTAL_URL
-            ? `${process.env.PORTAL_URL}/portal/login`
-            : '/portal/login',
-        });
-        await sendEmailSafely(resident.email, subject, html, text);
-        emailSent = true;
-      } catch (err: any) {
-        console.error('Failed to send approval email:', err.message);
-      }
-
-      return { residentId, status: 'approved', emailSent };
+      const { subject, html, text } = getResidentApprovalEmail({
+        residentName: `${resident.firstName} ${resident.lastName}`,
+        residentId,
+        email: resident.email,
+        loginUrl: process.env.PORTAL_URL
+          ? `${process.env.PORTAL_URL}/portal/login`
+          : '/portal/login',
+      });
+      ;(async () => {
+        try {
+          const sent = await sendEmailSafely(resident.email!, subject, html, text);
+          if (!sent) {
+            console.warn(`[approval-email] Email not sent for resident ${residentId} (${resident.email})`);
+          }
+        } catch (err: any) {
+          console.error(`[approval-email] Failed for ${residentId}: ${err.message}`);
+        }
+      })();
     }
 
     return { residentId, status: 'approved', emailSent: true };

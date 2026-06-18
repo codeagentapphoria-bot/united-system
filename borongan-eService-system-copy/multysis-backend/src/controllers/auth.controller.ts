@@ -62,7 +62,7 @@ const getDeviceInfo = (req: Request) => {
   return { deviceInfo, ipAddress, userAgent };
 };
 
-const PORTAL_URL = process.env.PORTAL_URL || 'http://localhost:5174';
+const PORTAL_URL = process.env.PORTAL_URL || 'https://portal.borongancity.com';
 
 // =============================================================================
 // ADMIN LOGIN  (email + password)

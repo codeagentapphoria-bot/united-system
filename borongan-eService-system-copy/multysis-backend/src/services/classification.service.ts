@@ -150,6 +150,15 @@ const tableToSocketType: Record<string, 'SENIOR_CITIZEN' | 'PWD' | 'STUDENT' | '
   healthcare_worker_beneficiaries: 'HEALTHCARE_WORKER',
 };
 
+// Maps table name → Prisma model name (camelCase)
+const prismaModelByTable: Record<string, string> = {
+  senior_citizen_beneficiaries: 'seniorCitizenBeneficiary',
+  pwd_beneficiaries: 'pWDBeneficiary',
+  student_beneficiaries: 'studentBeneficiary',
+  solo_parent_beneficiaries: 'soloParentBeneficiary',
+  healthcare_worker_beneficiaries: 'healthcareWorkerBeneficiary',
+};
+
 // Normalize detail keys for resident_classifications.classification_details.
 // All values are TEXT (or arrays of text for multiselect fields).
 // Accepts both legacy Id-suffixed keys and new text keys for backwards-compat
@@ -373,7 +382,8 @@ export async function syncBeneficiaryOnInsert(
         break;
     }
 
-    const createdRecord = await (prisma as any)[table.replace(/_([a-z])/g, (g) => g[1].toUpperCase()).replace(/s$/, '')].findUnique({
+    const prismaModel = prismaModelByTable[table];
+    const createdRecord = await (prisma as any)[prismaModel].findUnique({
       where: { residentId },
     });
 
@@ -392,4 +402,92 @@ export async function syncBeneficiaryOnInsert(
     console.error(`[beneficiary-sync] Failed to create ${table} for ${residentId}: ${err.message}`);
     throw err;
   }
+}
+
+/**
+ * Fire-and-forget beneficiary sync. Does NOT throw.
+ * Use this for non-critical side-effects that must not block the response.
+ *
+ * @param residentId         - resident UUID
+ * @param classificationType - e.g. 'Senior Citizen', 'Student'
+ * @param classificationDetails - raw details from classification (unused, kept for signature compat)
+ * @param initialStatus     - 'ACTIVE' or 'PENDING' (pass from caller — no DB lookup needed)
+ */
+export function syncBeneficiaryOnInsertAsync(
+  residentId: string,
+  classificationType: string,
+  _classificationDetails: Record<string, unknown> = {},
+  initialStatus: 'ACTIVE' | 'PENDING' = 'PENDING',
+): void {
+  // Run fully detached — catch all errors so nothing propagates
+  ;(async () => {
+    try {
+      const mapping = BENEFICIARY_SYNC_MAP[classificationType];
+      if (!mapping) return;
+
+      const { table, prefix } = mapping;
+      const details = normalizeDetails(classificationType, _classificationDetails);
+      const displayId = await generateBeneficiaryId(table, prefix);
+
+      // Use upsert instead of findUnique + create (one round-trip instead of two)
+      const prismaModel = prismaModelByTable[table];
+
+      switch (table) {
+        case 'pwd_beneficiaries':
+          await (prisma as any)[prismaModel].upsert({
+            where: { residentId },
+            create: { residentId, pwdId: displayId, status: initialStatus as any },
+            update: { status: initialStatus as any, updatedAt: new Date() },
+          });
+          break;
+        case 'student_beneficiaries':
+          await (prisma as any)[prismaModel].upsert({
+            where: { residentId },
+            create: { residentId, studentId: displayId, status: initialStatus as any },
+            update: { status: initialStatus as any, updatedAt: new Date() },
+          });
+          break;
+        case 'solo_parent_beneficiaries':
+          await (prisma as any)[prismaModel].upsert({
+            where: { residentId },
+            create: { residentId, soloParentId: displayId, status: initialStatus as any },
+            update: { status: initialStatus as any, updatedAt: new Date() },
+          });
+          break;
+        case 'senior_citizen_beneficiaries':
+          await (prisma as any)[prismaModel].upsert({
+            where: { residentId },
+            create: { residentId, seniorCitizenId: displayId, status: initialStatus as any },
+            update: { status: initialStatus as any, updatedAt: new Date() },
+          });
+          break;
+        case 'healthcare_worker_beneficiaries':
+          await (prisma as any)[prismaModel].upsert({
+            where: { residentId },
+            create: { residentId, healthcareWorkerId: displayId, status: initialStatus as any },
+            update: { status: initialStatus as any, updatedAt: new Date() },
+          });
+          break;
+      }
+
+      // Fetch the record for socket emission
+      const createdRecord = await (prisma as any)[prismaModel].findUnique({
+        where: { residentId },
+      });
+
+      if (createdRecord) {
+        await socketService.emitBeneficiaryNew({
+          beneficiaryId: createdRecord.id,
+          type: tableToSocketType[table],
+          residentId,
+          status: initialStatus,
+          createdAt: new Date(),
+        });
+      }
+
+      console.info(`[beneficiary-sync] Created ${initialStatus} ${table} for resident ${residentId} (${displayId})`);
+    } catch (err: any) {
+      console.error(`[beneficiary-sync-async] Failed for ${residentId}: ${err.message}`);
+    }
+  })();
 }
