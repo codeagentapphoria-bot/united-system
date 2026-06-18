@@ -21,7 +21,7 @@ import {
   getResidentRejectionEmail,
   getResidentResubmissionEmail,
 } from './email-templates/resident-notifications';
-import { syncBeneficiaryOnInsert } from './classification.service';
+import { syncBeneficiaryOnInsert, syncBeneficiaryOnInsertAsync } from './classification.service';
 
 // =============================================================================
 // TYPES
@@ -621,12 +621,18 @@ export async function autoClassifyResident(
     })
   );
 
-  // Phase 2: Sync to beneficiary tables — fire and forget (non-blocking)
-  // Task 3 will wire in syncBeneficiaryOnInsertAsync here.
-  // For now, just log the results (sync will be detached in Task 3).
+  // Fetch resident status ONCE (needed for initialStatus of all async syncs)
+  const residentRecord = await prisma.resident.findUnique({
+    where: { id: residentUUID },
+    select: { status: true },
+  });
+  const initialStatus = residentRecord?.status === 'active' ? 'ACTIVE' : 'PENDING';
+
+  // Phase 2: Fire-and-forget beneficiary sync (non-blocking)
+  // Detached from response — errors caught inside syncBeneficiaryOnInsertAsync
   for (const result of classificationResults) {
-    if (result.status === 'rejected') {
-      console.error(`[auto-classify] Classification insert failed: ${result.reason}`);
+    if (result.status === 'fulfilled' && result.value.status === 'inserted') {
+      syncBeneficiaryOnInsertAsync(residentUUID, result.value.type, {}, initialStatus);
     }
   }
 }
