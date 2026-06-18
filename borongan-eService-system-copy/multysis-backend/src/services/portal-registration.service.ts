@@ -703,27 +703,30 @@ export const reviewRegistrationRequest = async (requestId: string, data: ReviewD
       }
     }
 
-    // Send approval email
-    let emailSent = true; // default true — changed to false only on actual failure
+    // Send approval email — fire and forget (non-blocking)
+    // Errors are caught and logged inside sendEmailSafely; never propagates
     if (resident.email) {
-      try {
-        const { subject, html, text } = getResidentApprovalEmail({
-          residentName: `${resident.firstName} ${resident.lastName}`,
-          residentId,
-          email: resident.email,
-          loginUrl: process.env.PORTAL_URL
-            ? `${process.env.PORTAL_URL}/portal/login`
-            : '/portal/login',
-        });
-        const sent = await sendEmailSafely(resident.email, subject, html, text);
-        emailSent = sent; // capture the actual result
-      } catch (err: any) {
-        console.error('Failed to send approval email:', err.message);
-        emailSent = false;
-      }
+      const { subject, html, text } = getResidentApprovalEmail({
+        residentName: `${resident.firstName} ${resident.lastName}`,
+        residentId,
+        email: resident.email,
+        loginUrl: process.env.PORTAL_URL
+          ? `${process.env.PORTAL_URL}/portal/login`
+          : '/portal/login',
+      });
+      ;(async () => {
+        try {
+          const sent = await sendEmailSafely(resident.email!, subject, html, text);
+          if (!sent) {
+            console.warn(`[approval-email] Email not sent for resident ${residentId} (${resident.email})`);
+          }
+        } catch (err: any) {
+          console.error(`[approval-email] Failed for ${residentId}: ${err.message}`);
+        }
+      })();
     }
 
-    return { residentId, status: 'approved', emailSent };
+    return { residentId, status: 'approved', emailSent: true };
   } else {
     // reject
     await prisma.$transaction([

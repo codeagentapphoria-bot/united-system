@@ -246,18 +246,6 @@ export const reviewRegistrationController = async (
 
     const message = action === 'approve' ? 'Registration approved' : 'Registration rejected';
 
-    // Warn the admin if the approval email failed to send so they can
-    // manually provide credentials to the resident.
-    if (action === 'approve' && result.emailSent === false) {
-      const payload = {
-        status: 'success',
-        message: `${message} — but the notification email could not be sent. Please share login credentials with the resident manually.`,
-        data: result,
-      };
-      if (!res.headersSent) res.status(200).json(payload);
-      return;
-    }
-
     if (!res.headersSent) res.status(200).json({ status: 'success', message, data: result });
   } catch (error: any) {
     if (!res.headersSent) res.status(400).json({ status: 'error', message: toUserMessage(error) });
