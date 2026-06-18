@@ -230,8 +230,10 @@ interface ApplyModalProps {
 
 function ApplyModal({ program, beneficiaryTypes, onClose, onSuccess }: ApplyModalProps) {
   const config = parseConfig(program.requirements ?? null);
+  // Only show beneficiary types that this program allows
+  const eligibleTypes = beneficiaryTypes.filter(t => (program.types ?? []).includes(t));
   const [selectedType, setSelectedType] = useState<GovernmentProgramTypeValue | ''>(
-    beneficiaryTypes[0] ?? ''
+    eligibleTypes[0] ?? ''
   );
   const [subType, setSubType] = useState<string>('');
   const requirements = getRequirements(config, selectedType || undefined, subType);

@@ -73,8 +73,10 @@ export const ApplyForProgramModal: React.FC<ApplyForProgramModalProps> = ({ open
   const [files, setFiles] = useState<Record<string, File>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Only show beneficiary types that this program allows
+  const eligibleTypes = beneficiaryTypes.filter(t => (program?.types ?? []).includes(t));
   const [selectedType, setSelectedType] = useState<GovernmentProgramTypeValue | ''>(
-    beneficiaryTypes[0] ?? ''
+    eligibleTypes[0] ?? ''
   );
   const [subType, setSubType] = useState<string>('');
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
