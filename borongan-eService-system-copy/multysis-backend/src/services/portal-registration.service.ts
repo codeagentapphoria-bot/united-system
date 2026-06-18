@@ -594,8 +594,9 @@ export async function autoClassifyResident(
     });
   }
 
-  for (const { type, details } of toInsert) {
-    try {
+  // Phase 1: Insert all classifications in PARALLEL
+  const classificationResults = await Promise.allSettled(
+    toInsert.map(async ({ type, details }) => {
       // Verify type exists for this municipality
       const typeRows = await prisma.$queryRaw<{ id: number }[]>`
         SELECT id FROM classification_types
@@ -606,7 +607,7 @@ export async function autoClassifyResident(
         console.warn(
           `[auto-classify] Type "${type}" not found for municipality ${municipalityId} — skipping`
         );
-        continue;
+        return { type, status: 'skipped' as const };
       }
 
       await prisma.$executeRaw`
@@ -616,20 +617,16 @@ export async function autoClassifyResident(
       `;
       // eslint-disable-next-line no-console
       console.info(`[auto-classify] Inserted "${type}" for resident ${residentUUID}`);
+      return { type, status: 'inserted' as const };
+    })
+  );
 
-      // Sync to beneficiary tables (Senior Citizen, PWD, Student, Solo Parent)
-      try {
-        await syncBeneficiaryOnInsert(residentUUID, type, details);
-      } catch (syncErr: any) {
-        console.warn(
-          `[auto-classify] Beneficiary sync failed for resident ${residentUUID} ` +
-          `(${type}): ${syncErr.message}. Classification was saved.`
-        );
-      }
-    } catch (err: any) {
-      console.error(
-        `[auto-classify] Failed to insert "${type}" for ${residentUUID}: ${(err as Error).message}`
-      );
+  // Phase 2: Sync to beneficiary tables — fire and forget (non-blocking)
+  // Task 3 will wire in syncBeneficiaryOnInsertAsync here.
+  // For now, just log the results (sync will be detached in Task 3).
+  for (const result of classificationResults) {
+    if (result.status === 'rejected') {
+      console.error(`[auto-classify] Classification insert failed: ${result.reason}`);
     }
   }
 }
