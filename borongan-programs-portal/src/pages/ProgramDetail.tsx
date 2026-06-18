@@ -120,6 +120,8 @@ function parseRequirements(raw?: string): RequirementItem[] {
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 
 function Lightbox({ url, label, onClose }: { url: string; label: string; onClose: () => void }) {
+  const [isLoading, setIsLoading] = useState(true);
+
   return (
     <div
       className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/80 p-4"
@@ -135,10 +137,16 @@ function Lightbox({ url, label, onClose }: { url: string; label: string; onClose
             <X size={20} />
           </button>
         </div>
+        {isLoading && (
+          <div className="flex items-center justify-center h-64 rounded-b-lg bg-black/60">
+            <Loader2 className="w-8 h-8 animate-spin text-white/60" />
+          </div>
+        )}
         <img
           src={url}
           alt={label}
-          className="w-full max-h-[80vh] object-contain rounded-b-lg bg-black"
+          className={isLoading ? 'hidden' : 'w-full max-h-[80vh] object-contain rounded-b-lg bg-black'}
+          onLoad={() => setIsLoading(false)}
         />
       </div>
     </div>
