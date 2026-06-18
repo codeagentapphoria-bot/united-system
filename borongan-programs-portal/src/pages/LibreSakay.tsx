@@ -93,17 +93,15 @@ interface StatusBannerProps {
   beneficiaryStatus: BeneficiaryEnrollmentStatus | null;
   suspendedAt: string | null;
   isLoading: boolean;
-  isCancelling: boolean;
   isLoadingDetails: boolean;
   hasClassification: boolean;
   eligible: boolean;
   onViewPrograms: () => void;
   onApply: () => void;
-  onCancel: () => void;
   onViewDetails: () => void;
 }
 
-function StatusBanner({ beneficiaryStatus, suspendedAt, isLoading, isCancelling, isLoadingDetails, hasClassification, eligible, onViewPrograms, onApply, onCancel, onViewDetails }: StatusBannerProps) {
+function StatusBanner({ beneficiaryStatus, suspendedAt, isLoading, isLoadingDetails, hasClassification, eligible, onViewPrograms, onApply, onViewDetails }: StatusBannerProps) {
   if (isLoading) {
     return <div className="h-20 rounded-xl bg-gray-100 animate-pulse" />;
   }
@@ -532,13 +530,11 @@ export function LibreSakay() {
           beneficiaryStatus={beneficiaryStatus}
           suspendedAt={suspendedAt}
           isLoading={statusLoading}
-          isCancelling={isCancelling}
           isLoadingDetails={isLoadingDetails}
           hasClassification={hasClassification}
           eligible={libreSakayProgram?.eligible ?? false}
           onViewPrograms={() => navigate('/')}
           onApply={() => setApplyModalOpen(true)}
-          onCancel={handleCancel}
           onViewDetails={handleViewDetails}
         />
 

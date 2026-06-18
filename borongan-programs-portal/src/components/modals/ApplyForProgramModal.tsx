@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 // Types
 import type { PortalProgram } from '@/services/api/portal-programs.service';
-import { REQUIREMENT_ITEM_STUB, type RequirementsConfig } from '@/validations/government-program.schema';
+import type { RequirementsConfig } from '@/validations/government-program.schema';
 import type { GovernmentProgramTypeValue } from '@/types/auth';
 
 // Services

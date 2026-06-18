@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Loader2, FileText, Upload, CheckCircle, ZoomIn } from 'lucide-react';
 import { portalProgramsService, type PortalProgram } from '@/services/api/portal-programs.service';
-import { REQUIREMENT_ITEM_STUB, type RequirementsConfig } from '@/validations/government-program.schema';
+import type { RequirementsConfig } from '@/validations/government-program.schema';
 import type { GovernmentProgramTypeValue } from '@/types/auth';
 
 const TYPE_LABEL: Record<GovernmentProgramTypeValue, string> = {
@@ -242,7 +242,7 @@ export function ApplyModal({ program, beneficiaryTypes, onClose, onSuccess }: Ap
 
         const submittedData: Record<string, string> = {};
         // Always store the beneficiary type applied as
-        submittedData['Beneficiary Type'] = TYPE_LABEL[selectedType] ?? selectedType;
+        submittedData['Beneficiary Type'] = selectedType ? (TYPE_LABEL[selectedType] ?? selectedType) : '';
         // Store sub-type if selected
         if (subType) {
           submittedData['Classification Type'] = subType;
