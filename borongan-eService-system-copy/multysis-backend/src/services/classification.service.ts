@@ -373,7 +373,18 @@ export async function syncBeneficiaryOnInsert(
         break;
     }
 
-    const createdRecord = await (prisma as any)[table.replace(/_([a-z])/g, (g) => g[1].toUpperCase()).replace(/s$/, '')].findUnique({
+    // prismaModelByTable: maps table name → Prisma model name (camelCase)
+    // Used for post-create findUnique to retrieve the inserted record for socket emission.
+    const prismaModelByTable: Record<string, string> = {
+      senior_citizen_beneficiaries: 'seniorCitizenBeneficiary',
+      pwd_beneficiaries: 'pWDBeneficiary',
+      student_beneficiaries: 'studentBeneficiary',
+      solo_parent_beneficiaries: 'soloParentBeneficiary',
+      healthcare_worker_beneficiaries: 'healthcareWorkerBeneficiary',
+    };
+
+    const prismaModel = prismaModelByTable[table];
+    const createdRecord = await (prisma as any)[prismaModel].findUnique({
       where: { residentId },
     });
 
