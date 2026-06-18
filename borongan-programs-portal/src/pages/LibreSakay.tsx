@@ -454,6 +454,11 @@ export function LibreSakay() {
       if (app) {
         await portalProgramsService.cancelApplication(app.id);
         await fetchLibreSakayProgram();
+        setDetailsModalOpen(false);
+        toast({
+          title: 'Application cancelled',
+          description: 'Your application has been cancelled successfully.',
+        });
       }
     } catch {
       toast({
