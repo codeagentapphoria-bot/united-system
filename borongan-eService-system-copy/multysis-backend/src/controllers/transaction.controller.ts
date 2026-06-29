@@ -471,8 +471,12 @@ export const getAppointmentsController = async (req: AuthRequest, res: Response)
     const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
     const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
     const date = req.query.date ? new Date(req.query.date as string) : undefined;
+    const limitRaw = req.query.limit ? Number(req.query.limit) : undefined;
+    const limit = limitRaw !== undefined && Number.isFinite(limitRaw) && limitRaw > 0
+      ? Math.min(limitRaw, 500)
+      : undefined;
 
-    const appointments = await getAppointments(startDate, endDate, date);
+    const appointments = await getAppointments(startDate, endDate, date, limit);
 
     res.status(200).json({
       status: 'success',

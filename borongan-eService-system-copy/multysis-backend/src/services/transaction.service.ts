@@ -1301,7 +1301,7 @@ export const reviewTransactionUpdateRequest = async (transactionId: string, appr
 };
 
 // Get appointments (transactions with preferredAppointmentDate and active statuses)
-export const getAppointments = async (startDate?: Date, endDate?: Date, date?: Date) => {
+export const getAppointments = async (startDate?: Date, endDate?: Date, date?: Date, limit?: number) => {
   const where: any = {
     preferredAppointmentDate: {
       not: null,
@@ -1357,6 +1357,7 @@ export const getAppointments = async (startDate?: Date, endDate?: Date, date?: D
     orderBy: {
       preferredAppointmentDate: 'asc',
     },
+    take: limit ?? 200,
   });
 
   return appointments;
