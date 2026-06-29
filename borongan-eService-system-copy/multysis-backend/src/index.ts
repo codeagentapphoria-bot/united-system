@@ -467,6 +467,12 @@ app.use(errorHandler);
 // Create HTTP server from Express app
 const httpServer = createServer(app);
 
+// Socket-level timeouts — bound the connection itself, not just the request.
+// Keep headersTimeout > keepAliveTimeout > server.timeout to satisfy upstream proxies.
+httpServer.timeout = Number(process.env.SERVER_TIMEOUT_MS) || 60000;        // 60s
+httpServer.keepAliveTimeout = Number(process.env.KEEPALIVE_TIMEOUT_MS) || 45000; // 45s
+httpServer.headersTimeout = Number(process.env.HEADERS_TIMEOUT_MS) || 65000;   // 65s
+
 // Initialize Socket.io
 const io = initializeSocket(httpServer);
 setSocketInstance(io);
