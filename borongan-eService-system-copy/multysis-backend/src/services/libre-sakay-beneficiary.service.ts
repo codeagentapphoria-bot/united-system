@@ -332,73 +332,76 @@ export const getBeneficiaryById = async (id: string): Promise<BeneficiaryDetails
     r.healthcareWorkerBeneficiary,
   );
 
-  // Fetch classification details from resident_classifications (JSONB — requires raw SQL)
+  // Fire 3 independent reads in parallel: classification details (raw SQL),
+  // pivot (Prisma), and Libre-Sakay beneficiary (Supabase). All depend only on
+  // the findUnique above — none depend on each other.
+  const classificationTypeMap: Record<string, string> = {
+    SENIOR_CITIZEN: 'Senior Citizen',
+    PWD: 'Person with Disability',
+    STUDENT: 'Student',
+    SOLO_PARENT: 'Solo Parent',
+    HEALTHCARE_WORKER: 'Healthcare Worker',
+  };
+  const dbType = cat ? classificationTypeMap[cat.type] : null;
+
+  const libreBeneficiaryPromise: Promise<{
+    id: string;
+    pass_number: string | null;
+    pass_expiry: string | null;
+  } | null> = (async () => {
+    try {
+      const { getLibreSakaySupabase } = await import('../config/libre-sakay-supabase');
+      const supabase = getLibreSakaySupabase();
+      const { data } = await supabase
+        .from('libre_sakay_beneficiary')
+        .select('id, pass_number, pass_expiry')
+        .eq('resident_uuid', r.id)
+        .maybeSingle();
+      return data;
+    } catch {
+      return null;
+    }
+  })();
+
+  const [classRows, pivot, libreData] = await Promise.all([
+    dbType && r.id
+      ? prisma.$queryRaw<Array<{ classification_details: any }>>`
+          SELECT classification_details
+          FROM resident_classifications
+          WHERE resident_id = ${r.id}
+            AND classification_type = ${dbType}
+          LIMIT 1
+        `
+      : Promise.resolve([]),
+    cat
+      ? prisma.beneficiaryProgramPivot.findFirst({
+          where: {
+            programId: row.programId,
+            beneficiaryType: cat.type as BeneficiaryType,
+            beneficiaryId: cat.id,
+          },
+          select: { status: true, suspendedAt: true },
+        })
+      : Promise.resolve(null),
+    libreBeneficiaryPromise,
+  ]);
+
   let disabilityType: string | null = null;
   let disabilityLevel: string | null = null;
-
-  if (r.id && cat) {
-    const classificationTypeMap: Record<string, string> = {
-      SENIOR_CITIZEN: 'Senior Citizen',
-      PWD: 'Person with Disability',
-      STUDENT: 'Student',
-      SOLO_PARENT: 'Solo Parent',
-      HEALTHCARE_WORKER: 'Healthcare Worker',
-    };
-    const dbType = classificationTypeMap[cat.type];
-    if (dbType) {
-      const rows = await prisma.$queryRaw<Array<{ classification_details: any }>>`
-        SELECT classification_details
-        FROM resident_classifications
-        WHERE resident_id = ${r.id}
-          AND classification_type = ${dbType}
-        LIMIT 1
-      `;
-      const details = rows[0]?.classification_details;
-      if (details) {
-        disabilityType = details.disabilityType ?? null;
-        disabilityLevel = details.disabilityLevel ?? null;
-      }
-    }
+  const details = classRows[0]?.classification_details;
+  if (details) {
+    disabilityType = details.disabilityType ?? null;
+    disabilityLevel = details.disabilityLevel ?? null;
   }
 
-  // Fetch pivot for this specific category + Libre-Sakay
-  let pivotStatus: string | null = null;
-  let pivotSuspendedAt: Date | null = null;
-  if (cat) {
-    const pivot = await prisma.beneficiaryProgramPivot.findFirst({
-      where: {
-        programId: row.programId,
-        beneficiaryType: cat.type as BeneficiaryType,
-        beneficiaryId: cat.id,
-      },
-      select: { status: true, suspendedAt: true },
-    });
-    if (pivot) {
-      pivotStatus = pivot.status;
-      pivotSuspendedAt = pivot.suspendedAt;
-    }
-  }
+  const pivotStatus: string | null = pivot?.status ?? null;
+  const pivotSuspendedAt: Date | null = pivot?.suspendedAt ?? null;
 
-  // Libre-Sakay beneficiary record
-  let libreBeneficiaryId: string | null = null;
-  let passNumber: string | null = null;
-  let passExpiry: Date | null = null;
-  try {
-    const { getLibreSakaySupabase } = await import('../config/libre-sakay-supabase');
-    const supabase = getLibreSakaySupabase();
-    const { data: libreData } = await supabase
-      .from('libre_sakay_beneficiary')
-      .select('id, pass_number, pass_expiry')
-      .eq('resident_uuid', r.id)
-      .maybeSingle();
-    if (libreData) {
-      libreBeneficiaryId = libreData.id;
-      passNumber = libreData.pass_number;
-      passExpiry = libreData.pass_expiry ? new Date(libreData.pass_expiry) : null;
-    }
-  } catch { /* not found */ }
+  const libreBeneficiaryId: string | null = libreData?.id ?? null;
+  const passNumber: string | null = libreData?.pass_number ?? null;
+  const passExpiry: Date | null = libreData?.pass_expiry ? new Date(libreData.pass_expiry) : null;
 
-  // Ride stats
+  // Ride stats — depends on libreBeneficiaryId, so keep sequential.
   let totalRides = 0;
   let lastRideDate: Date | null = null;
   if (libreBeneficiaryId) {
