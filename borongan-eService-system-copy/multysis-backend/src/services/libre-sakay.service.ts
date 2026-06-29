@@ -598,24 +598,30 @@ export const removeStopFromRoute = async (routeId: string, stopId: string) => {
 };
 
 export const reorderStopsInRoute = async (routeId: string, stopIds: string[]) => {
-  // Two-pass update to avoid unique constraint conflicts
-  // Step 1: Set all to 0
-  for (const stopId of stopIds) {
-    const { error } = await supabase()
+  // Two-pass update to avoid unique constraint conflicts.
+  if (stopIds.length > 0) {
+    const { error: resetError } = await supabase()
       .from('route_stops')
       .update({ sequence_order: 0 })
       .eq('route_id', routeId)
-      .eq('stop_id', stopId);
-    if (error) throw new Error('Failed to reorder stops: ' + error.message);
+      .in('stop_id', stopIds);
+    if (resetError) throw new Error('Failed to reorder stops: ' + resetError.message);
   }
-  // Step 2: Set to final values
-  for (let i = 0; i < stopIds.length; i++) {
-    const { error } = await supabase()
-      .from('route_stops')
-      .update({ sequence_order: i + 1 })
-      .eq('route_id', routeId)
-      .eq('stop_id', stopIds[i]);
-    if (error) throw new Error('Failed to reorder stops: ' + error.message);
+  // route_stops has no UNIQUE(route_id, stop_id) constraint (verified via Supabase
+  // OpenAPI introspection — PK is a UUID `id`), so we cannot use upsert+onConflict.
+  // Fire one update per stop in parallel via Promise.all.
+  const results = await Promise.all(
+    stopIds.map((stopId, idx) =>
+      supabase()
+        .from('route_stops')
+        .update({ sequence_order: idx + 1 })
+        .eq('route_id', routeId)
+        .eq('stop_id', stopId)
+    )
+  );
+  const firstError = results.find((r) => r.error);
+  if (firstError?.error) {
+    throw new Error('Failed to reorder stops: ' + firstError.error.message);
   }
 };
 
