@@ -709,7 +709,7 @@ export const getTransactionsByService = async (
 
   const skip = (page - 1) * limit;
 
-  // Fetch all matching transactions (we'll apply serviceData filters in memory)
+  // Fetch the requested page of matching transactions (DB-level pagination)
   let [allTransactions, total] = await Promise.all([
     prisma.transaction.findMany({
       where,
@@ -726,6 +726,8 @@ export const getTransactionsByService = async (
         service: true,
       },
       orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: skip,
     }),
     prisma.transaction.count({ where }),
   ]);
@@ -737,9 +739,6 @@ export const getTransactionsByService = async (
   if (serviceDataFilters && Object.keys(serviceDataFilters).length > 0) {
     total = transactions.length;
   }
-
-  // Apply pagination
-  transactions = transactions.slice(skip, skip + limit);
 
   // Fetch tax computations for the paginated transactions
   const transactionIds = transactions.map((t: any) => t.id);
