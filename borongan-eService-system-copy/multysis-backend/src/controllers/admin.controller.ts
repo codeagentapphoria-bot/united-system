@@ -85,7 +85,9 @@ export const getDashboardStatisticsController = async (
       return;
     }
 
-    const statistics = await getDashboardStatistics();
+    const recentLimit = req.query.recentLimit ? Number(req.query.recentLimit) : undefined;
+    const safeLimit = Math.min(recentLimit ?? 20, 50);
+    const statistics = await getDashboardStatistics(safeLimit);
 
     res.status(200).json({
       status: 'success',
