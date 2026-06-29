@@ -575,6 +575,23 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
+// Global safety nets — log and exit so the platform orchestrator restarts cleanly.
+// Without these, an unhandled rejection kills the process silently.
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+  console.error('[FATAL] Unhandled Promise Rejection:', reason);
+  if (reason instanceof Error) {
+    console.error('[FATAL] Stack:', reason.stack);
+  }
+  // Best practice: crash fast so the orchestrator restarts. Do NOT swallow silently.
+  process.exit(1);
+});
+
+process.on('uncaughtException', (err: Error, origin: string) => {
+  console.error(`[FATAL] Uncaught Exception (origin: ${origin}):`, err);
+  console.error('[FATAL] Stack:', err.stack);
+  process.exit(1);
+});
+
 // Graceful shutdown handling
 process.on('SIGTERM', () => {
   addDevLog('info', 'Server shutdown initiated (SIGTERM)', {});
