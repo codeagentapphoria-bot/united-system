@@ -314,9 +314,10 @@ app.use((req: Request, res: Response, next: NextFunction): void => {
   next();
 });
 
-// Request timeout middleware (30 seconds)
+// REQUEST_TIMEOUT_MS — application-level request timeout (default 30000).
+// Slightly longer than the upstream proxy timeout so we control the response shape.
 app.use((req: Request, res: Response, next: NextFunction): void => {
-  const timeoutMs = 30000; // 30 seconds
+  const timeoutMs = Number(process.env.REQUEST_TIMEOUT_MS) || 30000;
   const timeout = setTimeout(() => {
     if (!res.headersSent) {
       res.status(504).json({
