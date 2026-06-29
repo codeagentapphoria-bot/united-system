@@ -105,6 +105,17 @@ api.interceptors.response.use(
       error.message = errorMessage;
     }
 
+    // Server-side error responses — translate to friendly user-facing messages.
+    if (error.response?.status === 504) {
+      return Promise.reject(new Error('The server took too long to respond. Please try again.'));
+    }
+    if (error.response?.status === 503) {
+      return Promise.reject(new Error('Service is temporarily unavailable. Please try again in a moment.'));
+    }
+    if (error.response?.status === 429) {
+      return Promise.reject(new Error('Too many requests. Please slow down and try again in a minute.'));
+    }
+
     return Promise.reject(error);
   }
 );
