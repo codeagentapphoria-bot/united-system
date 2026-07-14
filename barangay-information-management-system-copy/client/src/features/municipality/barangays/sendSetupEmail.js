@@ -264,13 +264,16 @@ BIMS Team`;
     });
 
     // Success notification with more details
+    const provider = response.data.provider === "brevo" ? "Brevo" : "email service";
+    const idText = response.data.messageId ? ` Message ID: ${response.data.messageId}` : "";
+
     toast({ 
-      title: "Setup email sent successfully!", 
-      description: `Email sent to ${email}. The admin has 48 hours to complete setup.`,
+      title: "Setup email accepted for delivery",
+      description: `Email accepted by ${provider} for ${email}.${idText}`,
       duration: 5000
     });
 
-    return { success: true, messageId: response.data.messageId };
+    return { success: true, messageId: response.data.messageId, provider: response.data.provider };
   } catch (error) {
     console.error("Email sending error:", error);
     

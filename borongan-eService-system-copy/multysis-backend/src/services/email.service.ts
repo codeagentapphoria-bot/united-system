@@ -19,6 +19,13 @@ const SMTP_FROM =
     : 'noreply@multysis.local');
 const BREVO_API_KEY = process.env.BREVO_API_KEY?.trim();
 
+export type EmailSendResult = {
+  provider: 'brevo' | 'smtp';
+  messageId?: string;
+  status?: number;
+  senderEmail?: string;
+};
+
 // Initialize nodemailer transporter (only if valid credentials are provided)
 let transporter: nodemailer.Transporter | null = null;
 
@@ -53,7 +60,8 @@ const sendViaBrevoApi = async (
   text?: string,
   from?: string,
   replyTo?: string
-): Promise<void> => {
+): Promise<EmailSendResult> => {
+  const sender = parseSender(from || SMTP_FROM);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), EMAIL_SEND_TIMEOUT_MS);
   let res: Response;
@@ -68,7 +76,7 @@ const sendViaBrevoApi = async (
         accept: 'application/json',
       },
       body: JSON.stringify({
-        sender: parseSender(from || SMTP_FROM),
+        sender,
         to: [{ email: to.trim() }],
         subject,
         htmlContent: html,
@@ -91,7 +99,11 @@ const sendViaBrevoApi = async (
   }
 
   const data = await res.json().catch(() => ({}));
-  console.log(`✅ Email sent to ${to} via Brevo: ${(data as any)?.messageId ?? ''}`);
+  const messageId = (data as any)?.messageId;
+  console.log(
+    `✅ Email accepted to ${to} from ${sender.email} via Brevo; status=${res.status}; messageId=${messageId ?? ''}`
+  );
+  return { provider: 'brevo', messageId, status: res.status, senderEmail: sender.email };
 };
 
 if (isBrevoConfigured()) {
@@ -176,14 +188,13 @@ export const sendEmail = async (
   text?: string,
   from?: string,
   replyTo?: string
-): Promise<void> => {
+): Promise<EmailSendResult> => {
   if (!to || !to.trim()) {
     throw new Error('Recipient email address is required');
   }
 
   if (isBrevoConfigured()) {
-    await sendViaBrevoApi(to, subject, html, text, from, replyTo);
-    return;
+    return sendViaBrevoApi(to, subject, html, text, from, replyTo);
   }
 
   if (!transporter) {
@@ -204,6 +215,7 @@ export const sendEmail = async (
 
     const info = await transporter.sendMail(mailOptions);
     console.log(`✅ Email sent to ${to}: ${info.messageId}`);
+    return { provider: 'smtp', messageId: info.messageId };
   } catch (error: any) {
     console.error('❌ Failed to send email:', error);
 

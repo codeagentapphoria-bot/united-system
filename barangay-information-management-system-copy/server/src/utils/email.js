@@ -21,7 +21,7 @@ function parseSender(value) {
 
 async function sendViaBrevoApi({ to, subject, text, html, from, attachments = [] }) {
   const sender = parseSender(from || SMTP_FROM);
-  if (!sender.email) throw new Error("Sender email is required. Set SMTP_FROM for Brevo email.");
+  if (!sender.email) throw new Error("Sender email is required. Set EMAIL_FROM_ADDRESS or SMTP_FROM for Brevo email.");
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), EMAIL_SEND_TIMEOUT_MS);
 
@@ -66,8 +66,15 @@ async function sendViaBrevoApi({ to, subject, text, html, from, attachments = []
   }
 
   const data = await res.json().catch(() => ({}));
-  logger.info(`Brevo API: Email sent to ${to}: ${data.messageId || ""}`);
-  return { messageId: data.messageId };
+  logger.info(
+    `Brevo API: accepted email to ${to} from ${sender.email}; status=${res.status}; messageId=${data.messageId || ""}`
+  );
+  return {
+    provider: "brevo",
+    messageId: data.messageId,
+    status: res.status,
+    senderEmail: sender.email,
+  };
 }
 
 export async function sendEmail({ to, subject, text, html, from, attachments = [] }) {
@@ -110,7 +117,7 @@ export async function sendEmail({ to, subject, text, html, from, attachments = [
   try {
     const info = await transporter.sendMail(mailOptions);
     logger.info(`Gmail SMTP: Email sent to ${to}: ${info.messageId}`);
-    return info;
+    return { ...info, provider: "smtp" };
   } catch (error) {
     logger.error("Gmail SMTP: Failed to send email:", error.message || error);
     throw error;

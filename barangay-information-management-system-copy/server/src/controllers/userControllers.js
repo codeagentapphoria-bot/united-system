@@ -215,11 +215,15 @@ export const sendSetupEmail = async (req, res, next) => {
       html,
     });
     
-    logger.info(`Setup email sent successfully to: ${to}, Message ID: ${result.messageId}`);
+    logger.info(
+      `Setup email accepted to: ${to}, provider: ${result.provider || "smtp"}, status: ${result.status || "n/a"}, messageId: ${result.messageId || ""}`
+    );
     
     return res.status(200).json({ 
       message: "Setup email sent successfully.",
       messageId: result.messageId,
+      provider: result.provider || "smtp",
+      status: result.status,
       recipient: to
     });
   } catch (error) {

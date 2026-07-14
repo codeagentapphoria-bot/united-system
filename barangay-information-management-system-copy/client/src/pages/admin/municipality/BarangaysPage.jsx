@@ -246,8 +246,9 @@ const BarangaysPage = () => {
       
       // Handle successful creation with auto-refresh
       if (emailResult.success) {
+        const provider = emailResult.provider === "brevo" ? "Brevo" : "the email service";
         await handleCrudSuccess('create', {
-          message: `Barangay ${values.barangayName} has been created successfully and setup email sent!`
+          message: `Barangay ${values.barangayName} has been created successfully and setup email accepted by ${provider}.`
         });
       } else {
         // Barangay created but email failed

@@ -18,6 +18,7 @@ describe('email.service', () => {
     delete process.env.SMTP_FROM;
     (global as any).fetch = jest.fn().mockResolvedValue({
       ok: true,
+      status: 202,
       json: jest.fn().mockResolvedValue({ messageId: 'brevo-message-id' }),
     });
   });
@@ -29,11 +30,16 @@ describe('email.service', () => {
   });
 
   it('sends through Brevo HTTPS API when BREVO_API_KEY is set', async () => {
-    const { sendEmailSafely } = await import('../email.service');
+    const { sendEmail } = await import('../email.service');
 
     await expect(
-      sendEmailSafely('resident@example.com', 'Registration Approved', '<p>Approved</p>', 'Approved')
-    ).resolves.toBe(true);
+      sendEmail('resident@example.com', 'Registration Approved', '<p>Approved</p>', 'Approved')
+    ).resolves.toMatchObject({
+      provider: 'brevo',
+      messageId: 'brevo-message-id',
+      status: 202,
+      senderEmail: 'code.agent.apphoria@gmail.com',
+    });
 
     const fetchMock = (global as any).fetch as jest.Mock;
     expect(fetchMock).toHaveBeenCalledTimes(1);

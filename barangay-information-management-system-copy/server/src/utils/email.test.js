@@ -17,6 +17,7 @@ test('sendEmail uses Brevo HTTPS API with attachments when BREVO_API_KEY is set'
     calls.push({ url, options });
     return {
       ok: true,
+      status: 202,
       json: async () => ({ messageId: 'brevo-message-id' }),
     };
   };
@@ -43,6 +44,8 @@ test('sendEmail uses Brevo HTTPS API with attachments when BREVO_API_KEY is set'
   });
 
   assert.equal(result.messageId, 'brevo-message-id');
+  assert.equal(result.provider, 'brevo');
+  assert.equal(result.status, 202);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, 'https://api.brevo.com/v3/smtp/email');
   assert.equal(calls[0].options.headers['api-key'], 'xkeysib-test');
