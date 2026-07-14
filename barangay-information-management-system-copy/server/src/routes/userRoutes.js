@@ -99,7 +99,12 @@ router.post(
 
       return res.status(200).json({ message: "Account setup complete." });
     } catch (err) {
-      return res.status(401).json({ message: err.message || "Invalid or expired setup token." });
+      if (err.statusCode) {
+        return res.status(err.statusCode).json({ message: err.message });
+      }
+
+      console.error("Account setup failed:", err);
+      return res.status(500).json({ message: "Account setup failed. Please try again." });
     }
   }
 );
