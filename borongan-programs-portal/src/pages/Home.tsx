@@ -45,6 +45,24 @@ const BENEFICIARY_STATUS_CONFIG: Record<string, { label: string; className: stri
 const OTHER_PROGRAMS_URL = import.meta.env.VITE_OTHER_PROGRAMS_URL || '';
 const USER_GUIDE_URL = '/user-guide/presentation.html';
 
+const VISUAL_ONLY_SERVICES = [
+  {
+    name: 'Direkta Ayuda',
+    description: 'Direct assistance for qualified Borongan residents and families.',
+    tags: ['All Residents', 'Assistance'],
+  },
+  {
+    name: 'Libre Medisina',
+    description: 'Medicine support for residents who need help with essential healthcare.',
+    tags: ['Healthcare', 'Medicine'],
+  },
+  {
+    name: 'Senior Citizen Allowance',
+    description: 'Allowance support for Borongan senior citizens.',
+    tags: ['Senior Citizen', 'Allowance'],
+  },
+];
+
 // ---------------------------------------------------------------------------
 // ProgramCard
 // ---------------------------------------------------------------------------
@@ -115,6 +133,31 @@ const ProgramCard: React.FC<ProgramCardProps> = ({ program }) => {
     </Card>
   );
 };
+
+const VisualOnlyServiceCard: React.FC<{ service: (typeof VISUAL_ONLY_SERVICES)[number] }> = ({ service }) => (
+  <Card className="h-full flex flex-col hover:shadow-md transition-shadow border-primary-100">
+    <CardContent className="p-5 flex flex-col h-full gap-3">
+      <div>
+        <h3 className="font-semibold text-heading-700 text-base">{service.name}</h3>
+        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{service.description}</p>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {service.tags.map((tag) => (
+          <Badge key={tag} variant="outline" className="text-xs font-medium border-primary-200 text-primary-700 bg-primary-50">
+            {tag}
+          </Badge>
+        ))}
+      </div>
+
+      <div className="flex-1" />
+
+      <Button size="sm" className="w-full bg-primary-600 hover:bg-primary-700">
+        Open
+      </Button>
+    </CardContent>
+  </Card>
+);
 
 // ---------------------------------------------------------------------------
 // Hero — Guest
@@ -352,16 +395,14 @@ export const Home: React.FC = () => {
               <div key={i} className="h-44 rounded-xl bg-gray-100 animate-pulse" />
             ))}
           </div>
-        ) : programs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <FiAlertCircle size={40} className="text-gray-300 mb-3" />
-            <p className="text-heading-500 font-medium">No services found</p>
-            <p className="text-sm text-heading-400 mt-1">No services are available at the moment.</p>
-          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {programs.map((program) => (
               <ProgramCard key={program.id} program={program} />
+            ))}
+
+            {VISUAL_ONLY_SERVICES.map((service) => (
+              <VisualOnlyServiceCard key={service.name} service={service} />
             ))}
 
             {/* Other Programs — external link card */}

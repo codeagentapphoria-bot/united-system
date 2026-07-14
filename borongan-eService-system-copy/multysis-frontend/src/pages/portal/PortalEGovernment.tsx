@@ -221,7 +221,70 @@ export const PortalEGovernment_ACTIVE: React.FC = () => {
 
 import React from 'react';
 import { PortalLayout } from '@/components/layout/PortalLayout';
-import { FiFileText, FiClipboard, FiUser, FiCheckCircle } from 'react-icons/fi';
+import { FiArrowRight, FiFileText } from 'react-icons/fi';
+
+const eGovernmentServices = [
+  {
+    code: 'BIRTH_CERTIFICATE',
+    name: 'Birth Certificate',
+    description: 'Request and manage birth certificate transactions.',
+    category: 'Civil Registry',
+  },
+  {
+    code: 'CEDULAS',
+    name: 'Cedulas',
+    description: 'Community tax certificate transactions.',
+    category: 'Tax',
+  },
+  {
+    code: 'OCCUPATIONAL_HEALTH',
+    name: 'Occupational & Health',
+    description: 'Occupational health certificate transactions.',
+    category: 'Health',
+  },
+  {
+    code: 'RPTAX',
+    name: 'RPTAX',
+    description: 'Real Property Tax transactions.',
+    category: 'Tax',
+  },
+  {
+    code: 'BPTAX',
+    name: 'BPTAX',
+    description: 'Business Property Tax transactions.',
+    category: 'Tax',
+  },
+  {
+    code: 'NOV',
+    name: 'Notice of Violations',
+    description: 'Notice of violations transactions.',
+    category: 'Permit',
+  },
+  {
+    code: 'OVRS',
+    name: 'OVRS',
+    description: 'Ordinance Violations Reporting System transactions.',
+    category: 'Permit',
+  },
+  {
+    code: 'BPLS',
+    name: 'BPLS',
+    description: 'Business Permit and Licensing System transactions.',
+    category: 'Business',
+  },
+  {
+    code: 'EBOSS',
+    name: 'E-Boss',
+    description: 'E-Business One Stop Shop transactions.',
+    category: 'Business',
+  },
+  {
+    code: 'DEATH_CERTIFICATE',
+    name: 'Death Certificate',
+    description: 'Request and manage death certificate transactions.',
+    category: 'Civil Registry',
+  },
+];
 
 export const PortalEGovernment: React.FC = () => {
   return (
@@ -234,46 +297,37 @@ export const PortalEGovernment: React.FC = () => {
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <div className="text-center py-12">
-            <div className="w-20 h-20 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
-              <FiFileText size={40} className="text-primary-600" />
-            </div>
-            <h2 className="text-2xl font-semibold text-heading-700 mb-2">E-Government Services Coming Soon</h2>
-            <p className="text-heading-600">
-              The E-Government Services section is currently under development. Check back soon for online government services.
-            </p>
-          </div>
-        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {eGovernmentServices.map((service) => (
+            <div
+              key={service.code}
+              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow flex flex-col h-full"
+            >
+              <div className="w-12 h-12 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center mb-4">
+                <FiFileText size={24} />
+              </div>
 
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="w-12 h-12 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center mb-4">
-              <FiClipboard size={24} />
+              <div className="mb-3">
+                <span className="inline-flex items-center rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700 border border-primary-100">
+                  {service.category}
+                </span>
+              </div>
+
+              <h2 className="text-xl font-semibold text-heading-700 mb-2">{service.name}</h2>
+              <p className="text-sm text-heading-600 mb-4">{service.description}</p>
+
+              <div className="pt-4 border-t border-gray-100 mt-auto">
+                <p className="text-xs font-medium uppercase tracking-wide text-heading-400">
+                  {service.code.replace(/_/g, ' ')}
+                </p>
+
+                <span className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-700">
+                  Apply Now
+                  <FiArrowRight className="ml-2" size={16} />
+                </span>
+              </div>
             </div>
-            <h3 className="text-lg font-semibold text-heading-700 mb-2">Online Applications</h3>
-            <p className="text-sm text-heading-600">
-              Submit government service requests online from anywhere
-            </p>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="w-12 h-12 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center mb-4">
-              <FiCheckCircle size={24} />
-            </div>
-            <h3 className="text-lg font-semibold text-heading-700 mb-2">Track Applications</h3>
-            <p className="text-sm text-heading-600">
-              Monitor the status of your applications in real-time
-            </p>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="w-12 h-12 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center mb-4">
-              <FiUser size={24} />
-            </div>
-            <h3 className="text-lg font-semibold text-heading-700 mb-2">Guest Applications</h3>
-            <p className="text-sm text-heading-600">
-              Apply without an account for quick and easy access
-            </p>
-          </div>
+          ))}
         </div>
       </div>
     </PortalLayout>
