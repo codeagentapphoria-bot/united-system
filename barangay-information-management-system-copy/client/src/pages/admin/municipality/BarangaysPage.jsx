@@ -1472,10 +1472,15 @@ const BarangaysPage = () => {
 
                         setIsAddingAdmin(true);
                         try {
+                          const barangayId = selectedBarangay?.id ?? selectedBarangay?.barangay_id;
+                          if (!barangayId) {
+                            throw new Error("Missing barangay ID. Please refresh and try again.");
+                          }
+
                           // 1. Create user
                           await api.post("/user", {
                             targetType: "barangay",
-                            targetId: String(selectedBarangay.id),
+                            targetId: String(barangayId),
                             fullname: adminForm.fullname,
                             email: adminForm.email,
                             role: "admin",
@@ -1487,7 +1492,7 @@ const BarangaysPage = () => {
                             barangayCode: selectedBarangay.barangay_code,
                             fullName: adminForm.fullname,
                             email: adminForm.email,
-                            barangayId: selectedBarangay.id,
+                            barangayId,
                             toast,
                           });
 
@@ -1499,7 +1504,7 @@ const BarangaysPage = () => {
                           setAdminFormErrors({});
                           setIsAdminDialogOpen(false);
                           if (emailResult.success) {
-                            toast({ title: "Admin added", description: `Setup email sent to ${adminForm.email}` });
+                            toast({ title: "Admin added", description: `Setup email accepted for ${adminForm.email}` });
                           } else {
                             toast({
                               title: "Admin added, email failed",

@@ -48,6 +48,18 @@ export const upsertUser = async (req, res, next) => {
     if (!targetId && req.user) targetId = req.user.target_id;
   }
 
+  if (!targetType || !targetId || !fullname || !email || !role) {
+    return next(new ApiError(400, "targetType, targetId, fullname, email, and role are required"));
+  }
+
+  if (!['municipality', 'barangay'].includes(targetType)) {
+    return next(new ApiError(400, "targetType must be municipality or barangay"));
+  }
+
+  if (!['admin', 'staff'].includes(role)) {
+    return next(new ApiError(400, "role must be admin or staff"));
+  }
+
   // Safely extract picturePath from uploaded files
   let picturePath = null;
   if (req.files && req.files.picturePath && req.files.picturePath[0]) {
