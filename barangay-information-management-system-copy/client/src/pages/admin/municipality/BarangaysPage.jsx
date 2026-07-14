@@ -1481,7 +1481,7 @@ const BarangaysPage = () => {
                           });
 
                           // 2. Send setup email
-                          await sendSetupEmail({
+                          const emailResult = await sendSetupEmail({
                             barangayName: selectedBarangay.barangay_name,
                             barangayCode: selectedBarangay.barangay_code,
                             fullName: adminForm.fullname,
@@ -1497,7 +1497,15 @@ const BarangaysPage = () => {
                           setAdminForm({ fullname: "", email: "" });
                           setAdminFormErrors({});
                           setIsAdminDialogOpen(false);
-                          toast({ title: "Admin added", description: `Setup email sent to ${adminForm.email}` });
+                          if (emailResult.success) {
+                            toast({ title: "Admin added", description: `Setup email sent to ${adminForm.email}` });
+                          } else {
+                            toast({
+                              title: "Admin added, email failed",
+                              description: emailResult.error || "The account was created, but the setup email was not sent.",
+                              variant: "destructive",
+                            });
+                          }
                         } catch (err) {
                           const msg = err.response?.data?.message || "Failed to add admin";
                           toast({ title: "Error", description: msg, variant: "destructive" });

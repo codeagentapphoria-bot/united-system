@@ -183,7 +183,7 @@ export const userInfo = async (req, res, next) => {
 
 export const sendSetupEmail = async (req, res, next) => {
   try {
-    const { to, subject, body, html, from } = req.body;
+    const { to, subject, body, html } = req.body;
     
     // Validate required fields
     if (!to || !subject || (!body && !html)) {
@@ -213,7 +213,6 @@ export const sendSetupEmail = async (req, res, next) => {
       subject,
       text: body,
       html,
-      from: from || process.env.SMTP_FROM,
     });
     
     logger.info(`Setup email sent successfully to: ${to}, Message ID: ${result.messageId}`);

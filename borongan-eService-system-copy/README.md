@@ -94,12 +94,17 @@ JWT_REFRESH_EXPIRES_IN=7d
 CORS_ORIGIN=http://localhost:5173
 API_BASE_URL=http://localhost:3000
 
-# Email (optional — for notifications)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-EMAIL_FROM=noreply@multysis.com
+# Email (optional — Brevo HTTPS API is recommended on Railway)
+BREVO_API_KEY=your-brevo-api-key
+EMAIL_FROM_NAME=City of Borongan
+EMAIL_FROM_ADDRESS=code.agent.apphoria@gmail.com
+SMTP_FROM="City of Borongan <code.agent.apphoria@gmail.com>"
+
+# SMTP fallback only
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=2525
+SMTP_USER=
+SMTP_PASS=
 
 # Redis (optional)
 REDIS_HOST=localhost
@@ -265,7 +270,7 @@ After running `npm run db:seed`:
 | JWT + bcryptjs | Auth & password hashing |
 | Socket.IO | Real-time events |
 | Multer | File uploads |
-| Nodemailer | Email notifications |
+| Brevo HTTPS API + Nodemailer fallback | Email notifications |
 | Twilio | SMS notifications |
 | Winston | Logging |
 | Bull + IORedis | Job queues (optional) |
