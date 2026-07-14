@@ -7,10 +7,9 @@ const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_PASS = process.env.GMAIL_PASS;
 const EMAIL_SEND_TIMEOUT_MS = Number.parseInt(process.env.EMAIL_SEND_TIMEOUT_MS || "10000", 10);
 const SMTP_FROM =
-  process.env.SMTP_FROM ||
   (process.env.EMAIL_FROM_ADDRESS
     ? `${process.env.EMAIL_FROM_NAME ? `${process.env.EMAIL_FROM_NAME} ` : ""}<${process.env.EMAIL_FROM_ADDRESS}>`
-    : GMAIL_USER);
+    : process.env.SMTP_FROM || GMAIL_USER);
 
 function parseSender(value) {
   const match = value?.match(/^(.*?)\s*<([^>]+)>$/);

@@ -13,10 +13,9 @@ const EMAIL_SEND_TIMEOUT_MS = process.env.EMAIL_SEND_TIMEOUT_MS
   ? parseInt(process.env.EMAIL_SEND_TIMEOUT_MS.trim(), 10)
   : 10_000;
 const SMTP_FROM =
-  process.env.SMTP_FROM?.trim() ||
   (EMAIL_FROM_ADDRESS
     ? `${EMAIL_FROM_NAME ? `${EMAIL_FROM_NAME} ` : ''}<${EMAIL_FROM_ADDRESS}>`
-    : 'noreply@multysis.local');
+    : process.env.SMTP_FROM?.trim() || 'noreply@multysis.local');
 const BREVO_API_KEY = process.env.BREVO_API_KEY?.trim();
 
 export type EmailSendResult = {

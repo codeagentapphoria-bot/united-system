@@ -15,7 +15,7 @@ describe('email.service', () => {
       EMAIL_ENABLED: 'true',
       NODE_ENV: 'test',
     };
-    delete process.env.SMTP_FROM;
+    process.env.SMTP_FROM = 'noreply@bims.gov.ph';
     (global as any).fetch = jest.fn().mockResolvedValue({
       ok: true,
       status: 202,

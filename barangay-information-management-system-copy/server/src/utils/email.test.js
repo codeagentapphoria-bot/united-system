@@ -9,7 +9,7 @@ test('sendEmail uses Brevo HTTPS API with attachments when BREVO_API_KEY is set'
   process.env.BREVO_API_KEY = 'xkeysib-test';
   process.env.EMAIL_FROM_NAME = 'City of Borongan';
   process.env.EMAIL_FROM_ADDRESS = 'code.agent.apphoria@gmail.com';
-  delete process.env.SMTP_FROM;
+  process.env.SMTP_FROM = 'noreply@bims.gov.ph';
   delete process.env.GMAIL_USER;
   delete process.env.GMAIL_PASS;
 
