@@ -364,11 +364,13 @@ const ResidentsPage = ({ role }) => {
     try {
       const res = await api.get("/list/residents", { params });
       const data = res.data.data;
-      setResidents(data.data || data || []);
-      setTotal(data.pagination?.totalRecords || data.total || 0);
-      if (data.pagination) {
-        setPage(data.pagination.page || 1);
-        setPerPage(data.pagination.perPage || 10);
+      const residentsData = data.data || data || [];
+      const pagination = data.pagination || res.data.pagination;
+      setResidents(residentsData);
+      setTotal(pagination?.totalRecords || pagination?.total || data.total || residentsData.length);
+      if (pagination) {
+        setPage(pagination.page || 1);
+        setPerPage(pagination.perPage || 10);
       }
     } catch (err) {
       console.error('❌ fetchResidents: API call failed:', err);
@@ -413,11 +415,13 @@ const ResidentsPage = ({ role }) => {
       const res = await api.get("/list/residents", { params });
       const data = res.data.data;
       console.log('📊 stableRefresh: API response data:', data);
-      setResidents(data.data || data || []);
-      setTotal(data.pagination?.totalRecords || data.total || 0);
-      if (data.pagination) {
-        setPage(data.pagination.page || 1);
-        setPerPage(data.pagination.perPage || 10);
+      const residentsData = data.data || data || [];
+      const pagination = data.pagination || res.data.pagination;
+      setResidents(residentsData);
+      setTotal(pagination?.totalRecords || pagination?.total || data.total || residentsData.length);
+      if (pagination) {
+        setPage(pagination.page || 1);
+        setPerPage(pagination.perPage || 10);
       }
       console.log('✅ stableRefresh: Data updated successfully');
     } catch (err) {
