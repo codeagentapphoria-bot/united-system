@@ -445,9 +445,6 @@ const SettingsPage = () => {
         formData.append("email", data.email);
         formData.append("contactNumber", data.contact);
 
-        // Add municipality ID (for barangay users, this should be 1 for the main municipality)
-        formData.append("municipalityId", "1");
-
         // Add GIS ID if selected, otherwise use existing barangay's GIS ID
         if (selectedBarangay?.gis_code) {
           formData.append("gisCode", selectedBarangay.gis_code);
@@ -475,7 +472,6 @@ const SettingsPage = () => {
           barangayCode: data.code,
           email: data.email,
           contactNumber: data.contact,
-          municipalityId: "1",
           gisCode: selectedBarangay?.gis_code || existingBarangayId,
           imageFiles: Object.keys(imageFiles).filter(key => imageFiles[key])
         });
