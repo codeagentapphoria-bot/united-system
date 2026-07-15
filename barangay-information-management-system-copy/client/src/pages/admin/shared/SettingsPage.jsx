@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { handleError, handleErrorSilently } from "@/utils/errorHandler";
 import logger from "@/utils/logger";
@@ -115,9 +115,6 @@ const SettingsPage = () => {
   const [municipalityIdForClassification, setMunicipalityIdForClassification] = useState(null);
   const [imageFiles, setImageFiles] = useState({});
   const [imagePreviews, setImagePreviews] = useState({});
-  const barangayLogoInputRef = useRef(null);
-  const certificateInputRef = useRef(null);
-  const orgChartInputRef = useRef(null);
 
   const isMunicipality = user?.target_type === "municipality";
   const isBarangay = user?.target_type === "barangay";
@@ -1114,19 +1111,14 @@ const SettingsPage = () => {
               </div>
               <div className="relative">
                 <input
-                  ref={barangayLogoInputRef}
                   type="file"
                   id="barangayLogo"
                   accept="image/*"
                   onChange={(e) => handleImageChange("logo", e.target.files[0])}
-                  className="hidden"
+                  className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
                 />
                 <label
                   htmlFor="barangayLogo"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    barangayLogoInputRef.current?.click();
-                  }}
                   className="group relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
                 >
                   {imagePreviews.logo ? (
@@ -1167,21 +1159,16 @@ const SettingsPage = () => {
               </div>
               <div className="relative">
                 <input
-                  ref={certificateInputRef}
                   type="file"
                   id="certificate"
                   accept="image/*"
                   onChange={(e) =>
                     handleImageChange("certificate", e.target.files[0])
                   }
-                  className="hidden"
+                  className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
                 />
                 <label
                   htmlFor="certificate"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    certificateInputRef.current?.click();
-                  }}
                   className="group relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
                 >
                   {imagePreviews.certificate ? (
@@ -1209,7 +1196,7 @@ const SettingsPage = () => {
                 {imagePreviews.certificate && (
                   <button
                     onClick={() => handleRemoveImage("certificate")}
-                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors duration-200 shadow-lg"
+                    className="absolute -top-2 -right-2 z-30 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors duration-200 shadow-lg"
                     title="Remove image"
                   >
                     <X className="h-3 w-3" />
@@ -1230,21 +1217,16 @@ const SettingsPage = () => {
               </div>
               <div className="relative">
                 <input
-                  ref={orgChartInputRef}
                   type="file"
                   id="orgChart"
                   accept="image/*"
                   onChange={(e) =>
                     handleImageChange("orgChart", e.target.files[0])
                   }
-                  className="hidden"
+                  className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
                 />
                 <label
                   htmlFor="orgChart"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    orgChartInputRef.current?.click();
-                  }}
                   className="group relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
                 >
                   {imagePreviews.orgChart ? (
@@ -1272,7 +1254,7 @@ const SettingsPage = () => {
                 {imagePreviews.orgChart && (
                   <button
                     onClick={() => handleRemoveImage("orgChart")}
-                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors duration-200 shadow-lg"
+                    className="absolute -top-2 -right-2 z-30 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors duration-200 shadow-lg"
                     title="Remove image"
                   >
                     <X className="h-3 w-3" />
