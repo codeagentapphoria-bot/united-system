@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { handleError, handleErrorSilently } from "@/utils/errorHandler";
 import logger from "@/utils/logger";
@@ -115,6 +115,9 @@ const SettingsPage = () => {
   const [municipalityIdForClassification, setMunicipalityIdForClassification] = useState(null);
   const [imageFiles, setImageFiles] = useState({});
   const [imagePreviews, setImagePreviews] = useState({});
+  const barangayLogoInputRef = useRef(null);
+  const certificateInputRef = useRef(null);
+  const orgChartInputRef = useRef(null);
 
   const isMunicipality = user?.target_type === "municipality";
   const isBarangay = user?.target_type === "barangay";
@@ -1111,6 +1114,7 @@ const SettingsPage = () => {
               </div>
               <div className="relative">
                 <input
+                  ref={barangayLogoInputRef}
                   type="file"
                   id="barangayLogo"
                   accept="image/*"
@@ -1119,6 +1123,10 @@ const SettingsPage = () => {
                 />
                 <label
                   htmlFor="barangayLogo"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    barangayLogoInputRef.current?.click();
+                  }}
                   className="group relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
                 >
                   {imagePreviews.logo ? (
@@ -1159,6 +1167,7 @@ const SettingsPage = () => {
               </div>
               <div className="relative">
                 <input
+                  ref={certificateInputRef}
                   type="file"
                   id="certificate"
                   accept="image/*"
@@ -1169,6 +1178,10 @@ const SettingsPage = () => {
                 />
                 <label
                   htmlFor="certificate"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    certificateInputRef.current?.click();
+                  }}
                   className="group relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
                 >
                   {imagePreviews.certificate ? (
@@ -1217,6 +1230,7 @@ const SettingsPage = () => {
               </div>
               <div className="relative">
                 <input
+                  ref={orgChartInputRef}
                   type="file"
                   id="orgChart"
                   accept="image/*"
@@ -1227,6 +1241,10 @@ const SettingsPage = () => {
                 />
                 <label
                   htmlFor="orgChart"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    orgChartInputRef.current?.click();
+                  }}
                   className="group relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
                 >
                   {imagePreviews.orgChart ? (
