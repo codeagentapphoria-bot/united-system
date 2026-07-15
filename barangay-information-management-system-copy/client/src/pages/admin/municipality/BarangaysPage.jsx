@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { CompactPagination } from "@/components/ui/compact-pagination";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -1023,29 +1024,13 @@ const BarangaysPage = () => {
             )}
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 px-4 py-3 border-t">
-                <div className="text-sm text-gray-500">
-                  Page {currentPage} of {totalPages}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
+              <CompactPagination
+                page={currentPage}
+                totalPages={totalPages}
+                total={filteredAndSortedBarangays.length}
+                perPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+              />
             )}
           </TabsContent>
 

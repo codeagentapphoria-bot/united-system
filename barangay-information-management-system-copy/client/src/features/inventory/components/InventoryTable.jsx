@@ -6,7 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { CompactPagination } from "@/components/ui/compact-pagination";
 import { Package, Calendar } from "lucide-react";
 import { format } from "date-fns";
 
@@ -19,9 +19,7 @@ const InventoryTable = ({
   totalPages = 1,
   perPage = 10,
   total = 0,
-  handlePrev,
-  handleNext,
-  setPerPage,
+  setPage,
 }) => {
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -104,30 +102,13 @@ const InventoryTable = ({
         </TableBody>
       </Table>
 
-      {/* Pagination */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 px-4 py-3 border-t">
-        <div className="text-sm text-gray-500">
-          Page {page} of {totalPages || 1}
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handlePrev} disabled={page === 1}>
-            Previous
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleNext} disabled={page === totalPages || totalPages === 0}>
-            Next
-          </Button>
-        </div>
-        <select
-          className="w-24 border rounded px-2 py-1 text-sm"
-          value={perPage}
-          onChange={(e) => setPerPage(Number(e.target.value))}
-        >
-          <option value={5}>5 / page</option>
-          <option value={10}>10 / page</option>
-          <option value={20}>20 / page</option>
-          <option value={50}>50 / page</option>
-        </select>
-      </div>
+      <CompactPagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        perPage={perPage}
+        onPageChange={setPage}
+      />
     </>
   );
 };

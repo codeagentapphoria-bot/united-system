@@ -34,7 +34,7 @@ const ArchivesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(10);
+  const [perPage] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState({
@@ -196,10 +196,6 @@ const ArchivesPage = () => {
     }
   };
 
-  // Pagination
-  const handlePrev = () => page > 1 && setPage(page - 1);
-  const handleNext = () => page < totalPages && setPage(page + 1);
-
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -239,9 +235,7 @@ const ArchivesPage = () => {
             totalPages={totalPages}
             perPage={perPage}
             total={total}
-            handlePrev={handlePrev}
-            handleNext={handleNext}
-            setPerPage={setPerPage}
+            setPage={setPage}
           />
         </CardContent>
       </Card>

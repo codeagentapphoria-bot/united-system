@@ -489,10 +489,7 @@ const ResidentsPage = ({ role }) => {
     }
   };
 
-  // Pagination controls
   const totalPages = Math.max(1, Math.ceil(total / perPage));
-  const handlePrev = () => setPage((p) => Math.max(1, p - 1));
-  const handleNext = () => setPage((p) => Math.min(totalPages, p + 1));
 
   // Handler for opening view dialog and fetching full info
   const handleView = async (resident) => {
@@ -1231,9 +1228,7 @@ const ResidentsPage = ({ role }) => {
             totalPages={totalPages}
             perPage={perPage}
             total={total}
-            handlePrev={handlePrev}
-            handleNext={handleNext}
-            setPerPage={setPerPage}
+            setPage={setPage}
             role={role}
             handleView={handleView}
             handleEdit={handleEdit}

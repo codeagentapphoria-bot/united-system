@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CompactPagination } from "@/components/ui/compact-pagination";
 import RefreshControls from "@/components/common/RefreshControls";
 import { useUnifiedAutoRefresh } from "@/hooks/useUnifiedAutoRefresh";
 import { Badge } from "@/components/ui/badge";
@@ -1404,13 +1405,7 @@ const RequestsPage = () => {
     return `${month}/${day}/${year} ${formattedHours}:${minutes} ${ampm}`;
   };
 
-  // Pagination controls
-
   const totalPages = Math.max(1, Math.ceil(total / perPage));
-
-  const handlePrev = () => setPage((p) => Math.max(1, p - 1));
-
-  const handleNext = () => setPage((p) => Math.min(totalPages, p + 1));
 
   // QR Scanner functions (updated to use Html5Qrcode like working public page)
 
@@ -2423,51 +2418,14 @@ const RequestsPage = () => {
             </Table>
           )}
 
-          {/* Pagination Controls */}
-
           {filteredRequests.length > 0 && (
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 mt-4">
-              <div className="text-xs sm:text-sm">
-                Page {page} of {totalPages}
-              </div>
-
-              <div className="flex gap-2 items-center">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePrev}
-                  disabled={page === 1}
-                  className="text-xs sm:text-sm"
-                >
-                  <span className="hidden sm:inline">Previous</span>
-                  <span className="sm:hidden">Prev</span>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleNext}
-                  disabled={page === totalPages || totalPages === 0}
-                  className="text-xs sm:text-sm"
-                >
-                  Next
-                </Button>
-
-                <select
-                  className="w-20 sm:w-24 border rounded px-2 py-1 text-xs sm:text-sm"
-                  value={perPage}
-                  onChange={(e) => setPerPage(Number(e.target.value))}
-                >
-                  <option value={5}>5 / page</option>
-
-                  <option value={10}>10 / page</option>
-
-                  <option value={20}>20 / page</option>
-
-                  <option value={50}>50 / page</option>
-                </select>
-              </div>
-            </div>
+            <CompactPagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              perPage={perPage}
+              onPageChange={setPage}
+            />
           )}
         </CardContent>
       </Card>

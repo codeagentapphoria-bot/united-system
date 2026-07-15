@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CompactPagination } from "@/components/ui/compact-pagination";
 import RefreshControls from "@/components/common/RefreshControls";
 import { useCrudRefresh } from "@/hooks/useCrudRefresh";
 import { Input } from "@/components/ui/input";
@@ -161,8 +162,7 @@ const AccountsPage = () => {
 
   // Pagination state
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(10);
-  const [total, setTotal] = useState(0);
+  const [perPage] = useState(10);
 
   // Picture upload state
   const [selectedFile, setSelectedFile] = useState(null);
@@ -200,7 +200,6 @@ const AccountsPage = () => {
           user?.target_id
         );
         setAccounts(response.data || []);
-        setTotal(response.data?.length || 0);
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
   console.error("Error fetching users:", error);
@@ -245,15 +244,6 @@ const AccountsPage = () => {
 
   // Calculate pagination values
   const totalPages = Math.ceil(filteredAccounts.length / perPage);
-
-  // Handle pagination
-  const handlePrev = () => {
-    setPage((prev) => Math.max(prev - 1, 1));
-  };
-
-  const handleNext = () => {
-    setPage((prev) => Math.min(prev + 1, totalPages));
-  };
 
   // Reset page when filters change
   useEffect(() => {
@@ -435,7 +425,6 @@ const AccountsPage = () => {
         user?.target_id
       );
       setAccounts(usersResponse.data || []);
-      setTotal(usersResponse.data?.length || 0);
 
       setIsAddDialogOpen(false);
       resetForm();
@@ -489,7 +478,6 @@ const AccountsPage = () => {
         user?.target_id
       );
       setAccounts(usersResponse.data || []);
-      setTotal(usersResponse.data?.length || 0);
 
       setIsEditDialogOpen(false);
       setSelectedAccount(null);
@@ -533,7 +521,6 @@ const AccountsPage = () => {
         user?.target_id
       );
       setAccounts(response.data || []);
-      setTotal(response.data?.length || 0);
 
       setIsDeleteDialogOpen(false);
       setAccountToDelete(null);
@@ -951,30 +938,13 @@ const AccountsPage = () => {
             </TableBody>
           </Table>
 
-          {/* Pagination */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 px-4 py-3 border-t">
-            <div className="text-sm text-gray-500">
-              Page {page} of {totalPages || 1}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handlePrev} disabled={page === 1}>
-                Previous
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleNext} disabled={page === totalPages || totalPages === 0}>
-                Next
-              </Button>
-            </div>
-            <select
-              className="w-24 border rounded px-2 py-1 text-sm"
-              value={perPage}
-              onChange={(e) => setPerPage(Number(e.target.value))}
-            >
-              <option value={5}>5 / page</option>
-              <option value={10}>10 / page</option>
-              <option value={20}>20 / page</option>
-              <option value={50}>50 / page</option>
-            </select>
-          </div>
+          <CompactPagination
+            page={page}
+            totalPages={totalPages}
+            total={filteredAccounts.length}
+            perPage={perPage}
+            onPageChange={setPage}
+          />
         </CardContent>
       </Card>
 
