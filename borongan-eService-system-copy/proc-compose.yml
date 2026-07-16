@@ -19,7 +19,10 @@ processes:
     cmd: npm run dev
     dir: ./multysis-backend
     env:
+      NODE_ENV: "development"
       PORT: "3000"
+      COOKIE_SECURE: "false"
+      COOKIE_SAME_SITE: "lax"
     restart: on-failure
     max_restarts: 10
     shutdown_timeout: 10

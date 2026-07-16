@@ -1,6 +1,18 @@
 import prisma from '../config/database';
 import { Prisma } from '@prisma/client';
 import cacheService from './cache.service';
+import { serviceCodeToAdminPath } from '../utils/adminPath';
+
+const SERVICE_PAGE_SYSTEM = 'core';
+
+const upsertServicePage = async (service: { code: string; name: string }) => {
+  const path = serviceCodeToAdminPath(service.code);
+  await prisma.page.upsert({
+    where: { system_path: { system: SERVICE_PAGE_SYSTEM, path } },
+    create: { system: SERVICE_PAGE_SYSTEM, path, name: service.name },
+    update: { name: service.name },
+  });
+};
 
 export interface CreateServiceData {
   code: string;
@@ -80,6 +92,8 @@ export const createService = async (data: CreateServiceData) => {
       appointmentDuration: data.appointmentDuration || null,
     },
   });
+
+  await upsertServicePage(service);
 
   return service;
 };
@@ -225,6 +239,28 @@ export const updateService = async (id: string, data: UpdateServiceData) => {
     }
   }
 
+  const codeWillChange = Boolean(data.code && data.code !== service.code);
+  let pageMove: { id: string; path: string } | null = null;
+  if (codeWillChange && data.code) {
+    const oldPath = serviceCodeToAdminPath(service.code);
+    const newPath = serviceCodeToAdminPath(data.code);
+    const currentPage = await prisma.page.findUnique({
+      where: { system_path: { system: SERVICE_PAGE_SYSTEM, path: oldPath } },
+    });
+
+    if (currentPage) {
+      const conflict = await prisma.page.findUnique({
+        where: { system_path: { system: SERVICE_PAGE_SYSTEM, path: newPath } },
+      });
+
+      if (conflict && conflict.id !== currentPage.id) {
+        throw new Error('A page with this system and path already exists');
+      }
+
+      pageMove = { id: currentPage.id, path: newPath };
+    }
+  }
+
   const updateData: Prisma.ServiceUpdateInput = {};
 
   if (data.code !== undefined) updateData.code = data.code;
@@ -248,10 +284,21 @@ export const updateService = async (id: string, data: UpdateServiceData) => {
   if (data.appointmentDuration !== undefined)
     updateData.appointmentDuration = data.appointmentDuration || null;
 
-  return prisma.service.update({
+  const updatedService = await prisma.service.update({
     where: { id },
     data: updateData,
   });
+
+  if (pageMove) {
+    await prisma.page.update({
+      where: { id: pageMove.id },
+      data: { path: pageMove.path, name: updatedService.name },
+    });
+  } else {
+    await upsertServicePage(updatedService);
+  }
+
+  return updatedService;
 };
 
 export const deleteService = async (id: string) => {

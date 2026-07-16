@@ -472,7 +472,7 @@ export const getAppointmentsController = async (req: AuthRequest, res: Response)
     const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
     const date = req.query.date ? new Date(req.query.date as string) : undefined;
 
-    const appointments = await getAppointments(startDate, endDate, date);
+    const appointments = await getAppointments(startDate, endDate, date, req.user?.id);
 
     res.status(200).json({
       status: 'success',

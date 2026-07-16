@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { Socket, Server as SocketIOServer } from 'socket.io';
 import prisma from '../config/database';
 import { addDevLog } from '../services/dev.service';
+import { canAccessTransaction, getServiceAccessScope } from '../services/service-access.service';
 import type {
   SocketUser,
   TransactionNotePayload,
@@ -69,6 +70,25 @@ const checkRateLimit = (
 
   tracker.eventCount++;
   return true;
+};
+
+const canUseTransactionSocket = async (
+  socket: AuthenticatedSocket,
+  transactionId: string
+): Promise<boolean> => {
+  if (!socket.user) return false;
+  if (socket.user.type === 'dev') return true;
+
+  if (socket.user.type === 'admin') {
+    return canAccessTransaction(socket.user.id, transactionId);
+  }
+
+  const transaction = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    select: { residentId: true },
+  });
+
+  return transaction?.residentId === socket.user.id;
 };
 
 export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
@@ -206,7 +226,7 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
     }
   });
 
-  io.on('connection', (socket: AuthenticatedSocket) => {
+  io.on('connection', async (socket: AuthenticatedSocket) => {
     if (!socket.user) {
       addDevLog('error', 'Socket connection rejected: No user data', {
         socketId: socket.id,
@@ -231,7 +251,22 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
 
     // Join role-based rooms
     if (userType === 'admin') {
-      socket.join('admins');
+      try {
+        const scope = await getServiceAccessScope(userId);
+        if (scope.all) {
+          socket.join('admins');
+        } else {
+          scope.serviceCodes.forEach((code) => socket.join(`service:${code}`));
+        }
+      } catch (error: any) {
+        addDevLog('error', 'Socket admin service scope failed', {
+          userId,
+          socketId: socket.id,
+          error: error.message,
+        });
+        socket.disconnect();
+        return;
+      }
     } else if (userType === 'dev') {
       socket.join('developers');
     } else {
@@ -241,7 +276,12 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
     console.log(`✅ Socket connected: ${userType} ${userId} (${socket.id})`);
 
     // Handle transaction subscription
-    socket.on('subscribe:transaction', (transactionId: string) => {
+    socket.on('subscribe:transaction', async (transactionId: string) => {
+      if (!(await canUseTransactionSocket(socket, transactionId))) {
+        socket.emit('error', { message: 'Access denied' });
+        return;
+      }
+
       socket.join(`transaction:${transactionId}`);
       socket.subscribedTransactions?.add(transactionId);
       console.log(`📌 User ${userId} subscribed to transaction ${transactionId}`);
@@ -293,8 +333,13 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
           return;
         }
 
+        if (userType === 'resident' && data.isInternal) {
+          socket.emit('error', { message: 'Residents cannot create internal notes' });
+          return;
+        }
+
         // Verify ownership/access
-        if (userType === 'resident' && transaction.residentId !== userId) {
+        if (!(await canUseTransactionSocket(socket, data.transactionId))) {
           socket.emit('error', { message: 'Access denied' });
           return;
         }
@@ -343,7 +388,7 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
     });
 
     // Handle typing indicator with rate limiting
-    socket.on('transaction:typing', (data: TypingIndicatorPayload) => {
+    socket.on('transaction:typing', async (data: TypingIndicatorPayload) => {
       // Rate limiting check
       if (
         !checkRateLimit(
@@ -354,6 +399,14 @@ export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
         )
       ) {
         // Silently ignore typing events that exceed rate limit
+        return;
+      }
+
+      if (
+        !socket.subscribedTransactions?.has(data.transactionId) &&
+        !(await canUseTransactionSocket(socket, data.transactionId))
+      ) {
+        socket.emit('error', { message: 'Access denied' });
         return;
       }
 

@@ -14,6 +14,7 @@ import {
 import { sendEmailSafely } from './email.service';
 import { Prisma } from '@prisma/client';
 import { computeTaxForTransaction } from './tax-computation.service';
+import { getTransactionServiceWhereForUser } from './service-access.service';
 
 export interface CreateTransactionData {
   // Resident applicant (required if no guest fields)
@@ -359,9 +360,11 @@ export const getTransactions = async (
 
 export const getTransaction = async (
   id: string,
-  userType?: 'admin' | 'subscriber' | 'dev',
+  userType?: 'admin' | 'resident' | 'subscriber' | 'dev',
   _userId?: string
 ) => {
+  const isResidentUser = userType === 'resident' || userType === 'subscriber';
+
   const transaction = await prisma.transaction.findUnique({
     where: { id },
     include: {
@@ -379,7 +382,7 @@ export const getTransaction = async (
         orderBy: { createdAt: 'desc' },
       },
       transactionNotes: {
-        where: userType === 'subscriber' ? { isInternal: false } : undefined,
+        where: isResidentUser ? { isInternal: false } : undefined,
         orderBy: { createdAt: 'asc' },
       },
     },
@@ -1302,7 +1305,12 @@ export const reviewTransactionUpdateRequest = async (transactionId: string, appr
 };
 
 // Get appointments (transactions with preferredAppointmentDate and active statuses)
-export const getAppointments = async (startDate?: Date, endDate?: Date, date?: Date) => {
+export const getAppointments = async (
+  startDate?: Date,
+  endDate?: Date,
+  date?: Date,
+  adminUserId?: string
+) => {
   const where: any = {
     preferredAppointmentDate: {
       not: null,
@@ -1332,6 +1340,10 @@ export const getAppointments = async (startDate?: Date, endDate?: Date, date?: D
     if (endDate) {
       where.preferredAppointmentDate.lte = endDate;
     }
+  }
+
+  if (adminUserId) {
+    Object.assign(where, await getTransactionServiceWhereForUser(adminUserId));
   }
 
   const appointments = await prisma.transaction.findMany({

@@ -2,6 +2,7 @@ import React from 'react';
 import { useAllowedPages } from '../../context/AllowedPagesContext';
 import { AccessDenied } from './AccessDenied';
 import { cn } from '@/lib/utils';
+import { hasPageAccess } from '@/utils/page-access';
 
 interface AccessControlGateProps {
   children: React.ReactNode;
@@ -23,7 +24,7 @@ export const AccessControlGate: React.FC<AccessControlGateProps> = ({ children, 
     return <AccessDenied pagePath={pagePath} message="No pages assigned to your account. Contact an administrator." />;
   }
 
-  if (!allowedPaths.has(pagePath)) {
+  if (!hasPageAccess(pagePath, allowedPaths)) {
     return <AccessDenied pagePath={pagePath} />;
   }
 

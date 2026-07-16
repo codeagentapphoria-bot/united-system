@@ -47,6 +47,10 @@ import {
   getTaxComputationValidation,
   computeTaxValidation,
 } from '../validations/tax-profile.schema';
+import {
+  requireServiceCodeAccess,
+  requireTransactionServiceAccess,
+} from '../services/service-access.service';
 
 const router = Router();
 
@@ -62,10 +66,20 @@ router.get(
 );
 
 // Get transactions by service code (admin only) - must come before /:id
-router.get('/service/:serviceCode', verifyAdmin, getTransactionsByServiceController);
+router.get(
+  '/service/:serviceCode',
+  verifyAdmin,
+  requireServiceCodeAccess('serviceCode'),
+  getTransactionsByServiceController
+);
 
 // Get service statistics (admin only) - must come before /:id
-router.get('/service/:serviceCode/statistics', verifyAdmin, getServiceStatisticsController);
+router.get(
+  '/service/:serviceCode/statistics',
+  verifyAdmin,
+  requireServiceCodeAccess('serviceCode'),
+  getServiceStatisticsController
+);
 
 // Get appointments (admin only) - must come before /:id
 router.get(
@@ -76,7 +90,13 @@ router.get(
 );
 
 // Get single transaction (admin or subscriber can access)
-router.get('/:id', verifyToken, validate(getTransactionValidation), getTransactionController);
+router.get(
+  '/:id',
+  verifyToken,
+  validate(getTransactionValidation),
+  requireTransactionServiceAccess('id'),
+  getTransactionController
+);
 
 // Create transaction — optionalAuth allows both authenticated residents and unauthenticated guests.
 // The controller enforces: if authenticated, residentId must match req.user.id.
@@ -84,13 +104,20 @@ router.get('/:id', verifyToken, validate(getTransactionValidation), getTransacti
 router.post('/', optionalAuth, validate(createTransactionValidation), createTransactionController);
 
 // Update transaction (admin only)
-router.put('/:id', verifyAdmin, validate(updateTransactionValidation), updateTransactionController);
+router.put(
+  '/:id',
+  verifyAdmin,
+  validate(updateTransactionValidation),
+  requireTransactionServiceAccess('id'),
+  updateTransactionController
+);
 
 // Download transaction document (admin or subscriber can access)
 router.get(
   '/:id/download',
   verifyToken,
   validate(getTransactionValidation),
+  requireTransactionServiceAccess('id'),
   downloadTransactionController
 );
 
@@ -100,6 +127,7 @@ router.post(
   '/:id/notes',
   verifyToken,
   validate(createTransactionNoteValidation),
+  requireTransactionServiceAccess('id'),
   createTransactionNoteController
 );
 
@@ -108,6 +136,7 @@ router.get(
   '/:id/notes',
   verifyToken,
   validate(getTransactionNotesValidation),
+  requireTransactionServiceAccess('id'),
   getTransactionNotesController
 );
 
@@ -116,6 +145,7 @@ router.put(
   '/:id/notes/:noteId/read',
   verifyToken,
   validate(markNoteAsReadValidation),
+  requireTransactionServiceAccess('id'),
   markNoteAsReadController
 );
 
@@ -124,6 +154,7 @@ router.put(
   '/:id/notes/read-all',
   verifyToken,
   validate(markAllNotesAsReadValidation),
+  requireTransactionServiceAccess('id'),
   markAllNotesAsReadController
 );
 
@@ -132,6 +163,7 @@ router.get(
   '/:id/notes/unread-count',
   verifyToken,
   validate(getUnreadCountValidation),
+  requireTransactionServiceAccess('id'),
   getUnreadCountController
 );
 
@@ -140,6 +172,7 @@ router.post(
   '/:id/request-update',
   verifyToken,
   validate(requestTransactionUpdateValidation),
+  requireTransactionServiceAccess('id'),
   requestTransactionUpdateController
 );
 
@@ -148,6 +181,7 @@ router.post(
   '/:id/admin-request-update',
   verifyAdmin,
   validate(adminRequestTransactionUpdateValidation),
+  requireTransactionServiceAccess('id'),
   adminRequestTransactionUpdateController
 );
 
@@ -156,6 +190,7 @@ router.post(
   '/:id/review-update-request',
   verifyAdmin,
   validate(reviewTransactionUpdateValidation),
+  requireTransactionServiceAccess('id'),
   reviewTransactionUpdateRequestController
 );
 
@@ -165,10 +200,17 @@ router.get(
   '/:id/tax-computation',
   verifyToken,
   validate(getTaxComputationValidation),
+  requireTransactionServiceAccess('id'),
   getTaxComputationController
 );
 
 // Manually trigger tax computation (admin only)
-router.post('/:id/compute-tax', verifyAdmin, validate(computeTaxValidation), computeTaxController);
+router.post(
+  '/:id/compute-tax',
+  verifyAdmin,
+  validate(computeTaxValidation),
+  requireTransactionServiceAccess('id'),
+  computeTaxController
+);
 
 export default router;

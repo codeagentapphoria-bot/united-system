@@ -18,6 +18,9 @@
     "test": "npm run test:backend && npm run test:frontend",
     "test:frontend": "cd multysis-frontend && npm test",
     "test:backend": "cd multysis-backend && npm test",
+    "test:e2e": "npm run test:e2e:backend && npm run test:e2e:frontend",
+    "test:e2e:frontend": "cd multysis-frontend && npm run test:e2e",
+    "test:e2e:backend": "cd multysis-backend && npm run test:e2e",
     "lint": "npm run lint:backend && npm run lint:frontend",
     "lint:frontend": "cd multysis-frontend && npm run lint",
     "lint:backend": "cd multysis-backend && npm run lint",
@@ -53,4 +56,3 @@
   "author": "Apphorialabs",
   "license": "MIT"
 }
-
