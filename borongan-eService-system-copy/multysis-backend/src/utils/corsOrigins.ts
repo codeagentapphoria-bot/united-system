@@ -1,5 +1,8 @@
 const DEFAULT_LOCAL_ORIGIN = 'http://localhost:5174';
-const PRODUCTION_ORIGINS = ['https://borongan-eservice.vercel.app'];
+const PRODUCTION_ORIGINS = [
+  'https://eservice.borongancity.com',
+  'https://borongan-eservice.vercel.app',
+];
 
 export const parseCorsOrigins = (rawOrigin = process.env.CORS_ORIGIN): string[] => {
   const configured = (rawOrigin || '')
