@@ -950,6 +950,9 @@ export const generateSetupToken = async (req, res, next) => {
     if (!barangay) {
       return next(new ApiError(404, "Barangay not found"));
     }
+    if (req.user?.target_type === "municipality" && Number(barangay.municipality_id) !== Number(req.user.target_id)) {
+      return next(new ApiError(403, "Cannot create setup links for another municipality"));
+    }
 
     // Generate secure setup link
     const baseUrl = process.env.CLIENT_URL || `http://localhost:5173`;

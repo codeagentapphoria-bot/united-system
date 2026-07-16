@@ -422,7 +422,7 @@ const RequestDetail = ({ item, onClose, onStatusUpdated }) => {
       }),
   });
 
-  // Build preview URL (no auth needed — returns HTML)
+  // Build preview URL for authenticated HTML rendering.
   const previewUrl = item.certificate_type && item.certificate_type !== 'certificate'
     ? isWalkin
       ? `${BIMS_API}/certificates/preview/request/${item.source_id}?certificateType=${item.certificate_type}`
@@ -477,7 +477,16 @@ const RequestDetail = ({ item, onClose, onStatusUpdated }) => {
   const handlePrint = async () => {
     if (!previewUrl) return;
     try {
-      const html = await fetch(previewUrl).then((r) => r.text());
+      const token = getToken();
+      const resp = await fetch(previewUrl, {
+        credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!resp.ok) {
+        const json = await resp.json().catch(() => ({}));
+        throw new Error(json.message || 'Certificate preview failed');
+      }
+      const html = await resp.text();
 
       // A4 dimensions off-screen — real size ensures images actually load
       const frame = document.createElement('iframe');

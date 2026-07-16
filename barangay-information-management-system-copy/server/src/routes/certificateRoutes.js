@@ -33,6 +33,59 @@ import { allUsers, municipalityAdminOnly } from '../middlewares/auth.js';
 
 const router = Router();
 
+function httpError(status, message) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
+async function assertMunicipalityAccess(user, municipalityId) {
+  const targetMunicipalityId = parseInt(municipalityId, 10);
+  if (!user || !targetMunicipalityId) throw httpError(401, 'Not authorized');
+
+  if (user.target_type === 'municipality' && parseInt(user.target_id, 10) === targetMunicipalityId) {
+    return;
+  }
+
+  if (user.target_type === 'barangay') {
+    const { rows } = await pool.query(
+      `SELECT municipality_id FROM barangays WHERE id = $1`,
+      [user.target_id]
+    );
+    if (parseInt(rows[0]?.municipality_id, 10) === targetMunicipalityId) return;
+  }
+
+  throw httpError(403, 'Forbidden');
+}
+
+async function assertBarangayAccess(user, barangayId) {
+  const targetBarangayId = parseInt(barangayId, 10);
+  if (!user || !targetBarangayId) throw httpError(401, 'Not authorized');
+
+  if (user.target_type === 'barangay') {
+    if (parseInt(user.target_id, 10) === targetBarangayId) return;
+    throw httpError(403, 'Forbidden');
+  }
+
+  if (user.target_type === 'municipality') {
+    const { rowCount } = await pool.query(
+      `SELECT 1 FROM barangays WHERE id = $1 AND municipality_id = $2`,
+      [targetBarangayId, user.target_id]
+    );
+    if (rowCount > 0) return;
+  }
+
+  throw httpError(403, 'Forbidden');
+}
+
+async function assertContextAccess(user, context) {
+  if (context.barangayId) {
+    await assertBarangayAccess(user, context.barangayId);
+    return;
+  }
+  await assertMunicipalityAccess(user, context.municipalityId);
+}
+
 // =============================================================================
 // TEMPLATE CRUD
 // =============================================================================
@@ -44,10 +97,11 @@ router.get('/templates', ...allUsers, async (req, res) => {
     if (!municipalityId) {
       return res.status(400).json({ status: 'error', message: 'municipalityId is required' });
     }
+    await assertMunicipalityAccess(req.user, municipalityId);
     const templates = await getTemplates(municipalityId);
     res.json({ status: 'success', data: templates });
   } catch (err) {
-    res.status(500).json({ status: 'error', message: err.message });
+    res.status(err.status || 500).json({ status: 'error', message: err.message });
   }
 });
 
@@ -55,9 +109,10 @@ router.get('/templates', ...allUsers, async (req, res) => {
 router.get('/templates/:id', ...allUsers, async (req, res) => {
   try {
     const template = await getTemplate(req.params.id);
+    await assertMunicipalityAccess(req.user, template.municipality_id);
     res.json({ status: 'success', data: template });
   } catch (err) {
-    res.status(404).json({ status: 'error', message: err.message });
+    res.status(err.status || 404).json({ status: 'error', message: err.message });
   }
 });
 
@@ -72,11 +127,12 @@ router.post('/templates', ...municipalityAdminOnly, async (req, res) => {
         message: 'municipalityId, certificateType, name, and htmlContent are required',
       });
     }
+    await assertMunicipalityAccess(req.user, municipalityId);
 
     const template = await createTemplate({ municipalityId, certificateType, name, description, htmlContent, createdBy });
     res.status(201).json({ status: 'success', data: template });
   } catch (err) {
-    const status = err.message.includes('unique') ? 409 : 500;
+    const status = err.status || (err.message.includes('unique') ? 409 : 500);
     res.status(status).json({ status: 'error', message: err.message });
   }
 });
@@ -85,20 +141,24 @@ router.post('/templates', ...municipalityAdminOnly, async (req, res) => {
 router.put('/templates/:id', ...municipalityAdminOnly, async (req, res) => {
   try {
     const { name, description, htmlContent, isActive } = req.body;
+    const current = await getTemplate(req.params.id);
+    await assertMunicipalityAccess(req.user, current.municipality_id);
     const template = await updateTemplate(req.params.id, { name, description, htmlContent, isActive });
     res.json({ status: 'success', data: template });
   } catch (err) {
-    res.status(400).json({ status: 'error', message: err.message });
+    res.status(err.status || 400).json({ status: 'error', message: err.message });
   }
 });
 
 /** DELETE /api/certificates/templates/:id */
 router.delete('/templates/:id', ...municipalityAdminOnly, async (req, res) => {
   try {
+    const current = await getTemplate(req.params.id);
+    await assertMunicipalityAccess(req.user, current.municipality_id);
     await deleteTemplate(req.params.id);
     res.json({ status: 'success', message: 'Template deleted' });
   } catch (err) {
-    res.status(404).json({ status: 'error', message: err.message });
+    res.status(err.status || 404).json({ status: 'error', message: err.message });
   }
 });
 
@@ -152,6 +212,7 @@ async function resolveContext(source, sourceId) {
 router.post('/generate/request/:requestId', ...allUsers, async (req, res) => {
   try {
     const context = await resolveContext('request', req.params.requestId);
+    await assertContextAccess(req.user, context);
     const certificateType = req.body.certificateType;
 
     if (!certificateType) {
@@ -171,7 +232,7 @@ router.post('/generate/request/:requestId', ...allUsers, async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(pdf);
   } catch (err) {
-    res.status(500).json({ status: 'error', message: err.message });
+    res.status(err.status || 500).json({ status: 'error', message: err.message });
   }
 });
 
@@ -179,6 +240,7 @@ router.post('/generate/request/:requestId', ...allUsers, async (req, res) => {
 router.post('/generate/transaction/:transactionId', ...allUsers, async (req, res) => {
   try {
     const context = await resolveContext('transaction', req.params.transactionId);
+    await assertContextAccess(req.user, context);
     const certificateType = req.body.certificateType;
 
     if (!certificateType) {
@@ -198,7 +260,7 @@ router.post('/generate/transaction/:transactionId', ...allUsers, async (req, res
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(pdf);
   } catch (err) {
-    res.status(500).json({ status: 'error', message: err.message });
+    res.status(err.status || 500).json({ status: 'error', message: err.message });
   }
 });
 
@@ -207,13 +269,14 @@ router.post('/generate/transaction/:transactionId', ...allUsers, async (req, res
 // =============================================================================
 
 /** GET /api/certificates/preview/request/:requestId?certificateType=barangay_clearance */
-router.get('/preview/request/:requestId', async (req, res) => {
+router.get('/preview/request/:requestId', ...allUsers, async (req, res) => {
   try {
     const certificateType = req.query.certificateType;
     if (!certificateType) {
       return res.status(400).json({ status: 'error', message: 'certificateType is required' });
     }
     const context = await resolveContext('request', req.params.requestId);
+    await assertContextAccess(req.user, context);
     if (!context.municipalityId) {
       return res.status(400).json({ status: 'error', message: 'Could not determine municipality' });
     }
@@ -235,18 +298,19 @@ router.get('/preview/request/:requestId', async (req, res) => {
     res.setHeader('Content-Type', 'text/html');
     res.send(rendered);
   } catch (err) {
-    res.status(500).json({ status: 'error', message: err.message });
+    res.status(err.status || 500).json({ status: 'error', message: err.message });
   }
 });
 
 /** GET /api/certificates/preview/transaction/:transactionId?certificateType=barangay_clearance */
-router.get('/preview/transaction/:transactionId', async (req, res) => {
+router.get('/preview/transaction/:transactionId', ...allUsers, async (req, res) => {
   try {
     const certificateType = req.query.certificateType;
     if (!certificateType) {
       return res.status(400).json({ status: 'error', message: 'certificateType is required' });
     }
     const context = await resolveContext('transaction', req.params.transactionId);
+    await assertContextAccess(req.user, context);
     if (!context.municipalityId) {
       return res.status(400).json({ status: 'error', message: 'Could not determine municipality' });
     }
@@ -268,7 +332,7 @@ router.get('/preview/transaction/:transactionId', async (req, res) => {
     res.setHeader('Content-Type', 'text/html');
     res.send(rendered);
   } catch (err) {
-    res.status(500).json({ status: 'error', message: err.message });
+    res.status(err.status || 500).json({ status: 'error', message: err.message });
   }
 });
 
@@ -322,6 +386,7 @@ router.get('/queue', ...allUsers, async (req, res) => {
     if (!brgyId || isNaN(brgyId)) {
       return res.status(400).json({ status: 'error', message: 'barangayId is required' });
     }
+    await assertBarangayAccess(req.user, brgyId);
 
     // Build per-source subqueries (excluded source → empty result set)
     const includeWalkin = source === 'all' || source === 'walkin';
@@ -454,7 +519,7 @@ router.get('/queue', ...allUsers, async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ status: 'error', message: err.message });
+    res.status(err.status || 500).json({ status: 'error', message: err.message });
   }
 });
 
@@ -474,6 +539,8 @@ router.put('/queue/walkin/:id/status', ...allUsers, async (req, res) => {
         message: `status must be one of: ${valid.join(', ')}`,
       });
     }
+    const context = await resolveContext('request', req.params.id);
+    await assertContextAccess(req.user, context);
     const { rows } = await pool.query(
       `UPDATE requests
           SET status = $1, updated_at = now()
@@ -486,7 +553,7 @@ router.put('/queue/walkin/:id/status', ...allUsers, async (req, res) => {
     }
     res.json({ status: 'success', data: rows[0] });
   } catch (err) {
-    res.status(500).json({ status: 'error', message: err.message });
+    res.status(err.status || 500).json({ status: 'error', message: err.message });
   }
 });
 
@@ -506,6 +573,8 @@ router.put('/queue/portal/:id/status', ...allUsers, async (req, res) => {
         message: `status must be one of: ${valid.join(', ')}`,
       });
     }
+    const context = await resolveContext('transaction', req.params.id);
+    await assertContextAccess(req.user, context);
     const { rows } = await pool.query(
       `UPDATE transactions
           SET status = $1, updated_at = now()
@@ -518,7 +587,7 @@ router.put('/queue/portal/:id/status', ...allUsers, async (req, res) => {
     }
     res.json({ status: 'success', data: rows[0] });
   } catch (err) {
-    res.status(500).json({ status: 'error', message: err.message });
+    res.status(err.status || 500).json({ status: 'error', message: err.message });
   }
 });
 

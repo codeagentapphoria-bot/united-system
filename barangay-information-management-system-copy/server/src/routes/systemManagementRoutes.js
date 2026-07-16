@@ -1,5 +1,5 @@
 import express from 'express';
-import { allUsers } from '../middlewares/auth.js';
+import { municipalityAdminOnly } from '../middlewares/auth.js';
 import { exportDatabase, exportUploads } from '../controllers/systemManagementControllers.js';
 
 const router = express.Router();
@@ -9,14 +9,13 @@ const router = express.Router();
  * @desc    Export database as SQL dump
  * @access  Private (Municipality Admin only)
  */
-router.get('/export/database', ...allUsers, exportDatabase);
+router.get('/export/database', ...municipalityAdminOnly, exportDatabase);
 
 /**
  * @route   GET /api/system-management/export/uploads
  * @desc    Export uploads folder as ZIP
  * @access  Private (Municipality Admin only)
  */
-router.get('/export/uploads', ...allUsers, exportUploads);
+router.get('/export/uploads', ...municipalityAdminOnly, exportUploads);
 
 export default router;
-

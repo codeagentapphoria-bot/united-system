@@ -152,30 +152,6 @@ export default function SetupAccount() {
     setPasswordStrength(strength);
   }, [password]);
 
-  useEffect(() => {
-    async function checkIfUserHasPassword() {
-      if (!email) return;
-      try {
-        const res = await api.get(
-          `/user/by-email?email=${encodeURIComponent(email)}`
-        );
-        logger.debug("User: ", res.data);
-        const user = res.data?.data;
-        if (user && user.password) {
-          navigate(`/admin/barangay/dashboard`);
-        }
-      } catch (err) {
-        // 404 is expected when user doesn't exist yet (during setup)
-        if (err.response?.status === 404) {
-          logger.debug("User not found - this is expected during account setup");
-        } else {
-          logger.error("Error checking user password:", err);
-        }
-      }
-    }
-    checkIfUserHasPassword();
-  }, [email, navigate]);
-
   const handlePictureChange = (e) => {
     const file = e.target.files[0];
     if (file) {
