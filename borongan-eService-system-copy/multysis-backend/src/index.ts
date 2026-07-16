@@ -16,6 +16,7 @@ import { maintenanceMiddleware } from './middleware/maintenance';
 import { addDevLog, startDevDashboardUpdates } from './services/dev.service';
 import { setSocketInstance } from './services/socket.service';
 import { initializeSocket } from './socket/socket';
+import { parseCorsOrigins } from './utils/corsOrigins';
 import { parseTimeString } from './utils/timeParser';
 
 // Load environment variables
@@ -38,16 +39,11 @@ const validateEnvironment = (): void => {
   }
 
   // Validate CORS_ORIGIN — supports comma-separated list of URLs
-  const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5174';
-  corsOrigin
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean)
-    .forEach((origin) => {
-      if (!origin.match(/^https?:\/\/.+/)) {
-        errors.push(`CORS_ORIGIN entry '${origin}' must be a valid URL`);
-      }
-    });
+  parseCorsOrigins().forEach((origin) => {
+    if (!origin.match(/^https?:\/\/.+/)) {
+      errors.push(`CORS_ORIGIN entry '${origin}' must be a valid URL`);
+    }
+  });
 
   // Validate timeout environment variables
   // Validate ACCESS_TOKEN_EXPIRES (default: 10m, range: 5-15 min)
@@ -116,11 +112,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 // Supports comma-separated list of allowed origins (BIMS frontend + E-Services frontend)
-const _rawOrigins = process.env.CORS_ORIGIN || 'http://localhost:5174';
-const _allowedOrigins = _rawOrigins
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
+const _allowedOrigins = parseCorsOrigins();
 const corsOrigin = _allowedOrigins[0]; // for backward-compat usages below
 const apiBaseUrl = process.env.API_BASE_URL || `http://localhost:${PORT}`;
 

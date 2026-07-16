@@ -4,6 +4,7 @@ import { Socket, Server as SocketIOServer } from 'socket.io';
 import prisma from '../config/database';
 import { addDevLog } from '../services/dev.service';
 import { canAccessTransaction, getServiceAccessScope } from '../services/service-access.service';
+import { parseCorsOrigins } from '../utils/corsOrigins';
 import type {
   SocketUser,
   TransactionNotePayload,
@@ -94,7 +95,7 @@ const canUseTransactionSocket = async (
 export const initializeSocket = (httpServer: HttpServer): SocketIOServer => {
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.CORS_ORIGIN || 'http://localhost:5174',
+      origin: parseCorsOrigins(),
       credentials: true,
       methods: ['GET', 'POST'],
     },
