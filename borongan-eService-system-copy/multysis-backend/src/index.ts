@@ -356,6 +356,7 @@ app.get('/api', (_req: Request, res: Response) => {
 import addressRoutes from './routes/address.routes';
 import adminRoutes from './routes/admin.routes';
 import authRoutes from './routes/auth.routes';
+import certificateTemplateRoutes from './routes/certificate-template.routes';
 import portalRegistrationRoutes from './routes/portal-registration.routes';
 import portalHouseholdRoutes from './routes/portal-household.routes';
 import portalClassificationRoutes from './routes/portal-classification.routes';
@@ -409,6 +410,8 @@ app.use('/api/portal-registration', apiLimiter, portalRegistrationRoutes);
 app.use('/api/portal/household', apiLimiter, portalHouseholdRoutes);
 // Resident portal BIMS classification display (read-only)
 app.use('/api/portal/classifications', apiLimiter, portalClassificationRoutes);
+// Resident portal BIMS certificate template catalog (read-only)
+app.use('/api/portal/certificates', apiLimiter, certificateTemplateRoutes);
 // Resident portal government programs discovery + application; admin application review
 app.use('/api/portal', apiLimiter, portalProgramsRoutes);
 app.use('/api/transactions', apiLimiter, transactionRoutes);

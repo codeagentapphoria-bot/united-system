@@ -6,7 +6,7 @@ const adminUserId = '00000301-0301-4001-8001-000000000001';
 const superAdminRoleId = '00000001-0001-4001-8001-000000000001';
 const wildcardPath = '/admin/e-government/:serviceCode';
 
-test('citizens can browse dynamic services and guests are blocked from resident-only certificates', async ({ page }) => {
+test('citizens can browse dynamic services and guests are blocked from certificate templates', async ({ page }) => {
   await page.goto('/portal/e-services');
 
   await expect(page).toHaveURL(/\/portal\/e-government$/);
@@ -14,12 +14,10 @@ test('citizens can browse dynamic services and guests are blocked from resident-
   await expect(page.getByText('Barangay Certificate Services')).toBeVisible();
 
   await page.getByRole('button', { name: 'View Services' }).click();
-  await expect(page.getByText('Barangay Clearance').first()).toBeVisible();
-
-  await page.getByRole('button', { name: 'Apply as Guest' }).nth(1).click();
-  await expect(page).toHaveURL(/\/portal\/apply-as-guest\?serviceId=/);
-  await expect(page.getByText('This certificate is for registered residents only')).toBeVisible();
-  await expect(page.getByRole('button', { name: /Register as a Resident/ })).toBeVisible();
+  await expect(
+    page.getByText('Log in as a resident to view certificate templates for your municipality.')
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Apply as Guest' })).toHaveCount(0);
 });
 
 test('wildcard office role can open a dynamic service queue', async ({ page }) => {
@@ -35,7 +33,9 @@ test('wildcard office role can open a dynamic service queue', async ({ page }) =
 
   await page.goto('/admin/e-government/brgy-clearance');
   await expect(page.getByRole('heading', { name: 'Barangay Clearance' })).toBeVisible();
-  await expect(page.getByRole('tab', { name: 'Applications' })).toBeVisible();
+  await expect(page.getByText('Processed in BIMS')).toBeVisible();
+  await expect(page.getByText('Use the BIMS certificate queue')).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Applications' })).toHaveCount(0);
 
   const serviceResponse = await page.request.get('/api/services/code/brgy-clearance');
   expect(serviceResponse.status()).toBe(200);

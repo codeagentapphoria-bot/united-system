@@ -360,7 +360,7 @@ router.get('/preview/transaction/:transactionId', ...allUsers, async (req, res) 
  *   source          — 'walkin' | 'portal'
  *   source_id       — requests.id (as text) | transactions.id (UUID text)
  *   applicant_name  — resident full name or walk-in full_name
- *   certificate_type — requests.certificate_type | services.form_fields->>'certificate_type'
+ *   certificate_type — requests.certificate_type | transactions.service_data.certificate_type | legacy services.form_fields.certificate_type
  *   service_name    — human-readable service label
  *   purpose         — reason stated by applicant
  *   status_col      — current processing status
@@ -442,6 +442,7 @@ router.get('/queue', ...allUsers, async (req, res) => {
             'Unknown'
           )                                                          AS applicant_name,
           COALESCE(
+            t.service_data->>'certificate_type',
             s.form_fields->>'certificate_type',
             s.code
           )                                                          AS certificate_type,

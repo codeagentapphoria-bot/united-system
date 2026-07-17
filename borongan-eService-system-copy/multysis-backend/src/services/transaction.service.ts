@@ -35,6 +35,73 @@ export interface CreateTransactionData {
   applicationDate?: Date;
 }
 
+export type TransactionActor =
+  | { id?: string; type?: 'resident' | 'admin' | 'dev' }
+  | undefined;
+
+const BARANGAY_CERTIFICATE_CATEGORY = 'Barangay Certificate';
+
+const isBarangayCertificateService = (service: { category?: string | null }) =>
+  service.category === BARANGAY_CERTIFICATE_CATEGORY;
+
+const getStringServiceData = (
+  serviceData: Record<string, unknown> | undefined,
+  key: string
+): string | undefined => {
+  const value = serviceData?.[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+};
+
+const assertBarangayCertificateCreateAllowed = async (
+  data: CreateTransactionData,
+  actor: TransactionActor,
+  resident: { id: string; barangayId: number | null; barangay?: { municipalityId: number } | null } | null
+) => {
+  if (!actor || actor.type !== 'resident') {
+    throw new CustomError('Barangay certificates require an authenticated resident', 403);
+  }
+
+  if (!data.residentId || data.residentId !== actor.id) {
+    throw new CustomError('Residents can only request barangay certificates for themselves', 403);
+  }
+
+  if (!resident?.barangayId || !resident.barangay?.municipalityId) {
+    throw new CustomError('Resident must have a barangay before requesting certificates', 400);
+  }
+
+  const certificateType = getStringServiceData(data.serviceData, 'certificate_type');
+  const purpose = getStringServiceData(data.serviceData, 'purpose');
+
+  if (!certificateType) {
+    throw new CustomError('Certificate type is required', 400);
+  }
+  if (!purpose) {
+    throw new CustomError('Purpose is required', 400);
+  }
+
+  const template = await prisma.certificateTemplate.findFirst({
+    where: {
+      municipalityId: resident.barangay.municipalityId,
+      certificateType,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  if (!template) {
+    throw new CustomError('Selected certificate template is not available', 400);
+  }
+};
+
+const assertNotBarangayCertificateAdminMutation = (
+  service: { category?: string | null },
+  actor: TransactionActor
+) => {
+  if (actor?.type === 'admin' && isBarangayCertificateService(service)) {
+    throw new CustomError('Barangay certificate transactions are processed in BIMS', 403);
+  }
+};
+
 const generateTransactionId = (serviceCode: string, year: number, count: number): string => {
   const prefix = serviceCode.substring(0, 2).toUpperCase();
   return `${prefix}-${year}-${String(count + 1).padStart(3, '0')}`;
@@ -45,7 +112,7 @@ const generateReferenceNumber = (serviceCode: string, year: number, count: numbe
   return `REF-${prefix}-${year}-${String(count + 1).padStart(6, '0')}`;
 };
 
-export const createTransaction = async (data: CreateTransactionData) => {
+export const createTransaction = async (data: CreateTransactionData, actor?: TransactionActor) => {
   // Validate: must have either a residentId or guest applicant info
   if (!data.residentId && !data.applicantName) {
     throw new CustomError('Either residentId or applicantName is required', 400);
@@ -55,8 +122,9 @@ export const createTransaction = async (data: CreateTransactionData) => {
   const [resident, service] = await Promise.all([
     data.residentId
       ? prisma.resident.findUnique({
-        where: { id: data.residentId },
-      })
+          where: { id: data.residentId },
+          include: { barangay: { select: { municipalityId: true } } },
+        })
       : Promise.resolve(null),
     prisma.service.findUnique({
       where: { id: data.serviceId },
@@ -73,6 +141,10 @@ export const createTransaction = async (data: CreateTransactionData) => {
 
   if (!service.isActive) {
     throw new Error('Service is not active');
+  }
+
+  if (isBarangayCertificateService(service)) {
+    await assertBarangayCertificateCreateAllowed(data, actor, resident);
   }
 
   // Check for appointment conflicts if service requires appointment
@@ -408,7 +480,8 @@ export const updateTransaction = async (
     scheduledAppointmentDate?: Date;
     updateRequestStatus?: string;
     adminUpdateRequestDescription?: string;
-  }
+  },
+  actor?: TransactionActor
 ) => {
   // Get old transaction state for comparison
   const oldTransaction = await prisma.transaction.findUnique({
@@ -430,6 +503,8 @@ export const updateTransaction = async (
   if (!oldTransaction) {
     throw new Error('Transaction not found');
   }
+
+  assertNotBarangayCertificateAdminMutation(oldTransaction.service, actor);
 
   const updateData: Record<string, unknown> = {
     ...(data.paymentStatus && { paymentStatus: data.paymentStatus }),
@@ -713,7 +788,7 @@ export const getTransactionsByService = async (
   const skip = (page - 1) * limit;
 
   // Fetch all matching transactions (we'll apply serviceData filters in memory)
-  let [allTransactions, total] = await Promise.all([
+  const [allTransactions, totalCount] = await Promise.all([
     prisma.transaction.findMany({
       where,
       include: {
@@ -734,6 +809,7 @@ export const getTransactionsByService = async (
   ]);
 
   // Apply serviceData filters if provided
+  let total = totalCount;
   let transactions = filterByServiceData(allTransactions);
 
   // Recalculate total after serviceData filtering
@@ -1206,7 +1282,7 @@ export const requestTransactionUpdate = async (
 
   // Otherwise, create a new request - DO NOT update serviceData yet, only store in pendingServiceData
   // Store appointment date in pendingServiceData as a special field if provided
-  let pendingData: any = updatedServiceData ? { ...updatedServiceData } : {};
+  const pendingData: any = updatedServiceData ? { ...updatedServiceData } : {};
   if (preferredAppointmentDate !== undefined) {
     pendingData._pendingAppointmentDate = preferredAppointmentDate || null;
   }
@@ -1230,14 +1306,21 @@ export const requestTransactionUpdate = async (
 };
 
 // Admin requests update from portal user
-export const adminRequestTransactionUpdate = async (transactionId: string, description: string) => {
+export const adminRequestTransactionUpdate = async (
+  transactionId: string,
+  description: string,
+  actor?: TransactionActor
+) => {
   const transaction = await prisma.transaction.findUnique({
     where: { id: transactionId },
+    include: { service: true },
   });
 
   if (!transaction) {
     throw new Error('Transaction not found');
   }
+
+  assertNotBarangayCertificateAdminMutation(transaction.service, actor);
 
   return prisma.transaction.update({
     where: { id: transactionId },
@@ -1250,14 +1333,21 @@ export const adminRequestTransactionUpdate = async (transactionId: string, descr
 };
 
 // Admin approves/rejects portal update request
-export const reviewTransactionUpdateRequest = async (transactionId: string, approved: boolean) => {
+export const reviewTransactionUpdateRequest = async (
+  transactionId: string,
+  approved: boolean,
+  actor?: TransactionActor
+) => {
   const transaction = await prisma.transaction.findUnique({
     where: { id: transactionId },
+    include: { service: true },
   });
 
   if (!transaction) {
     throw new Error('Transaction not found');
   }
+
+  assertNotBarangayCertificateAdminMutation(transaction.service, actor);
 
   const tx = transaction as any;
 
@@ -1271,7 +1361,8 @@ export const reviewTransactionUpdateRequest = async (transactionId: string, appr
     const pendingAppointmentDate = pendingData._pendingAppointmentDate;
 
     // Remove the special appointment date field from serviceData
-    const { _pendingAppointmentDate, ...serviceDataToApply } = pendingData;
+    const serviceDataToApply = { ...pendingData };
+    delete serviceDataToApply._pendingAppointmentDate;
 
     // Prepare update data
     const updateData: Record<string, unknown> = {
