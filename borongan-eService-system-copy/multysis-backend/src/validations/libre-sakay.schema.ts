@@ -99,10 +99,6 @@ export const replaceStopInRouteValidation: ValidationChain[] = [
   body('new_stop_id').notEmpty().withMessage('new_stop_id is required'),
 ];
 
-export const reviewRideLogValidation: ValidationChain[] = [
-  param('id').notEmpty().withMessage('Invalid ride log ID'),
-];
-
 // ============ BENEFICIARIES ============
 
 export const listBeneficiariesValidation: ValidationChain[] = [

@@ -106,15 +106,11 @@ export interface RideLog {
   driver_id: string | null;
   resident_id: string | null;
   is_verified: boolean;
-  is_manual: boolean;
-  manual_name: string | null;
-  admin_reviewed: boolean;
   boarded_at: string;
   boarded_barangay: string | null;
   alighted_at: string | null;
   alighted_barangay: string | null;
   synced: boolean;
-  manual_id: string | null;
   buses: { plate_number: string; route_id: string | null; routes: { name: string } | null } | null;
   driver: { full_name: string } | null;
   resident: { residentId: string | null; firstName: string; lastName: string } | null;
@@ -354,10 +350,6 @@ export const libreSakayService = {
 
   async deleteRideLog(id: string): Promise<void> {
     await api.delete(`${BASE}/ride-logs/${id}`);
-  },
-
-  async reviewRideLog(id: string): Promise<void> {
-    await api.patch(`${BASE}/ride-logs/${id}/review`);
   },
 
   // Resident Verification

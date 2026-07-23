@@ -15,7 +15,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
@@ -48,17 +47,6 @@ export function RideLogsSection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.rideLogs.all });
       toast({ title: 'Ride log deleted' });
-    },
-    onError: (e: unknown) => {
-      toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
-    },
-  });
-
-  const reviewMutation = useMutation({
-    mutationFn: (id: string) => libreSakayService.reviewRideLog(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.libreSakay.rideLogs.all });
-      toast({ title: 'Ride log marked as reviewed' });
     },
     onError: (e: unknown) => {
       toast({ variant: 'destructive', title: 'Error', description: (e as Error).message });
@@ -126,7 +114,6 @@ export function RideLogsSection() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Logs</SelectItem>
-                  <SelectItem value="pending_review">Needs Review</SelectItem>
                   <SelectItem value="onboard">Currently Onboard</SelectItem>
                   <SelectItem value="completed">Completed Rides</SelectItem>
                 </SelectContent>
@@ -179,8 +166,8 @@ export function RideLogsSection() {
               logs.map(log => {
                 const bTime = getLogTime(log.boarded_at);
                 const aTime = log.alighted_at ? getLogTime(log.alighted_at) : null;
-                const passengerName = log.is_manual ? (log.manual_name || 'Manual Entry') : (log.resident ? `${log.resident.firstName} ${log.resident.lastName}` : 'Unresolved Resident');
-                const passengerId = log.is_manual ? log.manual_id : log.resident_id;
+                const passengerName = log.resident ? `${log.resident.firstName} ${log.resident.lastName}` : 'Unresolved Resident';
+                const passengerId = log.resident_id;
 
                 return (
                   <TableRow key={log.id} className="group hover:bg-gray-50/50 transition-colors">
@@ -189,17 +176,9 @@ export function RideLogsSection() {
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-gray-900">{passengerName}</span>
-                          {log.is_manual && !log.admin_reviewed && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wider">
-                              Review
-                            </span>
-                          )}
                         </div>
                         <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
                           {passengerId && <span>{passengerId}</span>}
-                          {log.is_manual && (
-                             <span className="px-1 bg-amber-50 text-amber-600 rounded">MANUAL</span>
-                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -262,17 +241,6 @@ export function RideLogsSection() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {log.is_manual && !log.admin_reviewed && (
-                            <>
-                              <DropdownMenuItem
-                                className="text-amber-600 focus:text-amber-600"
-                                onClick={() => reviewMutation.mutate(log.id)}
-                              >
-                                <span className="mr-2">✓</span> Mark Reviewed
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                            </>
-                          )}
                           <DropdownMenuItem
                             className="text-red-600 focus:text-red-600"
                             onClick={() => deleteMutation.mutate(log.id)}

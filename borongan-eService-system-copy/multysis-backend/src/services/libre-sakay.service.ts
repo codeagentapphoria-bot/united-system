@@ -719,15 +719,14 @@ export interface RideLogFilters {
 export const getRideLogs = async (page = 1, limit = 20, filters: RideLogFilters = {}): Promise<PaginatedResult<any>> => {
   const from = (page - 1) * limit;
 
-  // ride_logs columns: id, bus_id, driver_id, resident_id, is_verified, is_manual,
-  // manual_name, admin_reviewed, boarded_at, boarded_barangay, alighted_at, alighted_barangay,
-  // synced, manual_id
+  // ride_logs columns: id, bus_id, driver_id, resident_id, is_verified, boarded_at,
+  // boarded_barangay, alighted_at, alighted_barangay, synced
   // NOTE: ride_logs has NO route_id, started_at, ended_at, passenger_count, status, or notes.
   //       Route association is through buses(buses.route_id).
   let query = supabase()
     .from('ride_logs')
     .select(
-      'id, bus_id, driver_id, resident_id, boarded_at, boarded_barangay, alighted_at, alighted_barangay, is_verified, is_manual, manual_name, manual_id, synced, admin_reviewed, buses(plate_number, route_id, routes(name)), driver:profiles(full_name)',
+      'id, bus_id, driver_id, resident_id, boarded_at, boarded_barangay, alighted_at, alighted_barangay, is_verified, synced, buses(plate_number, route_id, routes(name)), driver:profiles(full_name)',
       { count: 'exact' }
     )
     .order('boarded_at', { ascending: false })
@@ -748,9 +747,7 @@ export const getRideLogs = async (page = 1, limit = 20, filters: RideLogFilters 
   if (filters.driver_id) query = query.eq('driver_id', filters.driver_id);
   if (filters.bus_id) query = query.eq('bus_id', filters.bus_id);
 
-  if (filters.status === 'pending_review') {
-    query = query.eq('is_manual', true).eq('admin_reviewed', false);
-  } else if (filters.status === 'onboard') {
+  if (filters.status === 'onboard') {
     query = query.is('alighted_at', null);
   } else if (filters.status === 'completed') {
     query = query.not('alighted_at', 'is', null);
@@ -760,7 +757,7 @@ export const getRideLogs = async (page = 1, limit = 20, filters: RideLogFilters 
   if (error) throw new Error('Failed to fetch ride logs: ' + error.message);
 
   // Enrich scanned (non-manual) entries with resident names from e-service DB
-  const scannedLogs = (data ?? []).filter((log: any) => !log.is_manual && log.resident_id);
+  const scannedLogs = (data ?? []).filter((log: any) => log.resident_id);
   if (scannedLogs.length > 0) {
     // Step 1: Get resident_uuid from libre_sakay_beneficiary (Libre Sakay DB)
     const residentIds = scannedLogs.map((log: any) => log.resident_id);
@@ -875,13 +872,4 @@ export const getRidesTrend = async (days = 7): Promise<{ date: string; rides: nu
 export const deleteRideLog = async (id: string): Promise<void> => {
   const { error } = await supabase().from('ride_logs').delete().eq('id', id);
   if (error) throw new Error('Failed to delete ride log: ' + error.message);
-};
-
-export const reviewRideLog = async (id: string): Promise<void> => {
-  const { error } = await supabase()
-    .from('ride_logs')
-    .update({ admin_reviewed: true })
-    .eq('id', id)
-    .eq('is_manual', true);
-  if (error) throw new Error('Failed to review ride log: ' + error.message);
 };

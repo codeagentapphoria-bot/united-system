@@ -10,7 +10,7 @@ import {
   assignBusToDriver, unassignBusFromDriver,
   getAllStops, getStopsByRoute, createStop, updateStop, deleteStop,
   assignStopToRoute, removeStopFromRoute, reorderStopsInRoute, replaceStopInRoute, getRoutesForStop,
-  getDashboardStats, getRideLogs, getRidesTrend, deleteRideLog, reviewRideLog,
+  getDashboardStats, getRideLogs, getRidesTrend, deleteRideLog,
 } from '../services/libre-sakay.service';
 import {
   listBeneficiaries,
@@ -437,15 +437,6 @@ export const deleteRideLogController = async (req: AuthRequest, res: Response): 
   try {
     await deleteRideLog(req.params.id);
     res.status(204).send();
-  } catch (error: any) {
-    res.status(400).json({ status: 'error', message: error.message });
-  }
-};
-
-export const reviewRideLogController = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    await reviewRideLog(req.params.id);
-    res.status(200).json({ status: 'success' });
   } catch (error: any) {
     res.status(400).json({ status: 'error', message: error.message });
   }
