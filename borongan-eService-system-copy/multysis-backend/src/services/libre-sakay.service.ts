@@ -77,9 +77,14 @@ export interface PaginatedResult<T> {
 // =============================================================================
 
 export const getFleetStats = async (): Promise<FleetStats> => {
+  // Only consider buses whose most recent GPS ping is within the last 5 minutes
+  // (otherwise the moving/parked classification is based on stale data).
+  const freshnessThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
   const { data, error } = await supabase()
     .from('bus_locations')
-    .select('speed, bus_id')
+    .select('speed, bus_id, recorded_at')
+    .gte('recorded_at', freshnessThreshold)
     .order('recorded_at', { ascending: false });
 
   if (error) throw new Error('Failed to fetch fleet stats: ' + error.message);
@@ -592,10 +597,11 @@ export const getDashboardStats = async () => {
   }).format(now);
   const todayPHT = `${phtDateStr}T00:00:00+08:00`;
 
-  const [busCount, routeCount, driverCount, ridesToday, ridesWeek] = await Promise.all([
+  const [busCount, activeBusCount, routeCount, driverCount, ridesToday, ridesWeek] = await Promise.all([
     supabase().from('buses').select('id', { count: 'exact', head: true }),
+    supabase().from('buses').select('id', { count: 'exact', head: true }).eq('is_active', true),
     supabase().from('routes').select('id', { count: 'exact', head: true }).eq('is_active', true),
-    supabase().from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'driver'),
+    supabase().from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'driver').eq('is_active', true),
     supabase()
       .from('ride_logs')
       .select('id', { count: 'exact', head: true })
@@ -607,10 +613,13 @@ export const getDashboardStats = async () => {
   ]);
 
   const ridesThisWeek = ridesWeek.data?.length ?? 0;
-  const passengersThisWeek = 0; // ride_logs has no passenger_count column
+  // ride_logs has no passenger_count column — each row represents one boarding.
+  // Until a passenger_count column is added, treat each ride as 1 passenger.
+  const passengersThisWeek = ridesThisWeek;
 
   return {
     total_buses: busCount.count ?? 0,
+    active_buses: activeBusCount.count ?? 0,
     active_routes: routeCount.count ?? 0,
     total_drivers: driverCount.count ?? 0,
     rides_today: ridesToday.count ?? 0,

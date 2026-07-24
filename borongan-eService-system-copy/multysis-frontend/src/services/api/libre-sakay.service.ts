@@ -86,6 +86,7 @@ export interface FleetBus {
 
 export interface DashboardStats {
   total_buses: number;
+  active_buses: number;
   active_routes: number;
   total_drivers: number;
   rides_today: number;
