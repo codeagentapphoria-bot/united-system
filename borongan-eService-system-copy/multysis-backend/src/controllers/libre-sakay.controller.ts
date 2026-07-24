@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { GovernmentProgramType } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import {
-  getFleetStats, getFleetLocations,
+  getFleetStats,
   getBuses, getBusById, getAvailableRoutes, getAvailableDrivers,
   createBus, updateBus, deleteBus, assignDriverToBus, unassignDriverFromBus,
   getRoutes, getRouteById, getRouteWithStops, createRoute, updateRoute, deleteRoute,
@@ -39,15 +39,6 @@ export const getFleetStatsController = async (_req: AuthRequest, res: Response):
   try {
     const stats = await getFleetStats();
     res.status(200).json({ status: 'success', data: stats });
-  } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
-  }
-};
-
-export const getFleetLocationsController = async (_req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const locations = await getFleetLocations();
-    res.status(200).json({ status: 'success', data: locations });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: error.message });
   }
