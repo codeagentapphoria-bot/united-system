@@ -5,6 +5,7 @@ import { libreSakayService } from '@/services/api/libre-sakay.service';
 import { portalProgramsService } from '@/services/api/portal-programs.service';
 import { DONUT_COLORS } from './shared';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Badge } from '@/components/ui/badge';
 import {
   BarChart,
@@ -65,6 +66,29 @@ function StatCard({
   );
 }
 
+function MiniCard({
+  title,
+  value,
+  loading,
+}: {
+  title: string;
+  value: number | string | undefined;
+  loading?: boolean;
+}) {
+  return (
+    <Card>
+      <CardContent className="pt-4 pb-4">
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{title}</p>
+        {loading ? (
+          <div className="h-7 w-12 bg-gray-100 rounded animate-pulse mt-1" />
+        ) : (
+          <p className="text-2xl font-bold mt-1">{value ?? '—'}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // =============================================================================
 // DASHBOARD SECTION
 // =============================================================================
@@ -77,25 +101,25 @@ const APP_STATUS_CONFIG: Record<string, { label: string; className: string }> = 
 };
 
 export function DashboardSection() {
-  const { data: dashStats, isLoading: statsLoading } = useQuery({
+  const { data: dashStats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: queryKeys.libreSakay.dashboardStats,
     queryFn: libreSakayService.getDashboardStats,
     retry: false,
   });
 
-  const { data: fleetStats } = useQuery({
+  const { data: fleetStats, error: fleetError } = useQuery({
     queryKey: queryKeys.libreSakay.fleet,
     queryFn: libreSakayService.getFleetStats,
     refetchInterval: 30_000,
   });
 
-  const { data: trend } = useQuery({
+  const { data: trend, error: trendError } = useQuery({
     queryKey: queryKeys.libreSakay.ridesTrend(7),
     queryFn: () => libreSakayService.getRidesTrend(7),
     retry: false,
   });
 
-  const { data: pendingData } = useQuery({
+  const { data: pendingData, error: pendingError } = useQuery({
     queryKey: ['libre-sakay', 'pending-apps'],
     queryFn: () =>
       portalProgramsService.listApplicationsAdmin({
@@ -106,7 +130,7 @@ export function DashboardSection() {
     retry: false,
   });
 
-  const { data: recentApps, isLoading: recentLoading } = useQuery({
+  const { data: recentApps, isLoading: recentLoading, error: recentAppsError } = useQuery({
     queryKey: ['libre-sakay', 'recent-apps'],
     queryFn: () =>
       portalProgramsService.listApplicationsAdmin({
@@ -129,13 +153,21 @@ export function DashboardSection() {
     label: new Date(p.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' }),
   }));
 
+  const hasError = !!(statsError || fleetError || trendError || pendingError || recentAppsError);
+
   return (
-    <div className="space-y-6">
-      {/* Row 1: 4 stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <ErrorBoundary>
+      <div className="space-y-6">
+        {hasError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <strong>Failed to load dashboard data.</strong> Some stats may be out of date. Check the server logs.
+          </div>
+        )}
+        {/* Row 1: 5 stat cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
-          title="Total Buses"
-          value={dashStats?.total_buses ?? fleetStats?.total ?? '-'}
+          title="Active Buses"
+          value={dashStats?.active_buses ?? fleetStats?.total ?? '-'}
           icon={<FiTruck size={20} />}
           color="blue"
           loading={statsLoading}
@@ -173,7 +205,12 @@ export function DashboardSection() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">Live Fleet Status</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold">Live Fleet Status</CardTitle>
+              <span className="text-xs text-gray-500">
+                Updated {new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Manila' })}
+              </span>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="h-52 w-full">
@@ -237,26 +274,13 @@ export function DashboardSection() {
 
       {/* Row 3: Weekly summary mini cards */}
       <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Rides This Week</p>
-            <p className="text-2xl font-bold mt-1">{dashStats?.rides_this_week ?? '—'}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Passengers This Week</p>
-            <p className="text-2xl font-bold mt-1">{dashStats?.passengers_this_week ?? '—'}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Avg Passengers / Ride</p>
-            <p className="text-2xl font-bold mt-1">
-              {dashStats?.avg_passengers_per_ride != null ? dashStats.avg_passengers_per_ride.toFixed(1) : '—'}
-            </p>
-          </CardContent>
-        </Card>
+        <MiniCard title="Rides This Week" value={dashStats?.rides_this_week} loading={statsLoading} />
+        <MiniCard title="Passengers This Week" value={dashStats?.passengers_this_week} loading={statsLoading} />
+        <MiniCard
+          title="Avg Passengers / Ride"
+          value={dashStats?.avg_passengers_per_ride != null ? Number(dashStats.avg_passengers_per_ride.toFixed(1)) : undefined}
+          loading={statsLoading}
+        />
       </div>
 
       {/* Row 4: Recent Applications */}
@@ -309,5 +333,6 @@ export function DashboardSection() {
         </CardContent>
       </Card>
     </div>
+    </ErrorBoundary>
   );
 }
