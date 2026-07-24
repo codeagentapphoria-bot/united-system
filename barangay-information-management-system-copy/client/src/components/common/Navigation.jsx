@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "./ThemeToggle";
 import { BarangaySelector } from "./BarangaySelector";
+import logo from "@/assets/images/lgu-logo.png";
 
 // Primary navigation items (most important)
 const primaryNavigationItems = [
@@ -54,7 +55,7 @@ export function Navigation() {
               className="flex items-center space-x-2 transition-smooth hover:scale-105"
             >
               <img
-                src="/lgu-logo.png"
+                src={logo}
                 alt="LGU Logo"
                 className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
               />

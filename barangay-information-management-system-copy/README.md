@@ -86,6 +86,10 @@ npm run build            # Build for production
 npm run deploy:manual    # Deploy to production
 ```
 
+## Email On Railway
+
+Set `BREVO_API_KEY`, `EMAIL_FROM_NAME`, and `EMAIL_FROM_ADDRESS` on Railway. `EMAIL_FROM_ADDRESS` must be a verified Brevo sender. BIMS sends mail through Brevo's HTTPS API when the key exists, with Gmail SMTP only as a local fallback.
+
 ## 📞 Support
 
 - **Documentation Hub**: [docs/INDEX.md](docs/INDEX.md) - Complete documentation index

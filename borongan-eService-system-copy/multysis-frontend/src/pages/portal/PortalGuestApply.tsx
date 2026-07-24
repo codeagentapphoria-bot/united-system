@@ -28,6 +28,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { PortalLayout } from '@/components/layout/PortalLayout';
 import { useToast } from '@/hooks/use-toast';
@@ -45,6 +46,34 @@ const guestSchema = z.object({
   purpose:         z.string().optional(),
 });
 type GuestInput = z.infer<typeof guestSchema>;
+type GuestField = {
+  name: string;
+  type: 'text' | 'number' | 'select' | 'date' | 'file' | 'textarea' | 'checkbox';
+  label?: string;
+  required?: boolean;
+  placeholder?: string;
+  options?: Array<string | { value: string; label: string }>;
+};
+
+const guestSupportedFieldTypes = new Set(['text', 'number', 'select', 'date', 'textarea', 'checkbox']);
+
+const getServiceFields = (service?: Service): GuestField[] => {
+  const fields = service?.formFields
+    ? Array.isArray(service.formFields?.fields)
+      ? service.formFields.fields
+      : Array.isArray(service.formFields)
+        ? service.formFields
+        : []
+    : [];
+
+  return fields.filter((field: GuestField) => field?.name && field?.type);
+};
+
+const optionValue = (option: string | { value: string; label: string }) =>
+  typeof option === 'string' ? option : option.value;
+
+const optionLabel = (option: string | { value: string; label: string }) =>
+  typeof option === 'string' ? option : option.label;
 
 // ── Component ───────────────────────────────────────────────────────────────
 export const PortalGuestApply: React.FC = () => {
@@ -55,6 +84,7 @@ export const PortalGuestApply: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [isLoadingServices, setIsLoadingServices] = useState(true);
   const [submitted, setSubmitted] = useState<{ referenceNumber: string; serviceName: string } | null>(null);
+  const [dynamicValues, setDynamicValues] = useState<Record<string, any>>({});
 
   const form = useForm<GuestInput>({
     resolver: zodResolver(guestSchema),
@@ -79,16 +109,84 @@ export const PortalGuestApply: React.FC = () => {
   const selectedServiceId = form.watch('serviceId');
   const selectedService = services.find((s) => s.id === selectedServiceId);
   const isBarangayCertificate = selectedService?.category === 'Barangay Certificate';
+  const formFields = getServiceFields(selectedService);
+  const supportedGuestFields = formFields.filter((field) => guestSupportedFieldTypes.has(field.type));
+  const hasRequiredFileField = formFields.some((field) => field.type === 'file' && field.required);
+  const hasUnsupportedRequiredField = formFields.some(
+    (field) => field.required && !guestSupportedFieldTypes.has(field.type) && field.type !== 'file'
+  );
+  const blockReason = isBarangayCertificate
+    ? {
+        title: 'This certificate is for registered residents only',
+        body: 'Barangay certificates are issued based on your residency record. Guest applicants cannot request them online because they have no barangay on file to process the request.',
+        primary: 'Register as a Resident',
+      }
+    : selectedService?.requiresAppointment
+      ? {
+          title: 'This service requires an appointment',
+          body: 'Guest appointment booking is not available online yet. Please log in as a resident to book an appointment, or visit the office for walk-in assistance.',
+          primary: 'Log in or Register',
+        }
+      : hasRequiredFileField
+        ? {
+            title: 'This service requires document uploads',
+            body: 'Guest file uploads are not available online yet. Please log in as a resident, or visit the office with your supporting documents.',
+            primary: 'Log in or Register',
+          }
+        : hasUnsupportedRequiredField
+          ? {
+              title: 'This service needs additional information',
+              body: 'This service has required fields that are not supported for guest submissions yet. Please log in as a resident, or visit the office for assistance.',
+              primary: 'Log in or Register',
+            }
+          : null;
+
+  useEffect(() => {
+    setDynamicValues({});
+  }, [selectedServiceId]);
+
+  const setDynamicValue = (name: string, value: any) => {
+    setDynamicValues((current) => ({ ...current, [name]: value }));
+  };
+
+  const validateDynamicFields = () => {
+    const missingField = supportedGuestFields.find((field) => {
+      if (!field.required) return false;
+      const value = dynamicValues[field.name];
+      return field.type === 'checkbox' ? value !== true : value === undefined || value === null || value === '';
+    });
+
+    if (missingField) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing required field',
+        description: `${missingField.label || missingField.name} is required.`,
+      });
+      return false;
+    }
+
+    return true;
+  };
 
   const onSubmit = async (data: GuestInput) => {
     try {
+      if (blockReason) return;
+      if (!validateDynamicFields()) return;
+
+      const serviceData = {
+        ...(data.purpose ? { purpose: data.purpose } : {}),
+        ...Object.fromEntries(
+          Object.entries(dynamicValues).filter(([, value]) => value !== undefined && value !== null && value !== '')
+        ),
+      };
+
       const response = await api.post('/transactions', {
         serviceId:        data.serviceId,
         applicantName:    data.applicantName,
         applicantContact: data.applicantContact,
         applicantEmail:   data.applicantEmail || undefined,
         applicantAddress: data.applicantAddress,
-        serviceData:      data.purpose ? { purpose: data.purpose } : undefined,
+        serviceData:      Object.keys(serviceData).length > 0 ? serviceData : undefined,
         applicationDate:  new Date().toISOString(),
       });
 
@@ -220,20 +318,18 @@ export const PortalGuestApply: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Barangay certificate block — shown instead of the form when applicable */}
-            {isBarangayCertificate ? (
+            {/* Guest blocks — shown instead of the form when the service cannot be safely submitted by guests */}
+            {blockReason ? (
               <Card className="border-amber-300 bg-amber-50">
                 <CardContent className="py-6 space-y-4">
                   <div className="flex items-start gap-3">
                     <FiAlertTriangle size={22} className="text-amber-600 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold text-amber-800">
-                        This certificate is for registered residents only
+                        {blockReason.title}
                       </p>
                       <p className="text-sm text-amber-700 mt-1">
-                        Barangay certificates (clearance, indigency, residency, etc.) are issued
-                        based on your residency record. Guest applicants cannot request them online
-                        because they have no barangay on file to process the request.
+                        {blockReason.body}
                       </p>
                     </div>
                   </div>
@@ -244,15 +340,15 @@ export const PortalGuestApply: React.FC = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* Option 1 — register */}
-                    <button
-                      type="button"
-                      onClick={() => navigate('/portal/register')}
-                      className="flex flex-col gap-1 rounded-lg border border-amber-300 bg-white p-4 text-left hover:bg-amber-50 transition-colors"
-                    >
-                      <span className="text-sm font-semibold text-amber-900 flex items-center gap-1.5">
-                        Register as a Resident
-                        <FiArrowRight size={13} />
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/portal/register')}
+                        className="flex flex-col gap-1 rounded-lg border border-amber-300 bg-white p-4 text-left hover:bg-amber-50 transition-colors"
+                      >
+                        <span className="text-sm font-semibold text-amber-900 flex items-center gap-1.5">
+                          {blockReason.primary}
+                          <FiArrowRight size={13} />
+                        </span>
                       <span className="text-xs text-amber-700">
                         Create a portal account. Once your registration is approved, you can
                         request barangay certificates online.
@@ -262,11 +358,11 @@ export const PortalGuestApply: React.FC = () => {
                     {/* Option 2 — walk-in */}
                     <div className="flex flex-col gap-1 rounded-lg border border-amber-300 bg-white p-4">
                       <span className="text-sm font-semibold text-amber-900">
-                        Visit Your Barangay Hall
+                        Visit the Office
                       </span>
                       <span className="text-xs text-amber-700">
-                        Walk in during office hours. Bring a valid government-issued ID. Staff will
-                        prepare your certificate on the spot or within the same day.
+                        Walk in during office hours. Bring a valid government-issued ID and any
+                        supporting documents for this service.
                       </span>
                     </div>
                   </div>
@@ -356,6 +452,60 @@ export const PortalGuestApply: React.FC = () => {
                         </FormItem>
                       )}
                     />
+
+                    {supportedGuestFields.length > 0 && (
+                      <div className="space-y-4 pt-2">
+                        <Separator />
+                        <p className="text-sm font-medium text-heading-700">Service Details</p>
+                        {supportedGuestFields.map((field) => (
+                          <div key={field.name} className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">
+                              {field.label || field.name}
+                              {field.required && <span className="text-red-500 ml-1">*</span>}
+                            </label>
+                            {field.type === 'textarea' ? (
+                              <Textarea
+                                value={dynamicValues[field.name] || ''}
+                                onChange={(event) => setDynamicValue(field.name, event.target.value)}
+                                placeholder={field.placeholder}
+                              />
+                            ) : field.type === 'select' ? (
+                              <select
+                                value={dynamicValues[field.name] || ''}
+                                onChange={(event) => setDynamicValue(field.name, event.target.value)}
+                                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              >
+                                <option value="">{field.placeholder || 'Select an option'}</option>
+                                {(field.options || []).map((option) => (
+                                  <option key={optionValue(option)} value={optionValue(option)}>
+                                    {optionLabel(option)}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : field.type === 'checkbox' ? (
+                              <label className="flex items-center gap-2 text-sm text-gray-700">
+                                <input
+                                  type="checkbox"
+                                  checked={dynamicValues[field.name] === true}
+                                  onChange={(event) => setDynamicValue(field.name, event.target.checked)}
+                                />
+                                {field.placeholder || 'Yes'}
+                              </label>
+                            ) : (
+                              <Input
+                                type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+                                value={dynamicValues[field.name] || ''}
+                                onChange={(event) => {
+                                  const value = field.type === 'number' && event.target.value !== '' ? Number(event.target.value) : event.target.value;
+                                  setDynamicValue(field.name, value);
+                                }}
+                                placeholder={field.placeholder}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 

@@ -1,6 +1,7 @@
 import { TransactionNoteSenderType, UpdateRequestStatus } from '@prisma/client';
 import prisma from '../config/database';
 import cacheService from './cache.service';
+import { getServiceAccessScope } from './service-access.service';
 
 export interface AdminNotificationCounts {
   pendingApplications: number;
@@ -20,7 +21,91 @@ export interface SubscriberNotificationCounts {
   total: number;
 }
 
-export const getAdminNotificationCounts = async (): Promise<AdminNotificationCounts> => {
+const getInitialPaymentStatus = (paymentStatuses: unknown): string =>
+  Array.isArray(paymentStatuses) && typeof paymentStatuses[0] === 'string'
+    ? paymentStatuses[0]
+    : 'PENDING';
+
+const getScopedAdminNotificationCounts = async (
+  adminUserId: string
+): Promise<AdminNotificationCounts | null> => {
+  const scope = await getServiceAccessScope(adminUserId);
+  if (scope.all) return null;
+
+  if (scope.serviceCodes.length === 0) {
+    return {
+      pendingApplications: 0,
+      pendingCitizens: 0,
+      pendingUpdateRequests: 0,
+      unreadMessages: 0,
+      pendingProgramApplications: 0,
+      total: 0,
+      pendingApplicationsByService: {},
+    };
+  }
+
+  const serviceCodeWhere = { code: { in: scope.serviceCodes } };
+  const services = await prisma.service.findMany({
+    where: { isActive: true, ...serviceCodeWhere },
+    select: { id: true, code: true, paymentStatuses: true },
+  });
+
+  const pendingApplicationCounts = await Promise.all(
+    services.map(async (service) => ({
+      code: service.code,
+      count: await prisma.transaction.count({
+        where: {
+          serviceId: service.id,
+          paymentStatus: getInitialPaymentStatus(service.paymentStatuses),
+        },
+      }),
+    }))
+  );
+
+  const [pendingUpdateRequests, unreadMessages] = await Promise.all([
+    prisma.transaction.count({
+      where: {
+        updateRequestStatus: UpdateRequestStatus.PENDING_ADMIN,
+        service: serviceCodeWhere,
+      },
+    }),
+    prisma.transactionNote.count({
+      where: {
+        isRead: false,
+        senderType: TransactionNoteSenderType.RESIDENT,
+        transaction: { service: serviceCodeWhere },
+      },
+    }),
+  ]);
+
+  const pendingApplicationsByService: Record<string, number> = {};
+  let pendingApplications = 0;
+  pendingApplicationCounts.forEach(({ code, count }) => {
+    if (count > 0) pendingApplicationsByService[code] = count;
+    pendingApplications += count;
+  });
+
+  const total = pendingApplications + pendingUpdateRequests + unreadMessages;
+
+  return {
+    pendingApplications,
+    pendingCitizens: 0,
+    pendingUpdateRequests,
+    unreadMessages,
+    pendingProgramApplications: 0,
+    total,
+    pendingApplicationsByService,
+  };
+};
+
+export const getAdminNotificationCounts = async (
+  adminUserId?: string
+): Promise<AdminNotificationCounts> => {
+  if (adminUserId) {
+    const scopedCounts = await getScopedAdminNotificationCounts(adminUserId);
+    if (scopedCounts) return scopedCounts;
+  }
+
   // Check Redis cache first
   const cacheKey = 'admin:notificationCounts';
   const cached = await cacheService.get<AdminNotificationCounts>(cacheKey);

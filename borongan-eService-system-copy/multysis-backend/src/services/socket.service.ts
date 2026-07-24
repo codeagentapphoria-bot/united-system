@@ -54,6 +54,18 @@ export const getSocketInstance = (): SocketIOServer | null => {
   return ioInstance || ((global as any).io as SocketIOServer) || null;
 };
 
+const emitToAdminRooms = (
+  io: SocketIOServer,
+  serviceCode: string | undefined,
+  event: string,
+  payload: unknown
+): void => {
+  io.to('admins').emit(event, payload);
+  if (serviceCode) {
+    io.to(`service:${serviceCode}`).emit(event, payload);
+  }
+};
+
 export const emitTransactionUpdate = async (
   transactionId: string,
   update: {
@@ -74,18 +86,16 @@ export const emitTransactionUpdate = async (
 ): Promise<void> => {
   const io = getSocketInstance();
   if (io) {
-    io.to(`transaction:${transactionId}`).emit('transaction:update', {
+    const payload = {
       transactionId,
       ...update,
       updatedAt: update.updatedAt.toISOString(),
-    } as TransactionUpdatePayload);
+    } as TransactionUpdatePayload;
+
+    io.to(`transaction:${transactionId}`).emit('transaction:update', payload);
 
     // Also notify admins for notification count updates
-    io.to('admins').emit('transaction:update', {
-      transactionId,
-      ...update,
-      updatedAt: update.updatedAt.toISOString(),
-    } as TransactionUpdatePayload);
+    emitToAdminRooms(io, update.serviceCode, 'transaction:update', payload);
 
     // Invalidate caches
     await invalidateAdminNotificationCache();
@@ -268,7 +278,7 @@ export const emitAppointmentNew = async (appointment: {
     };
 
     // Notify admins
-    io.to('admins').emit('appointment:new', payload);
+    emitToAdminRooms(io, appointment.serviceCode, 'appointment:new', payload);
 
     // Notify the resident
     io.to(`user:${appointment.residentId}`).emit('notification:new', {
@@ -316,7 +326,7 @@ export const emitAppointmentUpdate = async (
     io.to(`transaction:${transactionId}`).emit('appointment:update', payload);
 
     // Also notify admins
-    io.to('admins').emit('appointment:update', payload);
+    emitToAdminRooms(io, update.serviceCode, 'appointment:update', payload);
 
     // Notify resident if status changed
     if (update.residentId && update.oldAppointmentStatus !== update.appointmentStatus) {
@@ -351,14 +361,16 @@ export const emitNewTransaction = async (transaction: {
 }): Promise<void> => {
   const io = getSocketInstance();
   if (io) {
-    // Notify admins with full transaction data
-    io.to('admins').emit('transaction:new', {
+    const payload = {
       ...transaction,
       createdAt:
         transaction.createdAt instanceof Date
           ? transaction.createdAt.toISOString()
           : transaction.createdAt,
-    } as NewTransactionPayload);
+    } as NewTransactionPayload;
+
+    // Notify admins with full transaction data
+    emitToAdminRooms(io, transaction.serviceCode, 'transaction:new', payload);
 
     // Notify the resident
     io.to(`user:${transaction.residentId}`).emit('notification:new', {

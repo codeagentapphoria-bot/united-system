@@ -44,13 +44,13 @@ The JWT secret used to sign and verify all authentication tokens is set to a har
 
 **Description:**
 The `.env` file in this repository copy contains live production credentials:
-- `PG_PASSWORD=rPb3&gYLXpr@gH?` — Supabase PostgreSQL password (live database)
-- `PG_USER=postgres.exahyuahguriwrkkeuvm` — Live Supabase project user
-- `PG_HOST=aws-1-ap-south-1.pooler.supabase.com` — Live database host
-- `GMAIL_PASS=zqwb ciah gdjw btpw` — Live Gmail app password
-- `GMAIL_USER=anivaryam.dev@gmail.com` — Live email account
+- `PG_PASSWORD=[REDACTED]` — Supabase PostgreSQL password (live database)
+- `PG_USER=[REDACTED]` — Live Supabase project user
+- `PG_HOST=[REDACTED]` — Live database host
+- `GMAIL_PASS=[REDACTED]` — Live Gmail app password
+- `GMAIL_USER=[REDACTED]` — Live email account
 
-While the root `.gitignore` lists `server/.env`, **this file physically exists in the working copy** and is included here. If this copy is ever pushed to any remote or shared, these credentials are compromised. The Gmail app password format (`zqwb ciah gdjw btpw`) confirms it is an active Google App Password.
+While the root `.gitignore` lists `server/.env`, **this file physically exists in the working copy** and is included here. If this copy is ever pushed to any remote or shared, these credentials are compromised. The Gmail app password format confirms it is an active Google App Password.
 
 **Expected:** `.env` files contain only example/placeholder values. Real secrets live in a secrets manager or CI/CD vault — never in files.
 **Actual:** Live Supabase DB and Gmail credentials are present in plaintext.

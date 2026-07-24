@@ -1,11 +1,15 @@
 {
   "dependencies": {
-    "concurrently": "^9.2.0",
-    "nodemon": "^3.1.10"
+    "concurrently": "^10.0.3",
+    "nodemon": "^3.1.14"
   },
   "devDependencies": {
-    "glob": "^10.3.10",
-    "jscodeshift": "^0.15.1"
+    "glob": "^13.0.6",
+    "jscodeshift": "^17.3.0"
+  },
+  "overrides": {
+    "@babel/core": "^7.29.7",
+    "picomatch": "^2.3.2"
   },
   "name": "bims",
   "version": "1.0.0",

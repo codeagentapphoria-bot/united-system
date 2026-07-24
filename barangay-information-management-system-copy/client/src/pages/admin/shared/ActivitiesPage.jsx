@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CompactPagination } from "@/components/ui/compact-pagination";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -73,7 +74,7 @@ const ActivitiesPage = () => {
   const [filterType,          setFilterType]          = useState("all");
   const [filterTable,         setFilterTable]         = useState("all");
   const [filterOperation,     setFilterOperation]     = useState("all");
-  const [perPage,             setPerPage]             = useState(10);
+  const [perPage] = useState(10);
 
   // Debounce search
   useEffect(() => {
@@ -92,10 +93,6 @@ const ActivitiesPage = () => {
     paginatedActivities,
     currentPage,
     totalPages,
-    hasNextPage,
-    hasPrevPage,
-    goToNextPage,
-    goToPrevPage,
     setCurrentPage,
   } = useActivitiesPagination(filteredActivities, perPage);
 
@@ -321,42 +318,13 @@ const ActivitiesPage = () => {
           )}
         </CardContent>
 
-        {/* Pagination */}
-        <div className="px-4 py-3 border-t flex items-center justify-between">
-          <div className="text-xs sm:text-sm text-gray-500">
-            Page {currentPage} of {totalPages || 1}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!hasPrevPage}
-              onClick={goToPrevPage}
-              className="text-xs sm:text-sm"
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!hasNextPage}
-              onClick={goToNextPage}
-              className="text-xs sm:text-sm"
-            >
-              Next
-            </Button>
-          </div>
-          <select
-            className="w-full sm:w-24 border rounded px-2 py-1 text-xs sm:text-sm"
-            value={perPage}
-            onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }}
-          >
-            <option value={10}>10 / page</option>
-            <option value={20}>20 / page</option>
-            <option value={50}>50 / page</option>
-            <option value={100}>100 / page</option>
-          </select>
-        </div>
+        <CompactPagination
+          page={currentPage}
+          totalPages={totalPages}
+          total={filteredActivities.length}
+          perPage={perPage}
+          onPageChange={setCurrentPage}
+        />
       </Card>
 
     </div>

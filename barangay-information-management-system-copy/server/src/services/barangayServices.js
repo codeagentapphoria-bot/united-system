@@ -292,7 +292,33 @@ class Barangay {
         b.barangay_code,
         b.contact_number,
         b.email,
-        m.municipality_name
+        m.municipality_name,
+        (SELECT COUNT(*) FROM households h WHERE h.barangay_id = b.id)::int AS household_count,
+        (SELECT COUNT(*) FROM residents r WHERE r.barangay_id = b.id AND r.status = 'active')::int AS resident_count,
+        (SELECT COUNT(*) FROM families f JOIN households h ON h.id = f.household_id WHERE h.barangay_id = b.id)::int AS family_count,
+        (SELECT COUNT(*) FROM pets p JOIN residents r ON r.id = p.owner_id WHERE r.barangay_id = b.id AND r.status = 'active')::int AS pet_count,
+        (
+          SELECT COUNT(*)
+          FROM requests req
+          WHERE req.barangay_id = b.id
+            AND req.type = 'certificate'
+            AND req.status = 'completed'
+        )::int AS completed_certificates,
+        (SELECT COUNT(*) FROM requests req WHERE req.barangay_id = b.id)::int AS total_requests,
+        (
+          SELECT CONCAT(r.first_name, ' ', r.last_name)
+          FROM officials o
+          JOIN residents r ON r.id = o.resident_id
+          WHERE o.barangay_id = b.id
+            AND (o.term_end IS NULL OR o.term_end >= CURRENT_DATE)
+            AND (
+              LOWER(o.position) LIKE '%captain%' OR
+              LOWER(o.position) LIKE '%punong%' OR
+              LOWER(o.position) LIKE '%chairman%'
+            )
+          ORDER BY o.position ASC
+          LIMIT 1
+        ) AS captain_name
       FROM barangays b
       LEFT JOIN municipalities m ON m.id = b.municipality_id
       `;

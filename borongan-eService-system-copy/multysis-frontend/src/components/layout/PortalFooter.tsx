@@ -16,7 +16,6 @@ export const PortalFooter: React.FC<PortalFooterProps> = () => {
     services: [
       { label: 'E-Government', path: '/portal/e-government' },
       { label: 'E-Bills', path: '/portal/e-bills' },
-      { label: 'E-Services', path: '/portal/e-services' },
     ],
     information: [
       { label: 'E-News', path: '/portal/e-news' },
@@ -116,4 +115,3 @@ export const PortalFooter: React.FC<PortalFooterProps> = () => {
     </footer>
   );
 };
-

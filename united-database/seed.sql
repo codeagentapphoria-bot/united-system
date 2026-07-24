@@ -107,6 +107,36 @@ ON CONFLICT (id) DO NOTHING;
 
 
 -- =============================================================================
+-- E-Services: Dynamic Service Page Grant
+-- =============================================================================
+-- The wildcard page allows Super Admin to assign all dynamic eGovernment
+-- service queues, while exact pages like /admin/e-government/bpls can still be
+-- assigned to office-scoped roles.
+-- =============================================================================
+
+WITH upserted_page AS (
+    INSERT INTO public.pages (id, system, path, name, created_at) VALUES
+        ('00000801-0801-4001-8001-000000000001', 'core', '/admin/e-government/:serviceCode', 'E-Government Services', now())
+    ON CONFLICT (system, path) DO UPDATE SET name = EXCLUDED.name
+    RETURNING id
+), wildcard_page AS (
+    SELECT id FROM upserted_page
+    UNION
+    SELECT id FROM public.pages
+    WHERE system = 'core' AND path = '/admin/e-government/:serviceCode'
+)
+INSERT INTO public.role_pages (id, role_id, page_id, created_at)
+SELECT
+    '00000802-0802-4001-8001-000000000001',
+    '00000001-0001-4001-8001-000000000001',
+    id,
+    now()
+FROM wildcard_page
+LIMIT 1
+ON CONFLICT (role_id, page_id) DO NOTHING;
+
+
+-- =============================================================================
 -- E-Services: Social Amelioration Settings (lookup values)
 -- =============================================================================
 

@@ -7,12 +7,30 @@ const SMTP_PORT = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT.trim(),
 const SMTP_SECURE = process.env.SMTP_SECURE?.toLowerCase() === 'true';
 const SMTP_USER = process.env.SMTP_USER?.trim();
 const SMTP_PASS = process.env.SMTP_PASS?.trim();
-const SMTP_FROM = process.env.SMTP_FROM?.trim() || 'noreply@multysis.local';
+const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME?.trim();
+const EMAIL_FROM_ADDRESS = process.env.EMAIL_FROM_ADDRESS?.trim();
+const EMAIL_SEND_TIMEOUT_MS = process.env.EMAIL_SEND_TIMEOUT_MS
+  ? parseInt(process.env.EMAIL_SEND_TIMEOUT_MS.trim(), 10)
+  : 10_000;
+const SMTP_FROM =
+  (EMAIL_FROM_ADDRESS
+    ? `${EMAIL_FROM_NAME ? `${EMAIL_FROM_NAME} ` : ''}<${EMAIL_FROM_ADDRESS}>`
+    : process.env.SMTP_FROM?.trim() || 'noreply@multysis.local');
+const BREVO_API_KEY = process.env.BREVO_API_KEY?.trim();
+
+export type EmailSendResult = {
+  provider: 'brevo' | 'smtp';
+  messageId?: string;
+  status?: number;
+  senderEmail?: string;
+};
 
 // Initialize nodemailer transporter (only if valid credentials are provided)
 let transporter: nodemailer.Transporter | null = null;
 
 // Validate SMTP credentials before initializing
+const isBrevoConfigured = (): boolean => Boolean(BREVO_API_KEY);
+
 const isEmailConfigured = (): boolean => {
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
     return false;
@@ -27,6 +45,70 @@ const isEmailConfigured = (): boolean => {
   return true;
 };
 
+const parseSender = (value: string): { name?: string; email: string } => {
+  const match = value.match(/^(.*?)\s*<([^>]+)>$/);
+  if (!match) return { email: value.trim() };
+  const name = match[1].trim().replace(/^['"]|['"]$/g, '');
+  return name ? { name, email: match[2].trim() } : { email: match[2].trim() };
+};
+
+const sendViaBrevoApi = async (
+  to: string,
+  subject: string,
+  html: string,
+  text?: string,
+  from?: string,
+  replyTo?: string
+): Promise<EmailSendResult> => {
+  const sender = parseSender(from || SMTP_FROM);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), EMAIL_SEND_TIMEOUT_MS);
+  let res: Response;
+
+  try {
+    res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'api-key': BREVO_API_KEY as string,
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+      body: JSON.stringify({
+        sender,
+        to: [{ email: to.trim() }],
+        subject,
+        htmlContent: html,
+        textContent: text || html.replace(/<[^>]*>/g, ''),
+        ...(replyTo ? { replyTo: { email: replyTo.trim() } } : {}),
+      }),
+    });
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new Error(`Brevo API send timed out after ${EMAIL_SEND_TIMEOUT_MS}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Brevo API send failed (${res.status}): ${body}`);
+  }
+
+  const data = await res.json().catch(() => ({}));
+  const messageId = (data as any)?.messageId;
+  console.log(
+    `✅ Email accepted to ${to} from ${sender.email} via Brevo; status=${res.status}; messageId=${messageId ?? ''}`
+  );
+  return { provider: 'brevo', messageId, status: res.status, senderEmail: sender.email };
+};
+
+if (isBrevoConfigured()) {
+  console.log('✅ Brevo email API configured');
+}
+
 if (isEmailConfigured()) {
   try {
     transporter = nodemailer.createTransport({
@@ -38,6 +120,7 @@ if (isEmailConfigured()) {
         pass: SMTP_PASS,
       },
       connectionTimeout: 10_000,  // 10s — fail fast instead of hanging for 30s
+      greetingTimeout: 10_000,
       socketTimeout: 10_000,
     });
     console.log('✅ Email transporter initialized successfully');
@@ -52,7 +135,7 @@ if (isEmailConfigured()) {
       '⚠️  Continuing without email (development mode). Email functionality will not work.'
     );
   }
-} else {
+} else if (!isBrevoConfigured()) {
   if (process.env.NODE_ENV === 'production') {
     console.warn('⚠️  SMTP credentials not configured. Email functionality will not work.');
   } else {
@@ -73,12 +156,10 @@ export const isEmailEnabled = (): boolean => {
     return false;
   }
   if (emailEnabledEnv === 'true' || emailEnabledEnv === '1' || emailEnabledEnv === 'yes') {
-    // If explicitly enabled, also check if SMTP is configured
-    return transporter !== null && isEmailConfigured();
+    return isEmailAvailable();
   }
 
-  // Default: check if SMTP is configured (backward compatibility)
-  return transporter !== null && isEmailConfigured();
+  return isEmailAvailable();
 };
 
 /**
@@ -86,7 +167,7 @@ export const isEmailEnabled = (): boolean => {
  * @returns true if email transporter is properly configured, false otherwise
  */
 export const isEmailAvailable = (): boolean => {
-  return transporter !== null && isEmailConfigured();
+  return isBrevoConfigured() || (transporter !== null && isEmailConfigured());
 };
 
 /**
@@ -106,15 +187,19 @@ export const sendEmail = async (
   text?: string,
   from?: string,
   replyTo?: string
-): Promise<void> => {
-  if (!transporter) {
-    throw new Error(
-      'Email transporter is not configured. Please set SMTP_HOST, SMTP_USER, and SMTP_PASS environment variables.'
-    );
-  }
-
+): Promise<EmailSendResult> => {
   if (!to || !to.trim()) {
     throw new Error('Recipient email address is required');
+  }
+
+  if (isBrevoConfigured()) {
+    return sendViaBrevoApi(to, subject, html, text, from, replyTo);
+  }
+
+  if (!transporter) {
+    throw new Error(
+      'Email transporter is not configured. Please set BREVO_API_KEY or SMTP_HOST, SMTP_USER, and SMTP_PASS environment variables.'
+    );
   }
 
   try {
@@ -129,6 +214,7 @@ export const sendEmail = async (
 
     const info = await transporter.sendMail(mailOptions);
     console.log(`✅ Email sent to ${to}: ${info.messageId}`);
+    return { provider: 'smtp', messageId: info.messageId };
   } catch (error: any) {
     console.error('❌ Failed to send email:', error);
 

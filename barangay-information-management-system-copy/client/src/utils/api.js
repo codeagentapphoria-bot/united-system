@@ -4,6 +4,7 @@ import logger from "@/utils/logger";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
+  withCredentials: true,
 });
 
 // Flag to prevent multiple refresh attempts
@@ -53,6 +54,12 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const publicSetupEndpoints = ["/validate-setup-token", "/complete-account-setup"];
+    const isPublicSetupEndpoint = publicSetupEndpoints.some((path) => originalRequest?.url?.includes(path));
+
+    if (error.response?.status === 401 && isPublicSetupEndpoint) {
+      return Promise.reject(error);
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
@@ -80,7 +87,7 @@ api.interceptors.response.use(
           processQueue(error, null);
           removeToken();
           const isAdminRoute = window.location.pathname.startsWith("/admin") ||
-            ["/setup-account", "/forgot-password", "/reset-password"].some(path => window.location.pathname.startsWith(path));
+            ["/forgot-password", "/reset-password"].some(path => window.location.pathname.startsWith(path));
           if (isAdminRoute) {
             window.location.href = "/admin/login";
           }
@@ -90,7 +97,7 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         removeToken();
         const isAdminRoute = window.location.pathname.startsWith("/admin") ||
-          ["/setup-account", "/forgot-password", "/reset-password"].some(path => window.location.pathname.startsWith(path));
+          ["/forgot-password", "/reset-password"].some(path => window.location.pathname.startsWith(path));
         if (isAdminRoute) {
           window.location.href = "/admin/login";
         }

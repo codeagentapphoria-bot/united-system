@@ -2,6 +2,7 @@ import express from "express";
 import { allUsers } from "../middlewares/auth.js";
 import { pool } from "../config/db.js";
 import { smartCache } from "../middlewares/smartCache.js";
+import { getMunicipalityGisPrefix } from "../utils/gisCode.js";
 
 const router = express.Router();
 
@@ -152,10 +153,11 @@ router.get("/public/geojson/barangays/:id", async (req, res) => {
       
       // Try to find municipality by code first, then by ID as fallback
       let municipalityQuery = `
-        SELECT m.municipality_name, m.municipality_code, gm.gis_municipality_code
+        SELECT m.municipality_name, m.municipality_code, m.gis_code,
+               COALESCE(gm.gis_municipality_code, m.gis_code) AS gis_municipality_code
         FROM municipalities m
         LEFT JOIN gis_municipality gm ON m.gis_code = gm.gis_municipality_code
-        WHERE m.municipality_code = $1;
+        WHERE m.municipality_code = $1 OR m.gis_code = $1;
       `;
       
       let municipalityResult = await pool.query(municipalityQuery, [targetId]);
@@ -163,7 +165,8 @@ router.get("/public/geojson/barangays/:id", async (req, res) => {
       // If not found by code and targetId is numeric, try by ID
       if (municipalityResult.rows.length === 0 && !isNaN(targetId)) {
         municipalityQuery = `
-          SELECT m.municipality_name, m.municipality_code, gm.gis_municipality_code
+          SELECT m.municipality_name, m.municipality_code, m.gis_code,
+                 COALESCE(gm.gis_municipality_code, m.gis_code) AS gis_municipality_code
           FROM municipalities m
           LEFT JOIN gis_municipality gm ON m.gis_code = gm.gis_municipality_code
           WHERE m.id = $1;
@@ -179,8 +182,10 @@ router.get("/public/geojson/barangays/:id", async (req, res) => {
       
       // Municipality found, get all barangays for this municipality
       const municipality = municipalityResult.rows[0];
-      const municipalityGisCode = municipality?.gis_municipality_code || 'PH0802604';
-      const gisCodePrefix = municipalityGisCode.substring(0, 9); // Get the municipality prefix
+      const gisCodePrefix = getMunicipalityGisPrefix(municipality);
+      if (!gisCodePrefix) {
+        return res.status(404).json({ error: "Municipality GIS code not configured" });
+      }
 
       // Get all barangays that belong to this municipality
       const query = `
@@ -239,15 +244,18 @@ router.get("/geojson/city", ...allUsers, async (req, res) => {
 
     // First, get the municipality's GIS code to filter barangays
     const municipalityQuery = `
-      SELECT m.municipality_name, m.municipality_code, gm.gis_municipality_code
+      SELECT m.municipality_name, m.municipality_code, m.gis_code,
+             COALESCE(gm.gis_municipality_code, m.gis_code) AS gis_municipality_code
       FROM municipalities m
       LEFT JOIN gis_municipality gm ON m.gis_code = gm.gis_municipality_code
       WHERE m.id = $1;
     `;
     
     const municipalityResult = await pool.query(municipalityQuery, [municipalityId]);
-    const municipalityGisCode = municipalityResult.rows[0]?.gis_municipality_code || 'PH0802604';
-    const gisCodePrefix = municipalityGisCode.substring(0, 9); // Get the municipality prefix
+    const gisCodePrefix = getMunicipalityGisPrefix(municipalityResult.rows[0]);
+    if (!gisCodePrefix) {
+      return res.status(404).json({ error: "Municipality GIS code not configured" });
+    }
     
     // Get barangays that belong to this municipality
     const query = `
@@ -373,10 +381,11 @@ router.get("/geojson/barangays/:id", ...allUsers, async (req, res) => {
       // Treat as municipality - show all barangays in the municipality
       // Try to find municipality by code first, then by ID as fallback
       let municipalityQuery = `
-        SELECT m.municipality_name, m.municipality_code, gm.gis_municipality_code
+        SELECT m.municipality_name, m.municipality_code, m.gis_code,
+               COALESCE(gm.gis_municipality_code, m.gis_code) AS gis_municipality_code
         FROM municipalities m
         LEFT JOIN gis_municipality gm ON m.gis_code = gm.gis_municipality_code
-        WHERE m.municipality_code = $1;
+        WHERE m.municipality_code = $1 OR m.gis_code = $1;
       `;
 
       let municipalityResult = await pool.query(municipalityQuery, [targetId]);
@@ -384,7 +393,8 @@ router.get("/geojson/barangays/:id", ...allUsers, async (req, res) => {
       // If not found by code and targetId is numeric, try by ID
       if (municipalityResult.rows.length === 0 && !isNaN(targetId)) {
         municipalityQuery = `
-          SELECT m.municipality_name, m.municipality_code, gm.gis_municipality_code
+          SELECT m.municipality_name, m.municipality_code, m.gis_code,
+                 COALESCE(gm.gis_municipality_code, m.gis_code) AS gis_municipality_code
           FROM municipalities m
           LEFT JOIN gis_municipality gm ON m.gis_code = gm.gis_municipality_code
           WHERE m.id = $1;
@@ -400,8 +410,10 @@ router.get("/geojson/barangays/:id", ...allUsers, async (req, res) => {
       
       // Municipality found, get all barangays for this municipality
       const municipality = municipalityResult.rows[0];
-      const municipalityGisCode = municipality?.gis_municipality_code || 'PH0802604';
-      const gisCodePrefix = municipalityGisCode.substring(0, 9); // Get the municipality prefix
+      const gisCodePrefix = getMunicipalityGisPrefix(municipality);
+      if (!gisCodePrefix) {
+        return res.status(404).json({ error: "Municipality GIS code not configured" });
+      }
 
       // Get all barangays that belong to this municipality
       const query = `

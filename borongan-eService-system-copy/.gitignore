@@ -52,6 +52,7 @@ tmp/
 *.sqlite
 *.sqlite3
 *.db
+supabase/.temp/
 
 # OS
 .DS_Store

@@ -7,7 +7,7 @@ import {
   exportHouseholds,
   checkMunicipalityConflicts,
 } from "../controllers/municipalityControllers.js";
-import { allUsers } from "../middlewares/auth.js";
+import { allUsers, municipalityAdminOnly } from "../middlewares/auth.js";
 import createUploader from "../middlewares/createUploader.js";
 import { smartCache, smartInvalidateCache } from "../middlewares/smartCache.js";
 
@@ -20,6 +20,7 @@ router.get("/export/residents", ...allUsers, exportResidents);
 router.get("/export/households", ...allUsers, exportHouseholds);
 router.put(
   "/:municipalityId/municipality",
+  ...municipalityAdminOnly,
   createUploader(
     "municipalities",
     [

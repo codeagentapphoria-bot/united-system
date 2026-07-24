@@ -111,7 +111,6 @@ const HouseholdsPage = () => {
     setSortBy,
     setSortOrder,
     setPage,
-    setPerPage,
     handleSort,
     fetchHousehold,
     createHousehold,
@@ -212,10 +211,7 @@ const HouseholdsPage = () => {
     return unregister;
   }, [registerRefreshCallback, refreshData]);
 
-  // Pagination controls
   const totalPages = Math.max(1, Math.ceil(total / perPage));
-  const handlePrev = () => setPage((p) => Math.max(1, p - 1));
-  const handleNext = () => setPage((p) => Math.min(totalPages, p + 1));
 
   // Fetch barangays for filter
   useEffect(() => {
@@ -697,9 +693,7 @@ const HouseholdsPage = () => {
         totalPages={totalPages}
         perPage={perPage}
         total={total}
-        handlePrev={handlePrev}
-        handleNext={handleNext}
-        setPerPage={setPerPage}
+        setPage={setPage}
       />
 
       {/* View Household Dialog */}
