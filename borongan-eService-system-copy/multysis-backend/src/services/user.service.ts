@@ -281,7 +281,7 @@ export interface DashboardStats {
   totalAdmins: number;
 }
 
-export const getDashboardStats = async (): Promise<DashboardStats> => {
+export const getEserviceDashboardStats = async (): Promise<DashboardStats> => {
   const [totalUsers, totalAdmins] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { role: 'admin' } }),

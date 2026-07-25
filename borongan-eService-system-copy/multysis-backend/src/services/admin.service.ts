@@ -344,7 +344,7 @@ export interface DashboardStatistics {
   };
 }
 
-export const getDashboardStatistics = async (): Promise<DashboardStatistics> => {
+export const getDashboardStatistics = async (limit?: number): Promise<DashboardStatistics> => {
   const cacheKey = 'dashboard:statistics';
 
   const cached = await cacheService.get<DashboardStatistics>(cacheKey);
@@ -430,7 +430,7 @@ export const getDashboardStatistics = async (): Promise<DashboardStatistics> => 
     prisma.healthcareWorkerBeneficiary.count({ where: { status: 'ACTIVE' } }),
     // Optimized recent activity: select only what's needed, avoid big JSON blobs
     prisma.transaction.findMany({
-      take: 20,
+      take: limit ?? 20,
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -446,7 +446,7 @@ export const getDashboardStatistics = async (): Promise<DashboardStatistics> => 
       },
     }),
     prisma.resident.findMany({
-      take: 20,
+      take: limit ?? 20,
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -591,7 +591,8 @@ export const getDashboardStatistics = async (): Promise<DashboardStatistics> => 
     },
   };
 
-  await cacheService.set(cacheKey, result, 60);
+  // Cache TTL bumped 60s → 300s (5 min) per audit — dashboard rarely changes minute-to-minute.
+  await cacheService.set(cacheKey, result, 300);
 
   return result;
 };

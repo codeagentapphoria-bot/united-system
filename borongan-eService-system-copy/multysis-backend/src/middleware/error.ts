@@ -156,9 +156,33 @@ export const errorHandler = (
     });
   }
 
+  // Status-code-aware friendly message override (Tier 1 — audit fix)
+  const friendlyMessageByStatus: Record<number, string> = {
+    504: 'The server took too long to respond. Please try again in a moment.',
+    503: 'Service is temporarily unavailable. Please try again shortly.',
+    429: 'Too many requests. Please slow down and try again in a minute.',
+  };
+
+  // Prisma error-code-aware friendly message override
+  const friendlyMessageByPrismaCode: Record<string, string> = {
+    P2034: 'A conflict occurred while writing to the database. Please retry.',
+    P1001: 'Cannot reach the database. Please try again shortly.',
+    P1002: 'Database connection timed out. Please try again shortly.',
+    P1008: 'Database operations are timing out. Please try again shortly.',
+    P1017: 'Database connection has been closed. Please retry.',
+  };
+
+  // Apply overrides — known codes always use the friendly override, even in production.
+  let finalMessage = message;
+  if (typeof (err as any).statusCode === 'number' && friendlyMessageByStatus[(err as any).statusCode]) {
+    finalMessage = friendlyMessageByStatus[(err as any).statusCode];
+  } else if (typeof (err as any).code === 'string' && friendlyMessageByPrismaCode[(err as any).code]) {
+    finalMessage = friendlyMessageByPrismaCode[(err as any).code];
+  }
+
   res.status(statusCode).json({
     status: 'error',
-    message,
+    message: finalMessage,
     ...(errors.length > 0 && { errors }),
     // Only expose stack trace in development
     ...(process.env.NODE_ENV === 'development' && {

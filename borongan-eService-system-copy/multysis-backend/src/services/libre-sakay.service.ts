@@ -73,96 +73,18 @@ export interface PaginatedResult<T> {
 }
 
 // =============================================================================
-// FLEET LOCATIONS (security fix — moved from browser RPC to server-side)
-// =============================================================================
-
-export interface FleetLocation {
-  bus_id: string;
-  plate_number: string;
-  model: string | null;
-  capacity: number;
-  latitude: number;
-  longitude: number;
-  speed: number;
-  heading: number;
-  status: 'moving' | 'parked';
-  route_name: string | null;
-  driver_name: string | null;
-  barangay_name: string | null;
-  updated_at: string;
-}
-
-export const getFleetLocations = async (): Promise<FleetLocation[]> => {
-  // Fetch active buses with their basic info
-  const { data: buses, error: busError } = await supabase()
-    .from('buses')
-    .select('id, plate_number, model, capacity')
-    .eq('is_active', true);
-
-  if (busError) throw new Error('Failed to fetch bus fleet: ' + busError.message);
-
-  const busIds = (buses ?? []).map(b => b.id);
-  if (busIds.length === 0) return [];
-
-  // Fetch latest location per bus using the pre-built view (already deduplicated, includes barangay_name)
-  const { data: locations, error: locError } = await supabase()
-    .from('latest_bus_locations')
-    .select('bus_id, latitude, longitude, speed, heading, recorded_at, barangay_name')
-    .in('bus_id', busIds);
-
-  if (locError) throw new Error('Failed to fetch locations: ' + locError.message);
-
-  // No deduplication needed — the view already returns one row per bus
-  const locationMap = new Map((locations ?? []).map(row => [row.bus_id, row as Record<string, unknown>]));
-
-  // Fetch route and driver info
-  const { data: busDetails, error: detailError } = await supabase()
-    .from('buses')
-    .select('id, route_id, routes(name), driver_buses(id, profiles(full_name))')
-    .in('id', busIds);
-
-  if (detailError) throw new Error('Failed to fetch bus details: ' + detailError.message);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const detailMap = new Map((busDetails ?? []).map((b: any) => [b.id, b]));
-
-  const result: FleetLocation[] = [];
-  for (const bus of buses ?? []) {
-    const loc = locationMap.get(bus.id);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const detail = detailMap.get(bus.id) as any;
-    const speed = (loc?.speed as number) ?? 0;
-    const driver = detail?.driver_buses?.[0]?.profiles?.full_name ?? null;
-    const route = detail?.routes?.name ?? null;
-
-    result.push({
-      bus_id: bus.id,
-      plate_number: bus.plate_number,
-      model: bus.model ?? null,
-      capacity: bus.capacity ?? 0,
-      latitude: (loc?.latitude as number) ?? 0,
-      longitude: (loc?.longitude as number) ?? 0,
-      speed,
-      heading: (loc?.heading as number) ?? 0,
-      status: speed > 5 ? 'moving' : 'parked',
-      route_name: route,
-      driver_name: driver,
-      barangay_name: (loc?.barangay_name as string | null) ?? null,
-      updated_at: (loc?.recorded_at as string) ?? new Date().toISOString(),
-    });
-  }
-
-  return result;
-};
-
-// =============================================================================
 // FLEET STATS (read-only)
 // =============================================================================
 
 export const getFleetStats = async (): Promise<FleetStats> => {
+  // Only consider buses whose most recent GPS ping is within the last 5 minutes
+  // (otherwise the moving/parked classification is based on stale data).
+  const freshnessThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
   const { data, error } = await supabase()
     .from('bus_locations')
-    .select('speed, bus_id')
+    .select('speed, bus_id, recorded_at')
+    .gte('recorded_at', freshnessThreshold)
     .order('recorded_at', { ascending: false });
 
   if (error) throw new Error('Failed to fetch fleet stats: ' + error.message);
@@ -598,24 +520,30 @@ export const removeStopFromRoute = async (routeId: string, stopId: string) => {
 };
 
 export const reorderStopsInRoute = async (routeId: string, stopIds: string[]) => {
-  // Two-pass update to avoid unique constraint conflicts
-  // Step 1: Set all to 0
-  for (const stopId of stopIds) {
-    const { error } = await supabase()
+  // Two-pass update to avoid unique constraint conflicts.
+  if (stopIds.length > 0) {
+    const { error: resetError } = await supabase()
       .from('route_stops')
       .update({ sequence_order: 0 })
       .eq('route_id', routeId)
-      .eq('stop_id', stopId);
-    if (error) throw new Error('Failed to reorder stops: ' + error.message);
+      .in('stop_id', stopIds);
+    if (resetError) throw new Error('Failed to reorder stops: ' + resetError.message);
   }
-  // Step 2: Set to final values
-  for (let i = 0; i < stopIds.length; i++) {
-    const { error } = await supabase()
-      .from('route_stops')
-      .update({ sequence_order: i + 1 })
-      .eq('route_id', routeId)
-      .eq('stop_id', stopIds[i]);
-    if (error) throw new Error('Failed to reorder stops: ' + error.message);
+  // route_stops has no UNIQUE(route_id, stop_id) constraint (verified via Supabase
+  // OpenAPI introspection — PK is a UUID `id`), so we cannot use upsert+onConflict.
+  // Fire one update per stop in parallel via Promise.all.
+  const results = await Promise.all(
+    stopIds.map((stopId, idx) =>
+      supabase()
+        .from('route_stops')
+        .update({ sequence_order: idx + 1 })
+        .eq('route_id', routeId)
+        .eq('stop_id', stopId)
+    )
+  );
+  const firstError = results.find((r) => r.error);
+  if (firstError?.error) {
+    throw new Error('Failed to reorder stops: ' + firstError.error.message);
   }
 };
 
@@ -669,10 +597,11 @@ export const getDashboardStats = async () => {
   }).format(now);
   const todayPHT = `${phtDateStr}T00:00:00+08:00`;
 
-  const [busCount, routeCount, driverCount, ridesToday, ridesWeek] = await Promise.all([
+  const [busCount, activeBusCount, routeCount, driverCount, ridesToday, ridesWeek] = await Promise.all([
     supabase().from('buses').select('id', { count: 'exact', head: true }),
+    supabase().from('buses').select('id', { count: 'exact', head: true }).eq('is_active', true),
     supabase().from('routes').select('id', { count: 'exact', head: true }).eq('is_active', true),
-    supabase().from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'driver'),
+    supabase().from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'driver').eq('is_active', true),
     supabase()
       .from('ride_logs')
       .select('id', { count: 'exact', head: true })
@@ -684,10 +613,13 @@ export const getDashboardStats = async () => {
   ]);
 
   const ridesThisWeek = ridesWeek.data?.length ?? 0;
-  const passengersThisWeek = 0; // ride_logs has no passenger_count column
+  // ride_logs has no passenger_count column — each row represents one boarding.
+  // Until a passenger_count column is added, treat each ride as 1 passenger.
+  const passengersThisWeek = ridesThisWeek;
 
   return {
     total_buses: busCount.count ?? 0,
+    active_buses: activeBusCount.count ?? 0,
     active_routes: routeCount.count ?? 0,
     total_drivers: driverCount.count ?? 0,
     rides_today: ridesToday.count ?? 0,
@@ -713,15 +645,14 @@ export interface RideLogFilters {
 export const getRideLogs = async (page = 1, limit = 20, filters: RideLogFilters = {}): Promise<PaginatedResult<any>> => {
   const from = (page - 1) * limit;
 
-  // ride_logs columns: id, bus_id, driver_id, resident_id, is_verified, is_manual,
-  // manual_name, admin_reviewed, boarded_at, boarded_barangay, alighted_at, alighted_barangay,
-  // synced, manual_id
+  // ride_logs columns: id, bus_id, driver_id, resident_id, is_verified, boarded_at,
+  // boarded_barangay, alighted_at, alighted_barangay, synced
   // NOTE: ride_logs has NO route_id, started_at, ended_at, passenger_count, status, or notes.
   //       Route association is through buses(buses.route_id).
   let query = supabase()
     .from('ride_logs')
     .select(
-      'id, bus_id, driver_id, resident_id, boarded_at, boarded_barangay, alighted_at, alighted_barangay, is_verified, is_manual, manual_name, manual_id, synced, admin_reviewed, buses(plate_number, route_id, routes(name)), driver:profiles(full_name)',
+      'id, bus_id, driver_id, resident_id, boarded_at, boarded_barangay, alighted_at, alighted_barangay, is_verified, synced, buses(plate_number, route_id, routes(name)), driver:profiles(full_name)',
       { count: 'exact' }
     )
     .order('boarded_at', { ascending: false })
@@ -742,9 +673,7 @@ export const getRideLogs = async (page = 1, limit = 20, filters: RideLogFilters 
   if (filters.driver_id) query = query.eq('driver_id', filters.driver_id);
   if (filters.bus_id) query = query.eq('bus_id', filters.bus_id);
 
-  if (filters.status === 'pending_review') {
-    query = query.eq('is_manual', true).eq('admin_reviewed', false);
-  } else if (filters.status === 'onboard') {
+  if (filters.status === 'onboard') {
     query = query.is('alighted_at', null);
   } else if (filters.status === 'completed') {
     query = query.not('alighted_at', 'is', null);
@@ -754,7 +683,7 @@ export const getRideLogs = async (page = 1, limit = 20, filters: RideLogFilters 
   if (error) throw new Error('Failed to fetch ride logs: ' + error.message);
 
   // Enrich scanned (non-manual) entries with resident names from e-service DB
-  const scannedLogs = (data ?? []).filter((log: any) => !log.is_manual && log.resident_id);
+  const scannedLogs = (data ?? []).filter((log: any) => log.resident_id);
   if (scannedLogs.length > 0) {
     // Step 1: Get resident_uuid from libre_sakay_beneficiary (Libre Sakay DB)
     const residentIds = scannedLogs.map((log: any) => log.resident_id);
@@ -869,13 +798,4 @@ export const getRidesTrend = async (days = 7): Promise<{ date: string; rides: nu
 export const deleteRideLog = async (id: string): Promise<void> => {
   const { error } = await supabase().from('ride_logs').delete().eq('id', id);
   if (error) throw new Error('Failed to delete ride log: ' + error.message);
-};
-
-export const reviewRideLog = async (id: string): Promise<void> => {
-  const { error } = await supabase()
-    .from('ride_logs')
-    .update({ admin_reviewed: true })
-    .eq('id', id)
-    .eq('is_manual', true);
-  if (error) throw new Error('Failed to review ride log: ' + error.message);
 };

@@ -3,7 +3,7 @@ import { body } from 'express-validator';
 import { verifyAdmin } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 import {
-  getFleetStatsController, getFleetLocationsController,
+  getFleetStatsController,
   getBusesController, getBusByIdController, getAvailableRoutesController,
   getAvailableDriversController, createBusController, updateBusController,
   deleteBusController, assignDriverController, unassignDriverController,
@@ -18,7 +18,6 @@ import {
   getRoutesForStopController,
   getDashboardStatsController,
   getRideLogsController, getRidesTrendController, deleteRideLogController,
-  reviewRideLogController,
   verifyResidentController,
   getProgramSettingsController,
   updateProgramSettingsController,
@@ -36,7 +35,6 @@ import {
   getDriversValidation, createDriverValidation, updateDriverValidation,
   createStopValidation, updateStopValidation, assignStopToRouteValidation,
   reorderStopsValidation, replaceStopInRouteValidation,
-  reviewRideLogValidation,
   listBeneficiariesValidation,
   getBeneficiaryByIdValidation,
   suspendBeneficiaryValidation,
@@ -54,7 +52,6 @@ router.get('/dashboard/stats', getDashboardStatsController);
 
 // Fleet
 router.get('/fleet/stats', getFleetStatsController);
-router.get('/fleet/locations', getFleetLocationsController);
 
 // Buses
 router.get('/buses', validate(getBusesValidation), getBusesController);
@@ -101,7 +98,6 @@ router.patch('/routes/:routeId/stops/replace', validate(replaceStopInRouteValida
 router.get('/ride-logs', getRideLogsController);
 router.get('/ride-logs/trend', getRidesTrendController);
 router.delete('/ride-logs/:id', deleteRideLogController);
-router.patch('/ride-logs/:id/review', validate(reviewRideLogValidation), reviewRideLogController);
 
 // Resident Verification (Libre Sakay admin checks if a resident is approved)
 router.get('/residents/verify/:residentId', verifyResidentController);

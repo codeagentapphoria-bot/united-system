@@ -306,9 +306,10 @@ app.use((req: Request, res: Response, next: NextFunction): void => {
   next();
 });
 
-// Request timeout middleware (30 seconds)
+// REQUEST_TIMEOUT_MS — application-level request timeout (default 30000).
+// Slightly longer than the upstream proxy timeout so we control the response shape.
 app.use((req: Request, res: Response, next: NextFunction): void => {
-  const timeoutMs = 30000; // 30 seconds
+  const timeoutMs = Number(process.env.REQUEST_TIMEOUT_MS) || 30000;
   const timeout = setTimeout(() => {
     if (!res.headersSent) {
       res.status(504).json({
@@ -461,6 +462,12 @@ app.use(errorHandler);
 // Create HTTP server from Express app
 const httpServer = createServer(app);
 
+// Socket-level timeouts — bound the connection itself, not just the request.
+// Keep headersTimeout > keepAliveTimeout > server.timeout to satisfy upstream proxies.
+httpServer.timeout = Number(process.env.SERVER_TIMEOUT_MS) || 60000;        // 60s
+httpServer.keepAliveTimeout = Number(process.env.KEEPALIVE_TIMEOUT_MS) || 45000; // 45s
+httpServer.headersTimeout = Number(process.env.HEADERS_TIMEOUT_MS) || 65000;   // 65s
+
 // Initialize Socket.io
 const io = initializeSocket(httpServer);
 setSocketInstance(io);
@@ -562,6 +569,23 @@ if (process.env.NODE_ENV !== 'test') {
   }, 60000); // Check every minute
   });
 }
+
+// Global safety nets — log and exit so the platform orchestrator restarts cleanly.
+// Without these, an unhandled rejection kills the process silently.
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+  console.error('[FATAL] Unhandled Promise Rejection:', reason);
+  if (reason instanceof Error) {
+    console.error('[FATAL] Stack:', reason.stack);
+  }
+  // Best practice: crash fast so the orchestrator restarts. Do NOT swallow silently.
+  process.exit(1);
+});
+
+process.on('uncaughtException', (err: Error, origin: string) => {
+  console.error(`[FATAL] Uncaught Exception (origin: ${origin}):`, err);
+  console.error('[FATAL] Stack:', err.stack);
+  process.exit(1);
+});
 
 // Graceful shutdown handling
 process.on('SIGTERM', () => {

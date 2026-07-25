@@ -804,6 +804,8 @@ export const getTransactionsByService = async (
         service: true,
       },
       orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: skip,
     }),
     prisma.transaction.count({ where }),
   ]);
@@ -816,9 +818,6 @@ export const getTransactionsByService = async (
   if (serviceDataFilters && Object.keys(serviceDataFilters).length > 0) {
     total = transactions.length;
   }
-
-  // Apply pagination
-  transactions = transactions.slice(skip, skip + limit);
 
   // Fetch tax computations for the paginated transactions
   const transactionIds = transactions.map((t: any) => t.id);
@@ -1461,6 +1460,7 @@ export const getAppointments = async (
     orderBy: {
       preferredAppointmentDate: 'asc',
     },
+    take: limit ?? 200,
   });
 
   return appointments;
