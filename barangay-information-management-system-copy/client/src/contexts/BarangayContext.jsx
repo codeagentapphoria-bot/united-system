@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import api from "@/utils/api";
 import { handleErrorSilently } from "@/utils/errorHandler";
-import logger from "@/utils/logger";
 
 const BarangayContext = createContext();
+
+const toNumber = (value) => Number.parseInt(value ?? 0, 10) || 0;
 
 export const BarangayProvider = ({ children }) => {
   const [selectedBarangay, setSelectedBarangay] = useState(null);
@@ -16,22 +17,42 @@ export const BarangayProvider = ({ children }) => {
     setLoading(true);
     try {
       const { data } = await api.get("/public/list/barangay");
-      const barangays = data.data.data.map((barangay) => ({
-        id: barangay.id,
-        name: barangay.barangay_name,
-        code: barangay.barangay_code,
-        email: barangay.email,
-        contactNumber: barangay.contact_number || "N/A",
-        address: barangay.address || "N/A",
-        captain: barangay.captain_name || "N/A",
-        coordinates: [
-          parseFloat(barangay.latitude) || 11.6081,
-          parseFloat(barangay.longitude) || 125.4311,
-        ],
-        municipality_id: barangay.municipality_id,
-        municipality_name: barangay.municipality_name || "Municipality",
-        originalData: barangay,
-      }));
+      const rows = data?.data?.data || [];
+      const barangays = rows.map((barangay) => {
+        const stats = {
+          households: toNumber(barangay.household_count),
+          residents: toNumber(barangay.resident_count),
+          families: toNumber(barangay.family_count),
+          pets: toNumber(barangay.pet_count),
+          addedThisMonth: 0,
+          completedCertificates: toNumber(barangay.completed_certificates),
+          totalRequests: toNumber(barangay.total_requests),
+        };
+
+        return {
+          id: barangay.id,
+          name: barangay.barangay_name,
+          code: barangay.barangay_code,
+          email: barangay.email,
+          contactNumber: barangay.contact_number || "N/A",
+          address: barangay.address || "N/A",
+          captain: barangay.captain_name || "N/A",
+          coordinates: [
+            parseFloat(barangay.latitude) || 11.6081,
+            parseFloat(barangay.longitude) || 125.4311,
+          ],
+          municipality_id: barangay.municipality_id,
+          municipality_name: barangay.municipality_name || "Municipality",
+          stats,
+          originalData: barangay,
+        };
+      });
+
+      setBarangayStats(
+        Object.fromEntries(
+          barangays.map((barangay) => [barangay.id, barangay.stats])
+        )
+      );
       setAvailableBarangays(barangays);
       setError(null);
     } catch (err) {
@@ -43,73 +64,9 @@ export const BarangayProvider = ({ children }) => {
     }
   };
 
-  const fetchBarangayStats = async () => {
-    if (!availableBarangays.length) return;
-    try {
-      const statsArr = await Promise.all(
-        availableBarangays.map(async (barangay) => {
-          try {
-            const [household, population, family, pets, requests] =
-              await Promise.all([
-                api.get("/statistics/total-households", {
-                  params: { barangayId: barangay.id },
-                }),
-                api.get("/statistics/total-population", {
-                  params: { barangayId: barangay.id },
-                }),
-                api.get("/statistics/total-families", {
-                  params: { barangayId: barangay.id },
-                }),
-                api.get("/statistics/total-registered-pets", {
-                  params: { barangayId: barangay.id },
-                }),
-                api.get("/statistics/total-requests", {
-                  params: { barangayId: barangay.id },
-                }),
-              ]);
-            return {
-              barangayId: barangay.id,
-              households: household.data.data?.total_households || 0,
-              residents: parseInt(population.data.data?.total_population) || 0,
-              families: family.data.data?.total_families || 0,
-              pets: pets.data.data?.total_pets || 0,
-              addedThisMonth: household.data.data?.added_this_month || 0,
-              completedCertificates:
-                requests.data.data?.completed_certificates || 0,
-              totalRequests: requests.data.data?.total_requests || 0,
-            };
-          } catch (err) {
-            handleErrorSilently(err, `Fetch Barangay Stats (ID: ${barangay.id})`);
-            return {
-              barangayId: barangay.id,
-              households: 0,
-              residents: 0,
-              families: 0,
-              pets: 0,
-              addedThisMonth: 0,
-              completedCertificates: 0,
-              totalRequests: 0,
-            };
-          }
-        })
-      );
-      const statsMap = {};
-      statsArr.forEach((stat) => {
-        statsMap[stat.barangayId] = stat;
-      });
-      setBarangayStats(statsMap);
-    } catch (err) {
-      handleErrorSilently(err, "Fetch Barangay Statistics");
-    }
-  };
-
   useEffect(() => {
     fetchBarangays();
   }, []);
-
-  useEffect(() => {
-    if (availableBarangays.length) fetchBarangayStats();
-  }, [availableBarangays]);
 
   useEffect(() => {
     const saved = localStorage.getItem("selectedBarangay");
@@ -140,6 +97,7 @@ export const BarangayProvider = ({ children }) => {
       households: 0,
       residents: 0,
       families: 0,
+      pets: 0,
       addedThisMonth: 0,
       completedCertificates: 0,
       totalRequests: 0,

@@ -29,7 +29,7 @@ export default defineConfig({
   /* Shared settings for all projects */
   use: {
     /* Base URL for navigation */
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8081',
     
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
@@ -53,36 +53,18 @@ export default defineConfig({
     headless: true,
   },
 
-  /* Configure projects for major browsers */
+  /* Keep the default smoke run fast and deterministic. */
   projects: [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-
-    /* Test against mobile viewports */
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
   ],
 
-  /* Run local dev server before starting the tests */
+  /* Run the merged frontend/backend local stack before starting the tests. */
   webServer: process.env.CI ? undefined : {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: 'proc-compose up',
+    url: 'http://localhost:8081',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },

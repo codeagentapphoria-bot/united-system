@@ -27,6 +27,11 @@ import { convertKebabToServiceCode, getServiceDisplayName } from '@/utils/servic
 // Icons
 import { FiBarChart2, FiFileText } from 'react-icons/fi';
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  const err = error as { response?: { data?: { message?: string } }; message?: string };
+  return err.response?.data?.message || err.message || fallback;
+};
+
 export const ServicePage: React.FC = () => {
   const { serviceCode: kebabServiceCode } = useParams<{ serviceCode: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -61,8 +66,8 @@ export const ServicePage: React.FC = () => {
         const serviceCode = convertKebabToServiceCode(kebabServiceCode);
         const fetchedService = await serviceService.getServiceByCode(serviceCode);
         setService(fetchedService);
-      } catch (err: any) {
-        const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch service';
+      } catch (err: unknown) {
+        const errorMessage = getErrorMessage(err, 'Failed to fetch service');
         setError(errorMessage);
         toast({
           variant: 'destructive',
@@ -100,6 +105,8 @@ export const ServicePage: React.FC = () => {
     );
   }
 
+  const isBarangayCertificate = service.category === 'Barangay Certificate';
+
   return (
     <DashboardLayout>
       <AccessControlGate pagePath={window.location.pathname}>
@@ -115,48 +122,59 @@ export const ServicePage: React.FC = () => {
         </div>
 
         {/* Main Content */}
-        <Card>
-          <CardContent className={cn('p-0')}>
-            <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val)} className={cn('w-full')}>
-              <div className={cn('border-b border-gray-200')}>
-                <TabsList className={cn('h-auto bg-transparent p-0 w-full justify-start')}>
-                  <TabsTrigger
-                    value="dashboard"
-                    className={cn(
-                      'flex items-center gap-2 px-6 py-4 rounded-none data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
-                    )}
-                  >
-                    <FiBarChart2 size={18} />
-                    Dashboard
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="applications"
-                    className={cn(
-                      'flex items-center gap-2 px-6 py-4 rounded-none data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
-                    )}
-                  >
-                    <FiFileText size={18} />
-                    Applications
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+        {isBarangayCertificate ? (
+          <Card>
+            <CardContent className={cn('p-8 text-center space-y-3')}>
+              <h3 className={cn('text-lg font-semibold text-heading-700')}>Processed in BIMS</h3>
+              <p className={cn('text-sm text-gray-600 max-w-xl mx-auto')}>
+                Barangay certificate requests are submitted through eService but processed by barangay staff in BIMS.
+                Use the BIMS certificate queue to review, print, release, or update these requests.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className={cn('p-0')}>
+              <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val)} className={cn('w-full')}>
+                <div className={cn('border-b border-gray-200')}>
+                  <TabsList className={cn('h-auto bg-transparent p-0 w-full justify-start')}>
+                    <TabsTrigger
+                      value="dashboard"
+                      className={cn(
+                        'flex items-center gap-2 px-6 py-4 rounded-none data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
+                      )}
+                    >
+                      <FiBarChart2 size={18} />
+                      Dashboard
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="applications"
+                      className={cn(
+                        'flex items-center gap-2 px-6 py-4 rounded-none data-[state=active]:bg-primary-50 data-[state=active]:text-primary-700 data-[state=active]:border-b-2 data-[state=active]:border-primary-600'
+                      )}
+                    >
+                      <FiFileText size={18} />
+                      Applications
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
 
-              {/* Tab Contents */}
-              <div className={cn('p-6')}>
-                <TabsContent value="dashboard" className={cn('mt-0')}>
-                  <ServiceDashboardTab serviceCode={service.code} service={service} />
-                </TabsContent>
+                {/* Tab Contents */}
+                <div className={cn('p-6')}>
+                  <TabsContent value="dashboard" className={cn('mt-0')}>
+                    <ServiceDashboardTab serviceCode={service.code} service={service} />
+                  </TabsContent>
 
-                <TabsContent value="applications" className={cn('mt-0')}>
-                  <ServiceApplicationsTab serviceCode={service.code} service={service} />
-                </TabsContent>
-              </div>
-            </Tabs>
-          </CardContent>
-        </Card>
+                  <TabsContent value="applications" className={cn('mt-0')}>
+                    <ServiceApplicationsTab serviceCode={service.code} service={service} />
+                  </TabsContent>
+                </div>
+              </Tabs>
+            </CardContent>
+          </Card>
+        )}
       </div>
       </AccessControlGate>
     </DashboardLayout>
   );
 };
-

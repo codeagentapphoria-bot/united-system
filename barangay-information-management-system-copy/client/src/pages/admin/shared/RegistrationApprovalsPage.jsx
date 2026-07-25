@@ -15,6 +15,7 @@ import useAuth from "@/hooks/useAuth";
 import ResidentClassificationsForm from "@/features/barangay/residents/components/ResidentClassificationsForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CompactPagination } from "@/components/ui/compact-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -65,7 +66,7 @@ export default function RegistrationApprovalsPage() {
   const [adminNotes,      setAdminNotes]      = useState("");
   const [actionType,      setActionType]      = useState(null); // 'approve' | 'reject' | 'resubmit'
   const [page,            setPage]            = useState(1);
-  const [perPage,         setPerPage]         = useState(10);
+  const [perPage] = useState(10);
   const [lightboxSrc,     setLightboxSrc]     = useState(null);
   const [classifyResident, setClassifyResident] = useState(null);
   const [classifySaving,  setClassifySaving]  = useState(false);
@@ -357,31 +358,13 @@ export default function RegistrationApprovalsPage() {
         </CardContent>
       </Card>
 
-      {/* Pagination */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-        <div className="text-xs sm:text-sm text-gray-500">
-          Page {page} of {pagination?.totalPages || 1}
-        </div>
-        <div className="flex gap-2 items-center">
-          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}
-            className="text-xs sm:text-sm">
-            Previous
-          </Button>
-          <Button variant="outline" size="sm" disabled={page >= (pagination?.totalPages || 1)} onClick={() => setPage((p) => p + 1)}
-            className="text-xs sm:text-sm">
-            Next
-          </Button>
-        </div>
-        <select
-          className="w-full sm:w-24 border rounded px-2 py-1 text-xs sm:text-sm"
-          value={perPage}
-          onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-        >
-          <option value={10}>10 / page</option>
-          <option value={20}>20 / page</option>
-          <option value={50}>50 / page</option>
-        </select>
-      </div>
+      <CompactPagination
+        page={page}
+        totalPages={pagination?.totalPages || 1}
+        total={pagination?.total || 0}
+        perPage={perPage}
+        onPageChange={setPage}
+      />
 
       {/* ── Detail View Dialog ─────────────────────────────────────────────────── */}
       <Dialog open={!!(selectedRequest && !actionType)} onOpenChange={(v) => { if (!v) setSelectedRequest(null); }}>

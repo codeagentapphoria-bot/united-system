@@ -445,9 +445,6 @@ const SettingsPage = () => {
         formData.append("email", data.email);
         formData.append("contactNumber", data.contact);
 
-        // Add municipality ID (for barangay users, this should be 1 for the main municipality)
-        formData.append("municipalityId", "1");
-
         // Add GIS ID if selected, otherwise use existing barangay's GIS ID
         if (selectedBarangay?.gis_code) {
           formData.append("gisCode", selectedBarangay.gis_code);
@@ -475,7 +472,6 @@ const SettingsPage = () => {
           barangayCode: data.code,
           email: data.email,
           contactNumber: data.contact,
-          municipalityId: "1",
           gisCode: selectedBarangay?.gis_code || existingBarangayId,
           imageFiles: Object.keys(imageFiles).filter(key => imageFiles[key])
         });
@@ -1119,7 +1115,7 @@ const SettingsPage = () => {
                   id="barangayLogo"
                   accept="image/*"
                   onChange={(e) => handleImageChange("logo", e.target.files[0])}
-                  className="hidden"
+                  className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
                 />
                 <label
                   htmlFor="barangayLogo"
@@ -1169,7 +1165,7 @@ const SettingsPage = () => {
                   onChange={(e) =>
                     handleImageChange("certificate", e.target.files[0])
                   }
-                  className="hidden"
+                  className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
                 />
                 <label
                   htmlFor="certificate"
@@ -1200,7 +1196,7 @@ const SettingsPage = () => {
                 {imagePreviews.certificate && (
                   <button
                     onClick={() => handleRemoveImage("certificate")}
-                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors duration-200 shadow-lg"
+                    className="absolute -top-2 -right-2 z-30 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors duration-200 shadow-lg"
                     title="Remove image"
                   >
                     <X className="h-3 w-3" />
@@ -1227,7 +1223,7 @@ const SettingsPage = () => {
                   onChange={(e) =>
                     handleImageChange("orgChart", e.target.files[0])
                   }
-                  className="hidden"
+                  className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
                 />
                 <label
                   htmlFor="orgChart"
@@ -1258,7 +1254,7 @@ const SettingsPage = () => {
                 {imagePreviews.orgChart && (
                   <button
                     onClick={() => handleRemoveImage("orgChart")}
-                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors duration-200 shadow-lg"
+                    className="absolute -top-2 -right-2 z-30 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors duration-200 shadow-lg"
                     title="Remove image"
                   >
                     <X className="h-3 w-3" />

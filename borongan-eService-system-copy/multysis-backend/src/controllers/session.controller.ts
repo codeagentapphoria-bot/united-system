@@ -46,13 +46,13 @@ export const getSessionStatusController = async (
   }
 
   if (!session) {
-    // No active Redis session — session expired or never created
-    // Return null to signal frontend that session is gone
+    // Redis session bookkeeping is best-effort; auth middleware still validates JWTs.
     res.status(200).json({
       status: 'success',
       data: {
-        idleRemainingMs: 0,
-        absoluteRemainingMs: 0,
+        idleRemainingMs: null,
+        absoluteRemainingMs: null,
+        error: 'session_status_unavailable',
       },
     });
     return;

@@ -241,8 +241,6 @@ BIMS Team`;
 </body>
 </html>`;
 
-  const SMTP_FROM = import.meta.env.VITE_SMTP_FROM || undefined;
-  
   try {
     // Validate email format before sending
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -261,17 +259,21 @@ BIMS Team`;
       subject,
       body,
       html,
-      from: SMTP_FROM,
+    }, {
+      timeout: 15000,
     });
 
     // Success notification with more details
+    const provider = response.data.provider === "brevo" ? "Brevo" : "email service";
+    const idText = response.data.messageId ? ` Message ID: ${response.data.messageId}` : "";
+
     toast({ 
-      title: "Setup email sent successfully!", 
-      description: `Email sent to ${email}. The admin has 48 hours to complete setup.`,
+      title: "Setup email accepted for delivery",
+      description: `Email accepted by ${provider} for ${email}.${idText}`,
       duration: 5000
     });
 
-    return { success: true, messageId: response.data.messageId };
+    return { success: true, messageId: response.data.messageId, provider: response.data.provider };
   } catch (error) {
     console.error("Email sending error:", error);
     
@@ -283,8 +285,11 @@ BIMS Team`;
       errorMessage = "Invalid email address";
       errorDescription = "Please check the email format and try again.";
     } else if (error.response?.status === 500) {
-      errorMessage = "Email service temporarily unavailable";
-      errorDescription = "Our email service is experiencing issues. Please try again in a few minutes.";
+      errorMessage = "Setup email failed";
+      errorDescription = error.response?.data?.message || "The email service is unavailable. Please try again in a few minutes.";
+    } else if (error.code === 'ECONNABORTED') {
+      errorMessage = "Setup email timed out";
+      errorDescription = "The email service did not respond in time. Please try again.";
     } else if (error.message === "Invalid email format") {
       errorMessage = "Invalid email format";
       errorDescription = "Please enter a valid email address.";
@@ -303,6 +308,6 @@ BIMS Team`;
       duration: 7000
     });
 
-    return { success: false, error: errorMessage };
+    return { success: false, error: errorDescription || errorMessage };
   }
 }

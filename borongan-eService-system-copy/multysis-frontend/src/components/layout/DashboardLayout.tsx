@@ -18,6 +18,7 @@ import { useSessionSync } from '@/hooks/useSessionSync';
 // Utils
 import { cn } from '@/lib/utils';
 import { clearServiceCache } from '@/utils/dynamic-menu';
+import { hasPageAccess } from '@/utils/page-access';
 import { userService } from '@/services/api/user.service';
 import { SYSTEM_LABELS } from '@/constants/systemLabels';
 
@@ -51,8 +52,7 @@ interface DashboardLayoutProps {
 
 /** Returns true if a menu item path (or one of its submenu paths) is in the allowed list. */
 function isAllowed(path: string | undefined, allowedPaths: Set<string>): boolean {
-  if (!path) return true; // separators are always shown
-  return allowedPaths.has(path);
+  return hasPageAccess(path, allowedPaths);
 }
 
 const SYSTEM_ORDER = ['core', 'libre-sakay', 'libre-medisina', 'government-programs', 'services', 'city-population'];
@@ -72,6 +72,9 @@ function buildUnifiedMenu(
   const filtered = items
     .filter(item => {
       if (item.type === 'separator') return true;
+      if (item.hasSubmenu && item.submenuItems) {
+        return isAllowed(item.path, allowedPaths) || item.submenuItems.some(sub => isAllowed(sub.path, allowedPaths));
+      }
       return isAllowed(item.path, allowedPaths);
     })
     .map(item => {

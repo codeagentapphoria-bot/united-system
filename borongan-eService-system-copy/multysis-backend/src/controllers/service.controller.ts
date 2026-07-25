@@ -118,7 +118,7 @@ export const getServiceByCodeController = async (
   res: Response
 ): Promise<void> => {
   try {
-    const service = await getServiceByCode(req.params.code.toUpperCase());
+    const service = await getServiceByCode(req.params.code.toUpperCase().replace(/-/g, '_'));
     res.status(200).json({
       status: 'success',
       data: service,

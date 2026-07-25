@@ -27,6 +27,11 @@ import { transactionService, type Transaction } from '@/services/api/transaction
 import { cn, formatDateWithoutTimezone } from '@/lib/utils';
 import { FiCalendar, FiDownload, FiEye, FiFileText, FiMessageCircle, FiSearch, FiXCircle } from 'react-icons/fi';
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  const err = error as { message?: string };
+  return err.message || fallback;
+};
+
 export const MyApplications: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -73,11 +78,11 @@ export const MyApplications: React.FC = () => {
       setTransactions(transactionsArray);
       setTotalPages(result?.pagination?.totalPages || 1);
       setTotal(result?.pagination?.total || 0);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.message || 'Failed to fetch applications',
+        description: getErrorMessage(error, 'Failed to fetch applications'),
       });
     } finally {
       setIsLoading(false);
@@ -96,11 +101,11 @@ export const MyApplications: React.FC = () => {
         title: 'Success',
         description: 'Transaction document downloaded successfully',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.message || 'Failed to download transaction document',
+        description: getErrorMessage(error, 'Failed to download transaction document'),
       });
     }
   };
@@ -115,7 +120,10 @@ export const MyApplications: React.FC = () => {
       case 'PENDING':
       case 'FOR_PRINTING':
       case 'FOR_PICK_UP':
+      case 'FOR_RELEASE':
         return 'bg-yellow-100 text-yellow-700';
+      case 'PROCESSING':
+        return 'bg-blue-100 text-blue-700';
       case 'REJECTED':
       case 'CANCELLED':
         return 'bg-red-100 text-red-700';
@@ -123,6 +131,14 @@ export const MyApplications: React.FC = () => {
         return 'bg-gray-100 text-gray-700';
     }
   };
+
+  const formatStatusLabel = (status?: string) =>
+    status
+      ? status
+          .replace(/_/g, ' ')
+          .toLowerCase()
+          .replace(/\b\w/g, (char) => char.toUpperCase())
+      : 'Pending';
 
   // Helper functions for tax display
   const hasTaxComputation = (transaction: Transaction) => {
@@ -168,10 +184,16 @@ export const MyApplications: React.FC = () => {
   const statusOptions = [
     { value: '', label: 'All Statuses' },
     { value: 'Pending', label: 'Pending' },
+    { value: 'PENDING', label: 'Pending' },
+    { value: 'PROCESSING', label: 'Processing' },
+    { value: 'FOR_RELEASE', label: 'For Release' },
+    { value: 'RELEASED', label: 'Released' },
     { value: 'Approved', label: 'Approved' },
     { value: 'Completed', label: 'Completed' },
     { value: 'Rejected', label: 'Rejected' },
+    { value: 'REJECTED', label: 'Rejected' },
     { value: 'Cancelled', label: 'Cancelled' },
+    { value: 'CANCELLED', label: 'Cancelled' },
   ];
 
   const serviceOptions = [
@@ -368,7 +390,7 @@ export const MyApplications: React.FC = () => {
                         )}
                         {transaction.status && (
                           <Badge className={cn('text-xs font-medium', getStatusColor(transaction.status))}>
-                            {transaction.status}
+                            {formatStatusLabel(transaction.status)}
                           </Badge>
                         )}
                         {hasTaxComputation(transaction) && (
@@ -399,7 +421,7 @@ export const MyApplications: React.FC = () => {
                           <FiEye size={16} className="mr-2" />
                           View Details
                         </Button>
-                        {(transaction.status === 'Approved' || transaction.status === 'Completed' || transaction.status === 'Released') && (
+                        {['APPROVED', 'COMPLETED', 'RELEASED'].includes((transaction.status || '').toUpperCase()) && (
                           <Button 
                             variant="outline" 
                             size="sm" 
@@ -463,4 +485,3 @@ export const MyApplications: React.FC = () => {
     </div>
   );
 };
-

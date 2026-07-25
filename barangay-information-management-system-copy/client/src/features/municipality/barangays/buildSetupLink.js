@@ -19,16 +19,7 @@ export async function buildSetupLink({
     
     return response.data.data.setupLink;
   } catch (error) {
-    console.error("Failed to generate secure setup link, falling back to URL parameters:", error);
-    
-    // Fallback to old method if token generation fails
-    const params = new URLSearchParams({
-      barangayName,
-      barangayCode,
-      fullName,
-      email,
-    });
-    if (barangayId) params.append("barangayId", barangayId);
-    return `${window.location.origin}/setup-account?${params.toString()}`;
+    console.error("Failed to generate secure setup link:", error);
+    throw error;
   }
 }

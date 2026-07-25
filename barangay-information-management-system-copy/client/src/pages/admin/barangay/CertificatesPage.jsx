@@ -20,10 +20,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
 import useAuth from '@/hooks/useAuth';
-import { getToken } from '@/constants/token';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CompactPagination } from '@/components/ui/compact-pagination';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
@@ -51,7 +51,27 @@ import {
 import { Maximize2, Minimize2, Printer, Download, ScanLine, UserPlus, Eye } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 
-const BIMS_API = import.meta.env.VITE_API_BASE_URL || '/api';
+const apiErrorMessage = async (err, fallback) => {
+  const data = err.response?.data;
+  if (data instanceof Blob) {
+    const text = await data.text().catch(() => '');
+    if (text) return apiErrorMessage({ response: { data: text } }, fallback);
+  }
+  if (typeof data === 'string') {
+    try { return JSON.parse(data).message || fallback; }
+    catch { return data || fallback; }
+  }
+  return data?.message || err.message || fallback;
+};
+
+const fetchCertificatePreview = async (previewPath, certificateType) => {
+  if (!previewPath) return '';
+  const res = await apiClient.get(previewPath, {
+    params: { certificateType },
+    responseType: 'text',
+  });
+  return res.data;
+};
 
 // ── Certificate type display labels ──────────────────────────────────────────
 const CERT_TYPE_LABELS = {
@@ -396,6 +416,9 @@ const RequestDetail = ({ item, onClose, onStatusUpdated }) => {
   const queryClient   = useQueryClient();
   const [generating,  setGenerating]  = useState(false);
   const [maximized,   setMaximized]   = useState(false);
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState('');
 
   const isWalkin = item.source === 'walkin';
   const statuses = isWalkin ? WALKIN_STATUSES : PORTAL_STATUSES;
@@ -421,38 +444,53 @@ const RequestDetail = ({ item, onClose, onStatusUpdated }) => {
       }),
   });
 
-  // Build preview URL (no auth needed — returns HTML)
-  const previewUrl = item.certificate_type && item.certificate_type !== 'certificate'
+  // Protected preview HTML is fetched with apiClient, then rendered via srcDoc.
+  const previewPath = item.certificate_type && item.certificate_type !== 'certificate'
     ? isWalkin
-      ? `${BIMS_API}/certificates/preview/request/${item.source_id}?certificateType=${item.certificate_type}`
-      : `${BIMS_API}/certificates/preview/transaction/${item.source_id}?certificateType=${item.certificate_type}`
+      ? `/certificates/preview/request/${item.source_id}`
+      : `/certificates/preview/transaction/${item.source_id}`
     : null;
 
-  // PDF download — POSTs to generate endpoint with Bearer token
+  const generatePath = isWalkin
+    ? `/certificates/generate/request/${item.source_id}`
+    : `/certificates/generate/transaction/${item.source_id}`;
+
+  useEffect(() => {
+    let cancelled = false;
+    setPreviewHtml('');
+    setPreviewError('');
+
+    if (!previewPath) {
+      setPreviewLoading(false);
+      return;
+    }
+
+    setPreviewLoading(true);
+    fetchCertificatePreview(previewPath, item.certificate_type)
+      .then((html) => {
+        if (!cancelled) setPreviewHtml(html);
+      })
+      .catch(async (err) => {
+        if (!cancelled) {
+          setPreviewError(await apiErrorMessage(err, 'Certificate preview failed'));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setPreviewLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [previewPath, item.certificate_type]);
+
+  // PDF download — uses apiClient so auth refresh works after page reloads.
   const handleDownload = async () => {
     setGenerating(true);
     try {
-      const url = isWalkin
-        ? `${BIMS_API}/certificates/generate/request/${item.source_id}`
-        : `${BIMS_API}/certificates/generate/transaction/${item.source_id}`;
-
-      const token = getToken();
-      const resp = await fetch(url, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ certificateType: item.certificate_type }),
-      });
-
-      if (!resp.ok) {
-        const json = await resp.json().catch(() => ({}));
-        throw new Error(json.message || 'PDF generation failed');
-      }
-
-      const blob      = await resp.blob();
+      const { data: blob } = await apiClient.post(
+        generatePath,
+        { certificateType: item.certificate_type },
+        { responseType: 'blob' }
+      );
       const objectUrl = URL.createObjectURL(blob);
       const a         = document.createElement('a');
       a.href          = objectUrl;
@@ -464,19 +502,22 @@ const RequestDetail = ({ item, onClose, onStatusUpdated }) => {
 
       toast({ title: 'Certificate downloaded' });
     } catch (err) {
-      toast({ variant: 'destructive', title: 'Download failed', description: err.message });
+      toast({
+        variant: 'destructive',
+        title: 'Download failed',
+        description: await apiErrorMessage(err, 'PDF generation failed'),
+      });
     } finally {
       setGenerating(false);
     }
   };
 
-  // Print — fetches the certificate HTML, writes it into a hidden same-origin
-  // iframe (avoids cross-origin block), waits for all images to load, then
-  // triggers the browser's native print dialog inline (no new tab).
+  // Print — writes authenticated preview HTML into a hidden iframe, waits for
+  // all images to load, then opens the native print dialog inline.
   const handlePrint = async () => {
-    if (!previewUrl) return;
+    if (!previewPath) return;
     try {
-      const html = await fetch(previewUrl).then((r) => r.text());
+      const html = previewHtml || await fetchCertificatePreview(previewPath, item.certificate_type);
 
       // A4 dimensions off-screen — real size ensures images actually load
       const frame = document.createElement('iframe');
@@ -502,7 +543,11 @@ const RequestDetail = ({ item, onClose, onStatusUpdated }) => {
       frame.contentWindow.print();
       setTimeout(() => document.body.removeChild(frame), 2000);
     } catch (err) {
-      toast({ variant: 'destructive', title: 'Print failed', description: err.message });
+      toast({
+        variant: 'destructive',
+        title: 'Print failed',
+        description: await apiErrorMessage(err, 'Certificate preview failed'),
+      });
     }
   };
 
@@ -525,10 +570,10 @@ const RequestDetail = ({ item, onClose, onStatusUpdated }) => {
         <div className="flex items-center gap-2 mr-6">
           {maximized && (
             <>
-              <Button size="sm" variant="outline" onClick={handlePrint} disabled={!previewUrl} className="gap-1.5">
+              <Button size="sm" variant="outline" onClick={handlePrint} disabled={!previewPath} className="gap-1.5">
                 <Printer className="h-3.5 w-3.5" /> Print
               </Button>
-              <Button size="sm" onClick={handleDownload} disabled={generating || !previewUrl} className="gap-1.5">
+              <Button size="sm" onClick={handleDownload} disabled={generating || !previewPath} className="gap-1.5">
                 <Download className="h-3.5 w-3.5" />
                 {generating ? 'Generating…' : 'Download'}
               </Button>
@@ -602,14 +647,14 @@ const RequestDetail = ({ item, onClose, onStatusUpdated }) => {
 
             {/* Action buttons pinned to bottom */}
             <div className="p-5 border-t space-y-2 shrink-0">
-              <Button className="w-full gap-2" variant="outline" onClick={handlePrint} disabled={!previewUrl}>
+              <Button className="w-full gap-2" variant="outline" onClick={handlePrint} disabled={!previewPath}>
                 <Printer className="h-4 w-4" /> Print
               </Button>
-              <Button className="w-full gap-2" onClick={handleDownload} disabled={generating || !previewUrl}>
+              <Button className="w-full gap-2" onClick={handleDownload} disabled={generating || !previewPath}>
                 <Download className="h-4 w-4" />
                 {generating ? 'Generating…' : 'Download'}
               </Button>
-              {!previewUrl && (
+              {!previewPath && (
                 <p className="text-xs text-orange-600 text-center">
                   Certificate type not set — preview unavailable.
                 </p>
@@ -620,12 +665,22 @@ const RequestDetail = ({ item, onClose, onStatusUpdated }) => {
 
         {/* Right panel — iframe preview */}
         <div className="flex-1 flex flex-col overflow-hidden bg-gray-100">
-          {previewUrl ? (
-            <iframe
-              src={previewUrl}
-              title="Certificate Preview"
-              className="flex-1 border-0 w-full"
-            />
+          {previewPath ? (
+            previewLoading ? (
+              <div className="flex-1 flex items-center justify-center text-sm text-gray-400">
+                Loading preview…
+              </div>
+            ) : previewError ? (
+              <div className="flex-1 flex items-center justify-center">
+                <p className="text-sm text-red-500">{previewError}</p>
+              </div>
+            ) : (
+              <iframe
+                srcDoc={previewHtml}
+                title="Certificate Preview"
+                className="flex-1 border-0 w-full"
+              />
+            )
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -648,7 +703,7 @@ export default function CertificatesPage() {
   const queryClient     = useQueryClient();
 
   const [page,         setPage]         = useState(1);
-  const [perPage,      setPerPage]      = useState(10);
+  const [perPage] = useState(10);
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [selected,     setSelected]     = useState(null);  // currently open detail
@@ -813,41 +868,13 @@ export default function CertificatesPage() {
         </CardContent>
       </Card>
 
-      {/* Pagination */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-        <div className="text-xs sm:text-sm text-gray-500">
-          Page {page} of {pagination.totalPages || 1}
-        </div>
-        <div className="flex gap-2 items-center">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}
-            className="text-xs sm:text-sm"
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= (pagination.totalPages || 1)}
-            onClick={() => setPage((p) => p + 1)}
-            className="text-xs sm:text-sm"
-          >
-            Next
-          </Button>
-        </div>
-        <select
-          className="w-full sm:w-24 border rounded px-2 py-1 text-xs sm:text-sm"
-          value={perPage}
-          onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-        >
-          <option value={10}>10 / page</option>
-          <option value={20}>20 / page</option>
-          <option value={50}>50 / page</option>
-        </select>
-      </div>
+      <CompactPagination
+        page={page}
+        totalPages={pagination.totalPages || 1}
+        total={pagination.total || 0}
+        perPage={perPage}
+        onPageChange={setPage}
+      />
 
       {/* Request detail modal */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>

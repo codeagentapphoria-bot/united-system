@@ -20,7 +20,7 @@ export const getAdminNotificationCountsController = async (
       return;
     }
 
-    const counts = await getAdminNotificationCounts();
+    const counts = await getAdminNotificationCounts(req.user.id);
 
     res.status(200).json({
       status: 'success',

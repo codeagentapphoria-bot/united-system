@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import {
   Dialog,
@@ -12,7 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 import type { Service } from '@/services/api/service.service';
+import {
+  certificateTemplateService,
+  type ResidentCertificateTemplate,
+} from '@/services/api/certificate-template.service';
 
+import { RequestBarangayCertificateModal } from './RequestBarangayCertificateModal';
 import { RequestServiceModal } from './RequestServiceModal';
 
 import { useAuth } from '@/context/AuthContext';
@@ -49,6 +54,13 @@ export const CategoryServicesModal: React.FC<CategoryServicesModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [certificateTemplates, setCertificateTemplates] = useState<ResidentCertificateTemplate[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<ResidentCertificateTemplate | null>(null);
+  const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
+  const isBarangayCertificateCategory = category === 'Barangay Certificate';
+  const transportService = services.find((service) => service.code === 'BRGY_CERTIFICATE') ?? services[0];
+  const userId = user?.id;
 
   const filteredServices = useMemo(() => {
     if (!searchQuery.trim()) return services;
@@ -60,6 +72,45 @@ export const CategoryServicesModal: React.FC<CategoryServicesModalProps> = ({
     );
   }, [services, searchQuery]);
 
+  const filteredCertificateTemplates = useMemo(() => {
+    if (!searchQuery.trim()) return certificateTemplates;
+    const lower = searchQuery.toLowerCase();
+    return certificateTemplates.filter(
+      (template) =>
+        template.name.toLowerCase().includes(lower) ||
+        template.description?.toLowerCase().includes(lower)
+    );
+  }, [certificateTemplates, searchQuery]);
+
+  useEffect(() => {
+    if (!open || !isBarangayCertificateCategory || !userId) {
+      setCertificateTemplates([]);
+      setIsLoadingTemplates(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    let isActive = true;
+
+    setIsLoadingTemplates(true);
+    certificateTemplateService
+      .getResidentTemplates(controller.signal)
+      .then((templates) => {
+        if (isActive) setCertificateTemplates(templates);
+      })
+      .catch(() => {
+        if (isActive && !controller.signal.aborted) setCertificateTemplates([]);
+      })
+      .finally(() => {
+        if (isActive) setIsLoadingTemplates(false);
+      });
+
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
+  }, [open, isBarangayCertificateCategory, userId]);
+
   const openService = (service: Service) => {
     if (!user) {
       openLoginSheet();
@@ -67,6 +118,16 @@ export const CategoryServicesModal: React.FC<CategoryServicesModalProps> = ({
     }
     setSelectedService(service);
     setIsRequestModalOpen(true);
+  };
+
+  const openCertificateTemplate = (template: ResidentCertificateTemplate) => {
+    if (!user) {
+      openLoginSheet();
+      return;
+    }
+    if (!transportService) return;
+    setSelectedTemplate(template);
+    setIsCertificateModalOpen(true);
   };
 
   const closeRequestModal = () => {
@@ -78,6 +139,10 @@ export const CategoryServicesModal: React.FC<CategoryServicesModalProps> = ({
     onClose();
     navigate(`/portal/apply-as-guest?serviceId=${service.id}`);
   };
+
+  const availableCount = isBarangayCertificateCategory
+    ? filteredCertificateTemplates.length
+    : filteredServices.length;
 
   const getCategoryDescription = (cat: string) => {
     const descriptions: Record<string, string> = {
@@ -134,7 +199,46 @@ export const CategoryServicesModal: React.FC<CategoryServicesModalProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-3 pr-1 mt-4">
-          {filteredServices.length === 0 ? (
+          {isBarangayCertificateCategory ? (
+            isAuthLoading || isLoadingTemplates ? (
+              <div className="text-center py-8 text-gray-500">Loading certificate templates...</div>
+            ) : !user ? (
+              <div className="text-center py-8 text-gray-500">
+                Log in as a resident to view certificate templates for your municipality.
+              </div>
+            ) : !transportService ? (
+              <div className="text-center py-8 text-gray-500">
+                Barangay certificate intake is not configured yet.
+              </div>
+            ) : filteredCertificateTemplates.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No active certificate templates are available for your municipality.
+              </div>
+            ) : (
+              filteredCertificateTemplates.map((template) => (
+                <div
+                  key={template.id}
+                  className="border rounded-lg p-4 transition-all hover:border-primary-300 hover:bg-gray-50"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-heading-700">{template.name}</h4>
+                      <p className="text-sm text-heading-600 mt-1">
+                        {template.description || 'Barangay certificate template'}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => openCertificateTemplate(template)}
+                      className="bg-primary-600 hover:bg-primary-700 shrink-0"
+                    >
+                      Request <FiArrowRight className="ml-1" size={14} />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )
+          ) : filteredServices.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               No services found.
             </div>
@@ -238,8 +342,8 @@ export const CategoryServicesModal: React.FC<CategoryServicesModalProps> = ({
 
         <div className="flex-shrink-0 pt-4 border-t mt-4">
           <p className="text-sm text-heading-500 text-center">
-            {filteredServices.length} service
-            {filteredServices.length !== 1 ? 's' : ''} available in this
+            {availableCount} {isBarangayCertificateCategory ? 'certificate' : 'service'}
+            {availableCount !== 1 ? 's' : ''} available in this
             category
           </p>
         </div>
@@ -251,6 +355,18 @@ export const CategoryServicesModal: React.FC<CategoryServicesModalProps> = ({
             onClose={closeRequestModal}
             service={selectedService}
             onSuccess={() => { }}
+          />
+        )}
+
+        {selectedTemplate && transportService && (
+          <RequestBarangayCertificateModal
+            open={isCertificateModalOpen}
+            onClose={() => {
+              setIsCertificateModalOpen(false);
+              setSelectedTemplate(null);
+            }}
+            service={transportService}
+            template={selectedTemplate}
           />
         )}
       </DialogContent>

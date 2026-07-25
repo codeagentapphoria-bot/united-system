@@ -47,7 +47,7 @@ const InventoryPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [itemTypeFilter, setItemTypeFilter] = useState("all");
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(10);
+  const [perPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
@@ -195,22 +195,6 @@ const InventoryPage = () => {
     setItemTypeFilter("all");
     setPage(1);
   };
-
-
-
-  // Pagination handlers
-  const handlePrev = () => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  };
-
-  const handleNext = () => {
-    if (page < totalPages) {
-      setPage(page + 1);
-    }
-  };
-
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -250,9 +234,7 @@ const InventoryPage = () => {
             totalPages={totalPages}
             perPage={perPage}
             total={total}
-            handlePrev={handlePrev}
-            handleNext={handleNext}
-            setPerPage={setPerPage}
+            setPage={setPage}
           />
         </CardContent>
       </Card>

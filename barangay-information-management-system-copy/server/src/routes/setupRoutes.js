@@ -26,12 +26,16 @@ const router = express.Router();
 
 // =============================================================================
 // GET /api/setup/status
-// Returns whether a municipality has been configured for this BIMS instance.
+// Returns whether the authenticated municipality has been configured.
 // =============================================================================
-router.get("/status", async (req, res) => {
+router.get("/status", ...municipalityAdminOnly, async (req, res) => {
   try {
+    const municipalityId = req.user.target_id;
     const result = await pool.query(
-      "SELECT id, municipality_name, gis_code, setup_status FROM municipalities LIMIT 1"
+      `SELECT id, municipality_name, gis_code, setup_status
+       FROM municipalities
+       WHERE id = $1`,
+      [municipalityId]
     );
 
     if (result.rows.length === 0) {
@@ -99,9 +103,8 @@ router.post("/municipality", ...municipalityAdminOnly, async (req, res) => {
     const province = (req.body.province || '').trim();
     const region   = (req.body.region   || '').trim();
 
-    // 2. Update the existing municipality record (there is always exactly one per BIMS instance).
-    // We do NOT insert a new row — the seed placeholder is updated in-place so that
-    // bims_users.target_id = '1' remains valid and setup_status transitions to 'active'.
+    // 2. Update this admin's municipality.
+    const targetMunicipalityId = req.user?.target_id;
     const muniResult = await client.query(
       `UPDATE municipalities SET
         municipality_name  = $1,
@@ -110,10 +113,15 @@ router.post("/municipality", ...municipalityAdminOnly, async (req, res) => {
         province           = $4,
         setup_status       = 'active',
         updated_at         = CURRENT_TIMESTAMP
-      WHERE id = (SELECT id FROM municipalities ORDER BY id LIMIT 1)
+      WHERE id = $5::int
       RETURNING *`,
-      [gisMuni.name, gis_municipality_code, region, province]
+      [gisMuni.name, gis_municipality_code, region, province, targetMunicipalityId]
     );
+
+    if (muniResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Target municipality not found" });
+    }
 
     const municipality = muniResult.rows[0];
 

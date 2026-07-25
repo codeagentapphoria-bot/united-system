@@ -4,3 +4,7 @@ docs/
 .claude/
 .sisyphus/
 logs/
+.deck-artifacts/
+.playwright-mcp/
+graphify-out/
+.vercel

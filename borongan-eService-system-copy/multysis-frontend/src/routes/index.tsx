@@ -74,9 +74,6 @@ const PortalEGovernment = lazy(() =>
   import('../pages/portal/PortalEGovernment').then(m => ({ default: m.PortalEGovernment }))
 );
 const PortalEBills = lazy(() => import('../pages/portal/PortalEBills').then(m => ({ default: m.PortalEBills })));
-const PortalEServices = lazy(() =>
-  import('../pages/portal/PortalEServices').then(m => ({ default: m.PortalEServices }))
-);
 const PortalENews = lazy(() => import('../pages/portal/PortalENews').then(m => ({ default: m.PortalENews })));
 const PortalFAQs = lazy(() => import('../pages/portal/PortalFAQs').then(m => ({ default: m.PortalFAQs })));
 const PortalProfile = lazy(() => import('../pages/portal/PortalProfile').then(m => ({ default: m.PortalProfile })));
@@ -494,11 +491,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'e-services',
-        element: (
-          <LazyWrapper>
-            <PortalEServices />
-          </LazyWrapper>
-        ),
+        element: <Navigate to="/portal/e-government" replace />,
       },
       {
         path: 'e-news',

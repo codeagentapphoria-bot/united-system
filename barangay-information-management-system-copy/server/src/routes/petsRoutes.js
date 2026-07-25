@@ -23,15 +23,15 @@ router.post("/public/search", searchPets);
 router.post("/search", ...allUsers, searchPets);
 router.post(
   "/pet",
-  createUploader("pets", [{ name: "picturePath", maxCount: 1 }]),
   ...allUsers,
+  createUploader("pets", [{ name: "picturePath", maxCount: 1 }]),
   upsertPet,
   smartInvalidateCache()
 );
 router.put(
   "/:petId/pet",
-  createUploader("pets", [{ name: "picturePath", maxCount: 1 }]),
   ...allUsers,
+  createUploader("pets", [{ name: "picturePath", maxCount: 1 }]),
   upsertPet,
   smartInvalidateCache()
 );
@@ -40,8 +40,8 @@ router.delete("/:petId/pet", ...allUsers, deletePet, smartInvalidateCache());
 // Image upload route for pet sync process
 router.post(
   "/sync/pet/image",
-  createUploader("pets", [{ name: "picturePath", maxCount: 1 }]),
   ...allUsers,
+  createUploader("pets", [{ name: "picturePath", maxCount: 1 }]),
   (req, res) => {
     try {
       if (!req.files?.picturePath) {

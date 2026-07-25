@@ -36,7 +36,7 @@ import {
   generateSetupToken,
   validateSetupToken,
 } from "../controllers/barangayControllers.js";
-import { allUsers, municipalityUsersOnly } from "../middlewares/auth.js";
+import { allUsers, municipalityAdminOnly } from "../middlewares/auth.js";
 import createUploader from "../middlewares/createUploader.js";
 
 const router = express.Router();
@@ -48,7 +48,7 @@ const router = express.Router();
 router.get("/public/list/barangay", smartCache(), barangayList);
 router.get("/public/list/:barangayId/official", smartCache(), officialList);
 router.get("/public/:barangayId/barangay", smartCache(), barangayInfo);
-router.post("/generate-setup-token", generateSetupToken);
+router.post("/generate-setup-token", ...municipalityAdminOnly, generateSetupToken);
 router.post("/validate-setup-token", validateSetupToken);
 
 // =============================================================================

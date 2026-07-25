@@ -103,6 +103,8 @@ This replaces the fuzzy-match bridge table with a direct classification tag syst
 
 ## Phase 1 — Unified Schema Definition
 
+> **⚠️ Historical (v1 merge as-executed).** Phases 1–2 and Phase 4 document the original BIMS+E-Services merge/match procedure run before the **Schema v2** refactor (2026-03-25). v2 superseded parts of this: the `citizen_resident_mapping` bridge and the `citizens`/`addresses`/`subscribers` tables it depended on were **dropped**, replaced by the unified `residents` table + `resident_classifications` tags. See **Schema v2 Changes** and **Conflicts & Resolutions (v2)** above for current state. Where these phases write `citizen_resident_mapping` or read `citizens`, the live v2 equivalent is `resident_classifications` keyed on `resident_id`.
+
 **Goal:** Produce the final unified `schema.sql` in `united-database/`.
 
 ### Full Table Inventory (v2)
@@ -163,16 +165,16 @@ This replaces the fuzzy-match bridge table with a direct classification tag syst
 | `government_programs` | Government welfare programs |
 | `beneficiary_program_pivots` | Pivot: beneficiaries ↔ programs |
 | `otp_verifications` | OTP codes for phone verification |
-| `addresses` | Address reference lookup |
+| `addresses` | Address reference lookup — **dropped in v2** (fields embedded in residents/households) |
 | `faqs` | FAQ content management |
 
-**New (bridge):**
+**Bridge (v1 only — superseded in v2):**
 
 | Table | Notes |
 |---|---|
-| `citizen_resident_mapping` | Links E-Services `citizens` to BIMS `residents` |
+| `citizen_resident_mapping` | v1 fuzzy-match bridge linking E-Services `citizens` to BIMS `residents`. **Dropped in v2** — replaced by `resident_classifications` (`classification_type` + CONFIRMED/PENDING/NEEDS_REVIEW/NO_MATCH status). |
 
-**Total: ~55 tables**
+**Total: ~55 tables (v1 merge); v2 drops `citizen_resident_mapping`, `citizens`, `non_citizens`, `subscribers`, `addresses`, `puroks`.**
 
 ### Tasks
 
@@ -182,10 +184,10 @@ This replaces the fuzzy-match bridge table with a direct classification tag syst
    npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script
    ```
    Then rename `users` → `eservice_users` in the output.
-3. Add `citizen_resident_mapping` DDL (see above).
+3. ~~Add `citizen_resident_mapping` DDL (see above).~~ **v2: skip** — bridge replaced by `resident_classifications`.
 4. Prepend `CREATE EXTENSION IF NOT EXISTS postgis;` at the top.
 5. Combine everything into `united-database/schema.sql` with clear section comments (`-- === BIMS TABLES ===`, `-- === ESERVICES TABLES ===`, `-- === BRIDGE TABLES ===`).
-6. Produce `united-database/seed.sql` for reference/lookup data: `addresses`, `services`, `social_amelioration_settings`, `faqs`.
+6. Produce `united-database/seed.sql` for reference/lookup data: `services`, `social_amelioration_settings`, `faqs`. (v2: `addresses` dropped — no longer seeded.)
 
 **Deliverables:** `united-database/schema.sql`, `united-database/seed.sql`
 
@@ -203,7 +205,7 @@ All scripts live in `united-database/migrations/`:
 |---|---|
 | `01_migrate_bims.sql` | `INSERT INTO ... SELECT FROM` for all BIMS tables via `dblink`. Renames `users` → `bims_users` in the insert target. |
 | `02_migrate_eservices.sql` | Same for all E-Services tables. Renames `users` → `eservice_users` in the insert target. |
-| `03_fuzzy_match.sql` | Runs the fuzzy matching algorithm; populates `citizen_resident_mapping`. |
+| `03_fuzzy_match.sql` | One-time v1 fuzzy match against the *old* `citizens`/`residents` source data. **v2:** output now seeds `resident_classifications` (CONFIRMED/PENDING/NEEDS_REVIEW/NO_MATCH), not the dropped `citizen_resident_mapping` table. |
 | `04_verify_integrity.sql` | Row count checks, FK validation, orphan record detection. |
 | `rollback.sql` | TRUNCATE all tables in reverse dependency order for clean re-runs during development. |
 
@@ -298,6 +300,8 @@ E-Services uses Prisma ORM. The `users` → `eservice_users` rename is a one-lin
 ---
 
 ## Phase 4 — Fuzzy Matching & Data Validation
+
+> **v2:** the match output lands in `resident_classifications` (status `CONFIRMED`/`PENDING`/`NEEDS_REVIEW`/`NO_MATCH`), not the dropped `citizen_resident_mapping`. The queries below name the v1 bridge for the historical record.
 
 **Goal:** Run the fuzzy matching pipeline and verify complete data integrity across both migrated datasets.
 

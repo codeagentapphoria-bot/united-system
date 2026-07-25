@@ -285,9 +285,23 @@ class User {
     }
   }
 
-  static async getAdminUsers() {
+  static async getAdminUsers(scopeUser) {
     const client = await pool.connect();
     try {
+      let where = "WHERE role = 'admin'";
+      const values = [];
+
+      if (scopeUser?.target_type === "municipality") {
+        values.push(scopeUser.target_id);
+        where += ` AND (
+          (target_type = 'municipality' AND target_id = $1)
+          OR (target_type = 'barangay' AND target_id IN (SELECT id FROM barangays WHERE municipality_id = $1))
+        )`;
+      } else if (scopeUser?.target_type === "barangay") {
+        values.push(scopeUser.target_id);
+        where += " AND target_type = 'barangay' AND target_id = $1";
+      }
+
       const result = await client.query(`
         SELECT 
           id,
@@ -301,9 +315,9 @@ class User {
           created_at,
           updated_at
         FROM bims_users
-        WHERE role = 'admin'
+        ${where}
         ORDER BY full_name ASC
-      `);
+      `, values);
       return result.rows;
     } catch (error) {
       logger.error("Failed to fetch admin users", error);

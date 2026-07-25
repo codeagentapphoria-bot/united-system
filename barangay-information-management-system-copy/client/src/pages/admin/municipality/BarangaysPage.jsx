@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { CompactPagination } from "@/components/ui/compact-pagination";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -246,8 +247,9 @@ const BarangaysPage = () => {
       
       // Handle successful creation with auto-refresh
       if (emailResult.success) {
+        const provider = emailResult.provider === "brevo" ? "Brevo" : "the email service";
         await handleCrudSuccess('create', {
-          message: `Barangay ${values.barangayName} has been created successfully and setup email sent!`
+          message: `Barangay ${values.barangayName} has been created successfully and setup email accepted by ${provider}.`
         });
       } else {
         // Barangay created but email failed
@@ -1022,29 +1024,13 @@ const BarangaysPage = () => {
             )}
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 px-4 py-3 border-t">
-                <div className="text-sm text-gray-500">
-                  Page {currentPage} of {totalPages}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
+              <CompactPagination
+                page={currentPage}
+                totalPages={totalPages}
+                total={filteredAndSortedBarangays.length}
+                perPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+              />
             )}
           </TabsContent>
 
@@ -1471,22 +1457,27 @@ const BarangaysPage = () => {
 
                         setIsAddingAdmin(true);
                         try {
+                          const barangayId = selectedBarangay?.id ?? selectedBarangay?.barangay_id;
+                          if (!barangayId) {
+                            throw new Error("Missing barangay ID. Please refresh and try again.");
+                          }
+
                           // 1. Create user
                           await api.post("/user", {
                             targetType: "barangay",
-                            targetId: String(selectedBarangay.id),
+                            targetId: String(barangayId),
                             fullname: adminForm.fullname,
                             email: adminForm.email,
                             role: "admin",
                           });
 
                           // 2. Send setup email
-                          await sendSetupEmail({
+                          const emailResult = await sendSetupEmail({
                             barangayName: selectedBarangay.barangay_name,
                             barangayCode: selectedBarangay.barangay_code,
                             fullName: adminForm.fullname,
                             email: adminForm.email,
-                            barangayId: selectedBarangay.id,
+                            barangayId,
                             toast,
                           });
 
@@ -1497,7 +1488,15 @@ const BarangaysPage = () => {
                           setAdminForm({ fullname: "", email: "" });
                           setAdminFormErrors({});
                           setIsAdminDialogOpen(false);
-                          toast({ title: "Admin added", description: `Setup email sent to ${adminForm.email}` });
+                          if (emailResult.success) {
+                            toast({ title: "Admin added", description: `Setup email accepted for ${adminForm.email}` });
+                          } else {
+                            toast({
+                              title: "Admin added, email failed",
+                              description: emailResult.error || "The account was created, but the setup email was not sent.",
+                              variant: "destructive",
+                            });
+                          }
                         } catch (err) {
                           const msg = err.response?.data?.message || "Failed to add admin";
                           toast({ title: "Error", description: msg, variant: "destructive" });

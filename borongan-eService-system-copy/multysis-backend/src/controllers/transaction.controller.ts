@@ -36,7 +36,7 @@ export const createTransactionController = async (
       return;
     }
 
-    const transaction = await createTransaction(req.body);
+    const transaction = await createTransaction(req.body, req.user);
 
     // Emit WebSocket event for new transaction with full data
     emitNewTransaction({
@@ -69,7 +69,7 @@ export const createTransactionController = async (
       data: transaction,
     });
   } catch (error: any) {
-    res.status(400).json({
+    res.status(error.statusCode || error.status || 400).json({
       status: 'error',
       message: error.message || 'Failed to create transaction',
     });
@@ -202,7 +202,7 @@ export const updateTransactionController = async (
     const { getTransaction } = await import('../services/transaction.service');
     const oldTransaction = await getTransaction(req.params.id);
 
-    const transaction = await updateTransaction(req.params.id, req.body);
+    const transaction = await updateTransaction(req.params.id, req.body, req.user);
 
     // Emit WebSocket event for transaction update with old values
     emitTransactionUpdate(transaction.id, {
@@ -243,7 +243,7 @@ export const updateTransactionController = async (
       data: transaction,
     });
   } catch (error: any) {
-    res.status(400).json({
+    res.status(error.statusCode || error.status || 400).json({
       status: 'error',
       message: error.message || 'Failed to update transaction',
     });
@@ -399,7 +399,7 @@ export const requestTransactionUpdateController = async (
       data: transaction,
     });
   } catch (error: any) {
-    res.status(400).json({
+    res.status(error.statusCode || error.status || 400).json({
       status: 'error',
       message: error.message || 'Failed to request transaction update',
     });
@@ -422,7 +422,7 @@ export const adminRequestTransactionUpdateController = async (
       return;
     }
 
-    const transaction = await adminRequestTransactionUpdate(transactionId, description);
+    const transaction = await adminRequestTransactionUpdate(transactionId, description, req.user);
 
     res.status(200).json({
       status: 'success',
@@ -452,14 +452,14 @@ export const reviewTransactionUpdateRequestController = async (
       return;
     }
 
-    const transaction = await reviewTransactionUpdateRequest(transactionId, approved);
+    const transaction = await reviewTransactionUpdateRequest(transactionId, approved, req.user);
 
     res.status(200).json({
       status: 'success',
       data: transaction,
     });
   } catch (error: any) {
-    res.status(400).json({
+    res.status(error.statusCode || error.status || 400).json({
       status: 'error',
       message: error.message || 'Failed to review transaction update request',
     });
@@ -476,7 +476,7 @@ export const getAppointmentsController = async (req: AuthRequest, res: Response)
       ? Math.min(limitRaw, 500)
       : undefined;
 
-    const appointments = await getAppointments(startDate, endDate, date, limit);
+    const appointments = await getAppointments(startDate, endDate, date, limit, req.user?.id);
 
     res.status(200).json({
       status: 'success',

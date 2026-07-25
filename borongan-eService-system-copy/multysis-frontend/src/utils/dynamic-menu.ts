@@ -62,11 +62,8 @@ export const buildEGovernmentSubmenu = (services: Service[]): MenuEntry[] => {
     categoryGroups.get(category)!.push(service);
   });
 
-  // Barangay certificates are handled by barangay admin/staff in the BIMS — hide from municipality admin sidebar
-  categoryGroups.delete('Barangay Certificate');
-
   // Define category order
-  const categoryOrder = ['Civil Registry Services', 'Tax Services', 'Other Services'];
+  const categoryOrder = ['Barangay Certificate', 'Civil Registry Services', 'Tax Services', 'Other Services'];
   
   // Sort categories: defined categories first (in order), then others alphabetically
   const sortedCategories = Array.from(categoryGroups.keys()).sort((a, b) => {
@@ -96,4 +93,3 @@ export const buildEGovernmentSubmenu = (services: Service[]): MenuEntry[] => {
 
   return menuEntries;
 };
-

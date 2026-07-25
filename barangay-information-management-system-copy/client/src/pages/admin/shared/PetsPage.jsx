@@ -92,7 +92,6 @@ const PetsPage = () => {
     setFilterPurok,
     handleSort,
     setPage,
-    setPerPage,
     setSelectedPet,
     fetchPet,
     createPet,
@@ -265,21 +264,8 @@ const PetsPage = () => {
     }
   };
 
-  // Pagination handlers
   const totalPages = pagination.totalPages;
   const total = pagination.totalRecords;
-
-  const handlePrev = () => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  };
-
-  const handleNext = () => {
-    if (page < totalPages) {
-      setPage(page + 1);
-    }
-  };
 
   const calculateAge = (birthdate) => {
     if (!birthdate) return "-";
@@ -441,9 +427,7 @@ const PetsPage = () => {
         totalPages={totalPages}
         perPage={perPage}
         total={total}
-        handlePrev={handlePrev}
-        handleNext={handleNext}
-        setPerPage={setPerPage}
+        setPage={setPage}
       />
 
       {/* Edit Details Dialog */}

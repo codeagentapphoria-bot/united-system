@@ -16,6 +16,7 @@ import { maintenanceMiddleware } from './middleware/maintenance';
 import { addDevLog, startDevDashboardUpdates } from './services/dev.service';
 import { setSocketInstance } from './services/socket.service';
 import { initializeSocket } from './socket/socket';
+import { parseCorsOrigins } from './utils/corsOrigins';
 import { parseTimeString } from './utils/timeParser';
 
 // Load environment variables
@@ -38,16 +39,11 @@ const validateEnvironment = (): void => {
   }
 
   // Validate CORS_ORIGIN — supports comma-separated list of URLs
-  const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5174';
-  corsOrigin
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean)
-    .forEach((origin) => {
-      if (!origin.match(/^https?:\/\/.+/)) {
-        errors.push(`CORS_ORIGIN entry '${origin}' must be a valid URL`);
-      }
-    });
+  parseCorsOrigins().forEach((origin) => {
+    if (!origin.match(/^https?:\/\/.+/)) {
+      errors.push(`CORS_ORIGIN entry '${origin}' must be a valid URL`);
+    }
+  });
 
   // Validate timeout environment variables
   // Validate ACCESS_TOKEN_EXPIRES (default: 10m, range: 5-15 min)
@@ -116,11 +112,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 // Supports comma-separated list of allowed origins (BIMS frontend + E-Services frontend)
-const _rawOrigins = process.env.CORS_ORIGIN || 'http://localhost:5174';
-const _allowedOrigins = _rawOrigins
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
+const _allowedOrigins = parseCorsOrigins();
 const corsOrigin = _allowedOrigins[0]; // for backward-compat usages below
 const apiBaseUrl = process.env.API_BASE_URL || `http://localhost:${PORT}`;
 
@@ -365,6 +357,7 @@ app.get('/api', (_req: Request, res: Response) => {
 import addressRoutes from './routes/address.routes';
 import adminRoutes from './routes/admin.routes';
 import authRoutes from './routes/auth.routes';
+import certificateTemplateRoutes from './routes/certificate-template.routes';
 import portalRegistrationRoutes from './routes/portal-registration.routes';
 import portalHouseholdRoutes from './routes/portal-household.routes';
 import portalClassificationRoutes from './routes/portal-classification.routes';
@@ -418,6 +411,8 @@ app.use('/api/portal-registration', apiLimiter, portalRegistrationRoutes);
 app.use('/api/portal/household', apiLimiter, portalHouseholdRoutes);
 // Resident portal BIMS classification display (read-only)
 app.use('/api/portal/classifications', apiLimiter, portalClassificationRoutes);
+// Resident portal BIMS certificate template catalog (read-only)
+app.use('/api/portal/certificates', apiLimiter, certificateTemplateRoutes);
 // Resident portal government programs discovery + application; admin application review
 app.use('/api/portal', apiLimiter, portalProgramsRoutes);
 app.use('/api/transactions', apiLimiter, transactionRoutes);
