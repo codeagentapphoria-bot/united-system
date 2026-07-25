@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { GovernmentProgramType } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import {
-  getFleetStats, getFleetLocations,
+  getFleetStats,
   getBuses, getBusById, getAvailableRoutes, getAvailableDrivers,
   createBus, updateBus, deleteBus, assignDriverToBus, unassignDriverFromBus,
   getRoutes, getRouteById, getRouteWithStops, createRoute, updateRoute, deleteRoute,

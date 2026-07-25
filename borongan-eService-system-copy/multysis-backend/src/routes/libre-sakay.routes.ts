@@ -3,7 +3,7 @@ import { body } from 'express-validator';
 import { verifyAdmin } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 import {
-  getFleetStatsController, getFleetLocationsController,
+  getFleetStatsController,
   getBusesController, getBusByIdController, getAvailableRoutesController,
   getAvailableDriversController, createBusController, updateBusController,
   deleteBusController, assignDriverController, unassignDriverController,
@@ -52,7 +52,6 @@ router.get('/dashboard/stats', getDashboardStatsController);
 
 // Fleet
 router.get('/fleet/stats', getFleetStatsController);
-router.get('/fleet/locations', getFleetLocationsController);
 
 // Buses
 router.get('/buses', validate(getBusesValidation), getBusesController);

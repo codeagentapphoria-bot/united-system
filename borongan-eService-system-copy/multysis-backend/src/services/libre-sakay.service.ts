@@ -610,7 +610,6 @@ export const reorderStopsInRoute = async (routeId: string, stopIds: string[]) =>
     if (resetError) throw new Error('Failed to reorder stops: ' + resetError.message);
   }
   // route_stops has no UNIQUE(route_id, stop_id) constraint (verified via Supabase
-  // OpenAPI introspection â€” PK is a UUID `id`), so we cannot use upsert+onConflict.
   // Fire one update per stop in parallel via Promise.all.
   const results = await Promise.all(
     stopIds.map((stopId, idx) =>
@@ -693,7 +692,7 @@ export const getDashboardStats = async () => {
   ]);
 
   const ridesThisWeek = ridesWeek.data?.length ?? 0;
-  // ride_logs has no passenger_count column â€” each row represents one boarding.
+  // ride_logs has no passenger_count column — each row represents one boarding.
   // Until a passenger_count column is added, treat each ride as 1 passenger.
   const passengersThisWeek = ridesThisWeek;
 
