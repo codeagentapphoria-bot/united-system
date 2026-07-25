@@ -1399,6 +1399,7 @@ export const getAppointments = async (
   startDate?: Date,
   endDate?: Date,
   date?: Date,
+  limit?: number,
   adminUserId?: string
 ) => {
   const where: any = {

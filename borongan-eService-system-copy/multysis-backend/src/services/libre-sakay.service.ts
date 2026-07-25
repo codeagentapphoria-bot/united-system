@@ -72,6 +72,86 @@ export interface PaginatedResult<T> {
   totalPages: number;
 }
 
+
+export interface FleetLocation {
+  bus_id: string;
+  plate_number: string;
+  model: string | null;
+  capacity: number;
+  latitude: number;
+  longitude: number;
+  speed: number;
+  heading: number;
+  status: 'moving' | 'parked';
+  route_name: string | null;
+  driver_name: string | null;
+  barangay_name: string | null;
+  updated_at: string;
+}
+
+// =============================================================================
+// FLEET LOCATIONS (live map data for /admin/libre-sakay/fleet)
+// =============================================================================
+
+export const getFleetLocations = async (): Promise<FleetLocation[]> => {
+  // Fetch active buses with their basic info
+  const { data: buses, error: busError } = await supabase()
+    .from('buses')
+    .select('id, plate_number, model, capacity')
+    .eq('is_active', true);
+
+  if (busError) throw new Error('Failed to fetch bus fleet: ' + busError.message);
+
+  const busIds = (buses ?? []).map(b => b.id);
+  if (busIds.length === 0) return [];
+
+  // Fetch latest location per bus using the pre-built view (already deduplicated, includes barangay_name)
+  const { data: locations, error: locError } = await supabase()
+    .from('latest_bus_locations')
+    .select('bus_id, latitude, longitude, speed, heading, recorded_at, barangay_name')
+    .in('bus_id', busIds);
+
+  if (locError) throw new Error('Failed to fetch locations: ' + locError.message);
+
+  const locationMap = new Map((locations ?? []).map(row => [row.bus_id, row as Record<string, unknown>]));
+
+  // Fetch route and driver info
+  const { data: busDetails, error: detailError } = await supabase()
+    .from('buses')
+    .select('id, route_id, routes(name), driver_buses(id, profiles(full_name))')
+    .in('id', busIds);
+
+  if (detailError) throw new Error('Failed to fetch bus details: ' + detailError.message);
+
+  const detailMap = new Map((busDetails ?? []).map((b: any) => [b.id, b]));
+
+  const result: FleetLocation[] = [];
+  for (const bus of buses ?? []) {
+    const loc = locationMap.get(bus.id);
+    const detail = detailMap.get(bus.id) as any;
+    const speed = (loc?.speed as number) ?? 0;
+    const driver = detail?.driver_buses?.[0]?.profiles?.full_name ?? null;
+    const route = detail?.routes?.name ?? null;
+
+    result.push({
+      bus_id: bus.id,
+      plate_number: bus.plate_number,
+      model: bus.model ?? null,
+      capacity: bus.capacity ?? 0,
+      latitude: (loc?.latitude as number) ?? 0,
+      longitude: (loc?.longitude as number) ?? 0,
+      speed,
+      heading: (loc?.heading as number) ?? 0,
+      status: speed > 5 ? 'moving' : 'parked',
+      route_name: route,
+      driver_name: driver,
+      barangay_name: (loc?.barangay_name as string | null) ?? null,
+      updated_at: (loc?.recorded_at as string) ?? new Date().toISOString(),
+    });
+  }
+
+  return result;
+};
 // =============================================================================
 // FLEET STATS (read-only)
 // =============================================================================
@@ -153,7 +233,7 @@ export const getAvailableRoutes = async () => {
 };
 
 export const getAvailableDrivers = async () => {
-  // All drivers (not just unassigned — frontend filters)
+  // All drivers (not just unassigned â€” frontend filters)
   const { data, error } = await supabase()
     .from('profiles')
     .select('id, full_name, phone')
@@ -322,7 +402,7 @@ export const getDriverById = async (id: string) => {
 };
 
 export const createDriver = async (email: string, full_name: string, phone: string, password: string) => {
-  // 1. Create auth user (auto-confirm email — same as manual creation in Supabase dashboard with "Send email to verify" disabled)
+  // 1. Create auth user (auto-confirm email â€” same as manual creation in Supabase dashboard with "Send email to verify" disabled)
   const { data: authData, error: authError } = await supabase().auth.admin.createUser({
     email,
     password,
@@ -356,13 +436,13 @@ export const updateDriver = async (
 };
 
 export const deleteDriver = async (id: string) => {
-  // Soft delete — set is_active = false
+  // Soft delete â€” set is_active = false
   const { error } = await supabase().from('profiles').update({ is_active: false }).eq('id', id);
   if (error) throw new Error('Failed to delete driver: ' + error.message);
 };
 
 export const deleteDriverPermanent = async (id: string) => {
-  // Hard delete — permanently removes the driver record
+  // Hard delete â€” permanently removes the driver record
   // Also remove driver-bus assignments first to avoid FK issues
 
   // 1. Remove driver-bus assignments
@@ -530,7 +610,6 @@ export const reorderStopsInRoute = async (routeId: string, stopIds: string[]) =>
     if (resetError) throw new Error('Failed to reorder stops: ' + resetError.message);
   }
   // route_stops has no UNIQUE(route_id, stop_id) constraint (verified via Supabase
-  // OpenAPI introspection — PK is a UUID `id`), so we cannot use upsert+onConflict.
   // Fire one update per stop in parallel via Promise.all.
   const results = await Promise.all(
     stopIds.map((stopId, idx) =>
@@ -661,7 +740,7 @@ export const getRideLogs = async (page = 1, limit = 20, filters: RideLogFilters 
   if (filters.from) query = query.gte('boarded_at', filters.from + 'T00:00:00+08:00');
   if (filters.to) query = query.lte('boarded_at', filters.to + 'T23:59:59+08:00');
   if (filters.route_id) {
-    // Filter via buses.route_id — fetch all ride_logs then filter in JS since Supabase
+    // Filter via buses.route_id â€” fetch all ride_logs then filter in JS since Supabase
     // doesn't support nested FK filtering on referenced tables in the same query
     const { data: busesWithRoute } = await supabase()
       .from('buses')
@@ -714,7 +793,7 @@ export const getRideLogs = async (page = 1, limit = 20, filters: RideLogFilters 
           : null;
       }
 
-      // Step 4: Fallback — for scanned logs where beneficiary mapping was not found,
+      // Step 4: Fallback â€” for scanned logs where beneficiary mapping was not found,
       // directly query e-service DB using residentId (display ID like "BRGN-2026-0010001")
       const unfoundLogs = scannedLogs.filter((log: any) => !log.resident);
       if (unfoundLogs.length > 0) {
@@ -787,7 +866,7 @@ export const getRidesTrend = async (days = 7): Promise<{ date: string; rides: nu
     }).format(boardedAt);
     if (byDay[day]) {
       byDay[day].rides++;
-      // ride_logs has no passenger_count — each ride = 1 passenger for now
+      // ride_logs has no passenger_count â€” each ride = 1 passenger for now
       byDay[day].passengers += 1;
     }
   }

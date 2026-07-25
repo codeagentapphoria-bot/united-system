@@ -476,7 +476,7 @@ export const getAppointmentsController = async (req: AuthRequest, res: Response)
       ? Math.min(limitRaw, 500)
       : undefined;
 
-    const appointments = await getAppointments(startDate, endDate, date, req.user?.id);
+    const appointments = await getAppointments(startDate, endDate, date, limit, req.user?.id);
 
     res.status(200).json({
       status: 'success',

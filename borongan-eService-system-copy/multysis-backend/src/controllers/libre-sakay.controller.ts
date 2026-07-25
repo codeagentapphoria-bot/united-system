@@ -45,6 +45,17 @@ export const getFleetStatsController = async (_req: AuthRequest, res: Response):
 };
 
 // =============================================================================
+
+export const getFleetLocationsController = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const locations = await getFleetLocations();
+    res.status(200).json({ status: 'success', data: locations });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+
 // BUSES
 // =============================================================================
 
