@@ -163,6 +163,11 @@ export const libreSakayService = {
     return response.data.data;
   },
 
+  async getFleetLocations(): Promise<FleetBus[]> {
+    const response = await api.get(`${BASE}/fleet/locations`);
+    return response.data.data;
+  },
+
   // Buses
   async getBuses(page = 1, limit = 20): Promise<PaginatedResponse<Bus>> {
     const response = await api.get(`${BASE}/buses`, { params: { page, limit } });
